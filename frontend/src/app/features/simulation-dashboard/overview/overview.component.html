@@ -1,9 +1,9 @@
 <!-- ============================================================
      Section Header
      ============================================================ -->
-<div style="margin-bottom: 24px;" class="animate-fade-in">
-  <h2 style="font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 4px;">Übersicht</h2>
-  <p style="font-size: 14px; color: var(--ink-3);">Live-Aktivität, Kennzahlen und Persona-Stimmungen</p>
+<div style="margin-bottom: 28px;" class="animate-fade-in">
+  <h2 class="page-title" style="font-size: 26px; margin-bottom: 6px;">Übersicht</h2>
+  <p style="font-size: 15px; color: var(--ink-2);">Live-Aktivität, Kennzahlen und Persona-Stimmungen</p>
 </div>
 
 <!-- ============================================================
@@ -13,46 +13,147 @@
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in" style="margin-bottom: 24px;"
        role="region" aria-label="Kennzahlen">
 
-    <div class="card card-hover" style="padding: 20px;">
-      <i class="pi pi-chart-line" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
-      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+    <div class="card card-hover animate-breathe" appCardGlow style="padding: 22px;">
+      <i class="pi pi-chart-line" style="font-size: 24px; color: var(--primary); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(45,125,255,0.4);"></i>
+      <div class="glow-text" style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.progress_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
-      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Fortschritt</div>
-      <div style="font-size: 12px; color: var(--ink-4); margin-top: 2px;">
+      <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Fortschritt</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
         Tag {{ stats()!.current_tick }} / {{ stats()!.total_ticks }}
       </div>
     </div>
 
-    <div class="card card-hover" style="padding: 20px;">
-      <i class="pi pi-users" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
-      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 0.5s infinite;">
+      <i class="pi pi-users" style="font-size: 24px; color: var(--cyan); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(0,196,238,0.4);"></i>
+      <div class="glow-text-cyan" style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.persona_count }}
       </div>
-      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Personas</div>
-      <div style="font-size: 12px; color: var(--ink-4); margin-top: 2px;">
+      <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Personas</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
         davon {{ skepticCount() }} Skeptiker
       </div>
     </div>
 
-    <div class="card card-hover" style="padding: 20px;">
-      <i class="pi pi-comment" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
-      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 1s infinite;">
+      <i class="pi pi-comment" style="font-size: 24px; color: var(--primary); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(45,125,255,0.4);"></i>
+      <div class="glow-text" style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.post_count }}
       </div>
-      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Beiträge</div>
-      <div style="font-size: 12px; color: var(--ink-4); margin-top: 2px;">
+      <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Beiträge</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
         + {{ stats()!.comment_count }} Kommentare
       </div>
     </div>
 
-    <div class="card card-hover" style="padding: 20px;">
-      <i class="pi pi-thumbs-up" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
-      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 1.5s infinite;">
+      <i class="pi pi-thumbs-up" style="font-size: 24px; color: var(--purple); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(124,58,237,0.4);"></i>
+      <div style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 20px rgba(124,58,237,0.3);">
         {{ stats()!.reaction_count }}
       </div>
-      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Reaktionen</div>
-      <div style="font-size: 12px; color: var(--ink-4); margin-top: 2px;">Likes · Dislikes · Shares</div>
+      <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Reaktionen</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">Likes · Dislikes · Shares</div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================
+     Marktforschungs-KPIs
+     ============================================================ -->
+@if (kpis()) {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in" style="margin-bottom: 24px;"
+       role="region" aria-label="Marktforschungs-KPIs">
+
+    <!-- NPS -->
+    <div class="card card-hover" appCardGlow style="padding: 20px; position: relative; overflow: hidden;">
+      <div class="flex items-center justify-between" style="margin-bottom: 12px;">
+        <i class="pi pi-gauge" style="font-size: 22px; color: var(--primary); display: block;"></i>
+        <div echarts [options]="npsChartOption()" style="width: 56px; height: 56px;"></div>
+      </div>
+      <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
+           [style.color]="getNpsColor(kpis().nps.score)">
+        {{ kpis().nps.score }}<span style="font-size: 16px; font-weight: 500; color: var(--ink-3);"> NPS</span>
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Net Promoter Score</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        {{ kpis().nps.promoters }} Promoter · {{ kpis().nps.detractors }} Detractor
+      </div>
+    </div>
+
+    <!-- Brand Awareness -->
+    <div class="card card-hover" appCardGlow style="padding: 20px;">
+      <i class="pi pi-eye" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
+      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+        {{ kpis().brand_awareness.awareness_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Brand Awareness</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        {{ kpis().brand_awareness.aware_count }} / {{ kpis().brand_awareness.total }} aktiv
+      </div>
+    </div>
+
+    <!-- Sentiment -->
+    <div class="card card-hover" appCardGlow style="padding: 20px;">
+      <i class="pi pi-heart" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
+      <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
+           [style.color]="kpis().sentiment.overall > 0.1 ? '#15803d' : kpis().sentiment.overall < -0.1 ? '#c8321f' : '#6b675c'">
+        {{ kpis().sentiment.positive_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">{{ getSentimentLabel(kpis().sentiment.overall) }}</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        {{ kpis().sentiment.negative_pct }}% negativ · Score {{ kpis().sentiment.overall }}
+      </div>
+    </div>
+
+    <!-- Adoption -->
+    <div class="card card-hover" appCardGlow style="padding: 20px;">
+      <i class="pi pi-check-circle" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
+      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+        {{ kpis().adoption.adoption_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Adoption Rate</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        {{ kpis().adoption.adopted_count }} / {{ kpis().adoption.total }} positiv
+      </div>
+    </div>
+  </div>
+
+  <!-- Zweite KPI-Reihe: Virality, Engagement, Churn -->
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-4 animate-fade-in" style="margin-bottom: 24px;">
+
+    <div class="card card-hover" style="padding: 20px;">
+      <i class="pi pi-share-alt" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
+      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+        {{ kpis().virality.coefficient }}
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Virality Coefficient</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        Ø {{ kpis().virality.avg_comments }} Kommentare · {{ kpis().virality.avg_reactions }} Reaktionen
+      </div>
+    </div>
+
+    <div class="card card-hover" style="padding: 20px;">
+      <i class="pi pi-bolt" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
+      <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
+        {{ kpis().total_influence_events }}
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Influence Events</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        {{ kpis().total_posts }} Beiträge gesamt
+      </div>
+    </div>
+
+    <div class="card card-hover" style="padding: 20px;">
+      <i class="pi pi-exclamation-triangle" style="font-size: 22px; margin-bottom: 12px; display: block;"
+         [style.color]="kpis().churn_risk.at_risk_pct > 20 ? '#c8321f' : '#a16207'"></i>
+      <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
+           [style.color]="kpis().churn_risk.at_risk_pct > 20 ? '#c8321f' : kpis().churn_risk.at_risk_pct > 10 ? '#a16207' : '#15803d'">
+        {{ kpis().churn_risk.at_risk_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
+      </div>
+      <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Churn Risk</div>
+      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+        {{ kpis().churn_risk.high_risk_count }} hoch · {{ kpis().churn_risk.medium_risk_count }} mittel
+      </div>
     </div>
   </div>
 }
@@ -66,7 +167,7 @@
   <section class="card lg:col-span-2" style="padding: 24px;" role="region" aria-label="Aktivitäts-Diagramm">
     <header class="flex items-center justify-between" style="margin-bottom: 16px;">
       <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Aktivität pro Tag</h3>
-      <span class="font-mono" style="font-size: 11px; color: var(--ink-4);">
+      <span class="font-mono" style="font-size: 12px; color: var(--ink-3);">
         {{ ticks().length }} Ticks
       </span>
     </header>
@@ -84,7 +185,7 @@
   <section class="card" style="padding: 24px;" role="region" aria-label="Stimmungs-Verteilung">
     <header class="flex items-center justify-between" style="margin-bottom: 16px;">
       <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Stimmungen</h3>
-      <span class="font-mono" style="font-size: 11px; color: var(--ink-4);">
+      <span class="font-mono" style="font-size: 12px; color: var(--ink-3);">
         n = {{ personas().length }}
       </span>
     </header>
@@ -100,24 +201,88 @@
 </div>
 
 <!-- ============================================================
+     Engagement Rate + Dimension Breakdown
+     ============================================================ -->
+@if (kpis()) {
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 animate-fade-in-delay-1" style="margin-bottom: 24px;">
+
+    <!-- Engagement Rate Chart -->
+    <section class="card lg:col-span-2" style="padding: 24px;" role="region" aria-label="Engagement Rate">
+      <header class="flex items-center justify-between" style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Engagement Rate pro Tag</h3>
+        <span class="font-mono" style="font-size: 12px; color: var(--ink-3);">
+          Interaktionen / Post
+        </span>
+      </header>
+      @if (kpis().engagement_rate?.length > 0) {
+        <div echarts [options]="engagementChartOption()" style="height: 240px;"></div>
+      } @else {
+        <div class="flex items-center justify-center" style="height: 240px; color: var(--ink-3); font-size: 14px;">
+          Keine Daten vorhanden
+        </div>
+      }
+    </section>
+
+    <!-- Opinion Dimension Breakdown -->
+    <section class="card" style="padding: 24px;" role="region" aria-label="Meinungsdimensionen">
+      <header style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Meinungsprofil</h3>
+        <p style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">Durchschnitt über alle Personas</p>
+      </header>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        @for (entry of dimensionEntries(); track entry.key) {
+          <div>
+            <div class="flex justify-between mb-1" style="font-size: 12.5px;">
+              <span style="color: var(--ink); font-weight: 500;">{{ entry.label }}</span>
+              <span class="font-mono" style="font-size: 11px;"
+                    [style.color]="entry.avg > 0.1 ? '#15803d' : entry.avg < -0.1 ? '#c8321f' : '#6b675c'">
+                {{ entry.avg > 0 ? '+' : '' }}{{ entry.avg }}
+              </span>
+            </div>
+            <div style="height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; position: relative;">
+              <!-- Center line -->
+              <div style="position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: var(--ink-4); opacity: 0.4;"></div>
+              <!-- Value bar -->
+              <div style="position: absolute; top: 0; height: 100%; border-radius: 999px; transition: all 400ms ease;"
+                   [style.left]="entry.avg >= 0 ? '50%' : (50 + entry.avg * 50) + '%'"
+                   [style.width]="(Math.abs(entry.avg) * 50) + '%'"
+                   [style.background]="entry.avg > 0.1 ? '#15803d' : entry.avg < -0.1 ? '#c8321f' : '#6b675c'">
+              </div>
+            </div>
+            <div class="flex justify-between" style="font-size: 10.5px; color: var(--ink-4); margin-top: 2px;">
+              <span>{{ entry.positive_pct }}% positiv</span>
+              <span>{{ entry.negative_pct }}% negativ</span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+}
+
+<!-- ============================================================
      Live-Feed — als Liste
      ============================================================ -->
 <section class="card animate-fade-in-delay-2" role="feed" aria-label="Live Feed">
   <header class="flex items-center justify-between" style="padding: 20px 24px; border-bottom: 1px solid var(--border);">
-    <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Live-Feed</h3>
-    <span class="font-mono" style="font-size: 11px; color: var(--ink-4);">
+    <h3 style="font-size: 17px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 10px;">
+      <span class="live-dot"></span>
+      Live-Feed
+    </h3>
+    <span class="font-mono" style="font-size: 12px; color: var(--ink-3);">
       letzte {{ recentPosts().length }} Beiträge
     </span>
   </header>
 
   @if (recentPosts().length > 0) {
     <ul style="list-style: none;">
-      @for (post of recentPosts(); track post.id; let last = $last) {
-        <li class="animate-fade-in"
+      @for (post of recentPosts(); track post.id; let i = $index; let last = $last) {
+        <li class="stagger-in"
+            [style.--i]="i"
             style="padding: 16px 24px; display: flex; gap: 14px;"
             [style.border-bottom]="last ? 'none' : '1px solid var(--border)'">
           <!-- Avatar -->
-          <div style="width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600;"
+          <div style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 0 12px rgba(45,125,255,0.15);"
                [style.background]="getMoodColor(undefined)"
                aria-hidden="true">
             {{ (post.author_name || '?')[0]?.toUpperCase() }}
@@ -131,11 +296,11 @@
               <span class="badge" [class.badge-feedbook]="post.platform === 'feedbook'" [class.badge-threadit]="post.platform === 'threadit'">
                 {{ post.platform === 'feedbook' ? 'FeedBook' : 'Threadit' }}
               </span>
-              <span class="font-mono" style="font-size: 11px; color: var(--ink-4); margin-left: auto;">
+              <span class="font-mono" style="font-size: 12px; color: var(--ink-3); margin-left: auto;">
                 Tag {{ post.ingame_day }}
               </span>
             </div>
-            <p class="line-clamp-2" style="font-size: 13.5px; line-height: 1.55; color: var(--ink-2);">
+            <p class="line-clamp-2" style="font-size: 14px; line-height: 1.6; color: var(--ink-2);">
               {{ post.content | truncate:200 }}
             </p>
           </div>

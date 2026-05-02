@@ -27,7 +27,7 @@
             <i class="pi pi-arrow-left" style="font-size: 11px;"></i>
             Simulationen
           </a>
-          <span class="font-mono" style="font-size: 11px; color: var(--ink-4); letter-spacing: 0.05em;">
+          <span class="font-mono" style="font-size: 12px; color: var(--ink-3); letter-spacing: 0.05em;">
             ID · {{ simulation()!.id.substring(0, 8) }}
           </span>
         </div>
@@ -38,7 +38,7 @@
             <h1 style="font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 4px;">
               {{ simulation()!.name }}
             </h1>
-            <p class="line-clamp-1" style="font-size: 14px; color: var(--ink-3);">
+            <p class="line-clamp-1" style="font-size: 15px; color: var(--ink-2);">
               {{ simulation()!.product_description }}
             </p>
           </div>
@@ -72,11 +72,11 @@
         @if (simulation()!.status === 'running') {
           <div style="margin-top: 14px; margin-bottom: 4px;" role="progressbar"
                [attr.aria-valuenow]="progress" aria-valuemin="0" aria-valuemax="100">
-            <div class="flex justify-between" style="font-size: 12px; margin-bottom: 6px;">
+            <div class="flex justify-between" style="font-size: 13px; margin-bottom: 6px;">
               <span style="color: var(--ink-2); font-weight: 500;">
                 Tag {{ simulation()!.current_tick }} von {{ simulation()!.total_ticks }}
               </span>
-              <span style="color: var(--primary); font-weight: 600;">{{ progress }} %</span>
+              <span style="color: var(--primary); font-weight: 600; text-shadow: 0 0 12px rgba(45,125,255,0.3);">{{ progress }} %</span>
             </div>
             <div class="progress">
               <div class="progress-fill" [style.width.%]="progress"></div>

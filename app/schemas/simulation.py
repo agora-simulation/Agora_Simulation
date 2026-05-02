@@ -63,6 +63,8 @@ class SimulationRead(UUIDModel, TimestampMixin):
     llm_model_fast: str | None = None
     llm_model_smart: str | None = None
     provider_config: dict | None = None
+    run_group_id: UUID | None = None
+    run_index: int | None = None
 
 
 class SimulationRunResponse(BaseModel):
@@ -87,3 +89,29 @@ class SimulationStats(BaseModel):
 class SimulationResetResponse(BaseModel):
     simulation_id: UUID
     message: str
+
+
+class MultiRunRequest(BaseModel):
+    """Konfiguration für Multi-Run-Simulationen."""
+    run_count: int = Field(3, ge=2, le=5, description="Anzahl paralleler Runs (2-5)")
+
+
+class MultiRunResponse(BaseModel):
+    """Antwort auf Multi-Run-Start."""
+    run_group_id: UUID
+    simulation_ids: list[UUID]
+    run_count: int
+    message: str
+
+
+class MultiRunComparisonResponse(BaseModel):
+    """Vergleichs-Report über mehrere Runs."""
+    run_group_id: UUID
+    run_count: int
+    completed_runs: int
+    convergence_consistency: dict
+    sentiment_bandwidth: dict
+    dimension_variance: dict
+    confidence_scores: dict
+    narrative_stability: str
+    recommendation: str

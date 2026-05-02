@@ -51,4 +51,12 @@ export class SimulationService {
   getSentimentStats(id: string): Observable<any> {
     return this.api.get(`/simulations/${id}/sentiment-stats`);
   }
+
+  getKpis(id: string): Observable<any> {
+    return this.api.get(`/analysis/${id}/kpis`);
+  }
+
+  getNetworkMetrics(id: string): Observable<any> {
+    return this.api.get(`/analysis/${id}/network-metrics`);
+  }
 }

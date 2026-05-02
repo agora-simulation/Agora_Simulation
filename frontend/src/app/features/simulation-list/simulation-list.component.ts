@@ -3,12 +3,13 @@ import { RouterLink } from '@angular/router';
 import { SimulationService } from '../../core/services/simulation.service';
 import { Simulation, SimulationStatus } from '../../core/models/simulation.model';
 import { RelativeTimePipe } from '../../shared/pipes/relative-time.pipe';
+import { CardGlowDirective } from '../../shared/directives/card-glow.directive';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-simulation-list',
   standalone: true,
-  imports: [RouterLink, RelativeTimePipe, FormsModule],
+  imports: [RouterLink, RelativeTimePipe, FormsModule, CardGlowDirective],
   templateUrl: './simulation-list.component.html',
 })
 export class SimulationListComponent implements OnInit {

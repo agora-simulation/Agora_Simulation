@@ -37,6 +37,8 @@ class Simulation(Base):
     llm_model_fast = Column(String(64), nullable=True)    # Optional Override für Fast-Tier (Aktionen/State)
     llm_model_smart = Column(String(64), nullable=True)   # Optional Override für Smart-Tier (Persona-Gen/Report/Chat)
     provider_config = Column(JSON, nullable=True)         # Neue granulare Provider-Config (überschreibt llm_provider wenn gesetzt)
+    run_group_id = Column(UUID(as_uuid=True), nullable=True, index=True)   # Multi-Run: Gruppen-ID für zusammengehörige Runs
+    run_index = Column(Integer, nullable=True)              # Multi-Run: 0-basierter Index innerhalb der Gruppe
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 

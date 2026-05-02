@@ -8,6 +8,8 @@ from app.database import get_db
 from app.models import AnalysisReport, Simulation
 from app.schemas import AnalysisReportRead
 from app.analysis.report_generator import generate_report
+from app.analysis.kpi_engine import compute_kpis
+from app.analysis.network_metrics import compute_network_metrics
 from app.llm.resolver import resolve_for_phase
 
 router = APIRouter()
@@ -48,3 +50,33 @@ async def generate_report_endpoint(
         resolved=resolved,
     )
     return report
+
+
+@router.get("/{simulation_id}/kpis")
+async def get_kpis(
+    simulation_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Marktforschungs-KPIs: NPS, Brand Awareness, Engagement, Sentiment, etc."""
+    sim_result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    if not sim_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    return await compute_kpis(simulation_id, db)
+
+
+@router.get("/{simulation_id}/network-metrics")
+async def get_network_metrics(
+    simulation_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Netzwerk-Analyse: Centrality, Communities, Graph-Statistiken."""
+    sim_result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    if not sim_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    return await compute_network_metrics(simulation_id, db)

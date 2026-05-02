@@ -4,6 +4,7 @@ Simulation Runner — Background Task Orchestrator.
 """
 import asyncio
 import logging
+import uuid as _uuid
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -267,3 +268,77 @@ async def run_simulation_background(simulation_id: UUID):
             except Exception:
                 pass  # Webhook-Fehler niemals propagieren
             raise
+
+
+async def create_multi_run_simulations(
+    source_simulation_id: UUID,
+    run_count: int = 3,
+) -> tuple[UUID, list[UUID]]:
+    """Erstellt N Kopien einer Simulation für Multi-Run-Vergleich.
+
+    Gibt (run_group_id, [simulation_ids]) zurück.
+    Die Simulationen werden erstellt aber NICHT gestartet — der Router startet sie.
+    """
+    run_group_id = _uuid.uuid4()
+    simulation_ids: list[UUID] = []
+
+    async with AsyncSessionLocal() as db:
+        original = await db.get(Simulation, source_simulation_id)
+        if not original:
+            raise ValueError(f"Simulation {source_simulation_id} nicht gefunden")
+
+        for i in range(run_count):
+            clone = Simulation(
+                name=f"{original.name} (Run {i + 1}/{run_count})",
+                product_description=original.product_description,
+                target_market=original.target_market,
+                industry=original.industry,
+                total_ticks=original.total_ticks,
+                config=original.config,
+                webhook_url=original.webhook_url,
+                llm_provider=getattr(original, "llm_provider", "anthropic"),
+                llm_model_fast=getattr(original, "llm_model_fast", None),
+                llm_model_smart=getattr(original, "llm_model_smart", None),
+                provider_config=getattr(original, "provider_config", None),
+                status=SimulationStatus.pending,
+                current_tick=0,
+                run_group_id=run_group_id,
+                run_index=i,
+            )
+            db.add(clone)
+            await db.flush()
+            simulation_ids.append(clone.id)
+
+        await db.commit()
+
+    return run_group_id, simulation_ids
+
+
+async def run_multi_simulation_background(
+    run_group_id: UUID,
+    simulation_ids: list[UUID],
+):
+    """Startet alle Simulationen einer Multi-Run-Gruppe sequentiell.
+
+    Sequentiell statt parallel, um API-Rate-Limits nicht zu überschreiten.
+    """
+    for sim_id in simulation_ids:
+        # Status auf running setzen
+        async with AsyncSessionLocal() as db:
+            await db.execute(
+                update(Simulation)
+                .where(Simulation.id == sim_id)
+                .values(
+                    status=SimulationStatus.running,
+                    updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                )
+            )
+            await db.commit()
+
+        try:
+            await run_simulation_background(sim_id)
+        except Exception as e:
+            logger.error(f"[Multi-Run {run_group_id}] Run {sim_id} fehlgeschlagen: {e}")
+            # Weitermachen mit nächstem Run
+
+    logger.info(f"[Multi-Run {run_group_id}] Alle {len(simulation_ids)} Runs abgeschlossen")

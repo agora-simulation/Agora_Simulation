@@ -36,6 +36,8 @@ class AnalysisReportRead(UUIDModel, TimestampMixin):
     influence_network: str | None = None
     platform_dynamics: str | None = None
     network_evolution: str | None = None
+    confidence_assessment: str | None = None
+    methodology_limitations: str | None = None
 
 class InfluenceEventRead(UUIDModel, TimestampMixin):
     simulation_id: UUID

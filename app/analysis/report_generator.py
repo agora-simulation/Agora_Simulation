@@ -59,10 +59,23 @@ def _build_analyst_system_prompt(
     return f"""Du bist ein Senior-Analyst einer renommierten Strategieberatung.
 Du erstellst professionelle Marktanalyse-Reports auf Basis simulierter Gesellschaftsdaten.
 
+WICHTIG: Dies ist eine SIMULATION, keine echte Marktforschung. Deine Analyse muss das transparent reflektieren.
+
 {scenario_hint}
 
 Akteur-Mix dieser Simulation: {actor_breakdown}.
 Datenbasis: {total_posts} Beiträge, {total_events} Einfluss-Ereignisse.
+
+## Konfidenz-Bewertung
+Bewerte JEDE Kernaussage mit einem Konfidenz-Level:
+- **[HOHE KONFIDENZ]**: Ergebnis ist über mehrere Akteure konsistent, überlebt verschiedene Perspektiven
+- **[MITTLERE KONFIDENZ]**: Ergebnis plausibel, aber abhängig von wenigen Schlüsselakteuren oder Annahmen
+- **[NIEDRIGE KONFIDENZ]**: Ergebnis möglicherweise Artefakt der Simulation (Echokammer, LLM-Bias, kleine Stichprobe)
+
+Achte besonders auf:
+- Quantitative Claims von Personas (z.B. "+23% CTR") — das sind KEINE echten Daten, sondern Persona-Behauptungen
+- Konsens-Bildung, die zu schnell geht (Echokammer-Risiko)
+- Überzeugungsketten, die auf einzelnen Akteuren basieren (fragil)
 
 ## Formatierung
 - Schreibe in professionellem, sachlichem Deutsch
@@ -158,6 +171,28 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
                     "Brücken-Akteure zwischen Communities."
                 ),
             },
+            "confidence_assessment": {
+                "type": "string",
+                "description": (
+                    "Markdown: Konfidenz-Bewertung der Ergebnisse. "
+                    "### Hohe Konfidenz: Aussagen die über mehrere Akteure und Perspektiven konsistent sind. "
+                    "### Mittlere Konfidenz: Plausible aber nicht robuste Aussagen. "
+                    "### Niedrige Konfidenz: Möglicherweise Artefakte (Echokammer, zu schnelle Konvergenz, Einzelperson-Abhängigkeit). "
+                    "Für jede Kategorie: konkrete Aussagen aus dem Report zuordnen mit Begründung."
+                ),
+            },
+            "methodology_limitations": {
+                "type": "string",
+                "description": (
+                    "Markdown: Was diese Simulation NICHT leisten kann. "
+                    "Ehrliche Einschätzung der Grenzen: "
+                    "- Persona-Verhalten basiert auf LLM-Generierung, nicht auf echten Menschen "
+                    "- Quantitative Claims von Personas sind KEINE echten Marktdaten "
+                    "- Echokammer-Effekte können Konsens-Ergebnisse verzerren "
+                    "- Die Simulation testet Narrative, nicht Kaufverhalten "
+                    "- Konkrete Empfehlung, welche Erkenntnisse vor einer Entscheidung real validiert werden sollten"
+                ),
+            },
         },
         "required": [
             "full_report",
@@ -170,6 +205,8 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
             "influence_network",
             "platform_dynamics",
             "network_evolution",
+            "confidence_assessment",
+            "methodology_limitations",
         ],
 }
 
@@ -384,8 +421,11 @@ Erstelle einen strukturierten Report mit:
 10. Netzwerk-Dynamik: Haben sich Communities gebildet? Echokammern?
 11. Meinungsdimensionen: Welche Dimensionen (Preis, Qualität, Marke etc.) waren am stärksten/schwächsten? \
     Konkrete Aussagen wie "73% der Skeptiker wurden bei Produktqualität überzeugt, aber Preis bleibt Dealbreaker"
+12. Konfidenz-Bewertung: Welche Erkenntnisse sind belastbar (hohe Konfidenz), welche fragil (niedrig)?
+13. Methodische Grenzen: Was kann diese Simulation NICHT leisten? Was muss real validiert werden?
 
-Sei konkret, zitiere Beispiele aus der Simulation."""
+Sei konkret, zitiere Beispiele aus der Simulation.
+Sei EHRLICH über die Grenzen der Methodik — Glaubwürdigkeit entsteht durch Transparenz, nicht durch Überversprechen."""
 
     logger.info(
         f"[{simulation_id}] Starte Report-Generierung ({len(posts)} Posts, provider={provider.name})"
@@ -424,6 +464,8 @@ Sei konkret, zitiere Beispiele aus der Simulation."""
         influence_network=data.get("influence_network", placeholder),
         platform_dynamics=data.get("platform_dynamics", placeholder),
         network_evolution=data.get("network_evolution", placeholder),
+        confidence_assessment=data.get("confidence_assessment", placeholder),
+        methodology_limitations=data.get("methodology_limitations", placeholder),
     )
     db.add(report)
     await db.commit()

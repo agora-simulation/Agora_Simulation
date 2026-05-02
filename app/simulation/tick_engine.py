@@ -41,7 +41,12 @@ from app.models import (
 
 AGENT_SYSTEM_PROMPT = """Du bist eine virtuelle Person in einer sozialen Simulation.
 Verhalte dich authentisch und konsistent mit deiner Persönlichkeit.
-Reagiere auf deinen Feed wie eine echte Person — nicht immer, nicht immer positiv."""
+Reagiere auf deinen Feed wie eine echte Person — nicht immer, nicht immer positiv.
+
+WICHTIG: Erfinde KEINE konkreten Zahlen, Prozentsätze oder Statistiken (z.B. "+23% CTR", "-18% CAC", "ROI von 340%").
+Du darfst nur qualitative Aussagen treffen ("deutlich bessere Ergebnisse", "spürbare Verbesserung", "merklicher Rückgang").
+Wenn du Zahlen nennst, müssen sie direkt aus deinem Profil oder deiner Erfahrung stammen.
+Erfundene Metriken verfälschen den Diskurs."""
 
 STATE_SYSTEM_PROMPT = """Du analysierst die psychologische Entwicklung einer virtuellen Person.
 Aktualisiere Meinungsentwicklung und Stimmung basierend auf den heutigen Aktionen."""
@@ -167,34 +172,70 @@ def _update_memory(
     """Aktualisiert die Persona-Memory.
 
     - Fügt neue Erinnerung hinzu (falls should_remember=True)
+    - Core Memories (type=persuasion oder weight >= 0.8) verfallen nie
     - Lässt schwache Erinnerungen verfallen (weight < 0.3 nach 10 Ticks)
     - Hält Maximum von 30 Erinnerungen
     - Starke Erinnerungen (>= 0.7) verfallen nie
+    - Periodische Kompression: alle 5 Ticks werden schwache Memories zusammengefasst
     """
     memories = list(persona_memory or [])
 
-    # Vergessen: schwache Erinnerungen (weight < 0.3) verfallen nach 10 Ticks.
-    # Mittlere (0.3-0.7) und starke (>= 0.7) Erinnerungen bleiben.
+    # Core Memories: Meinungsänderungen (persuasion) und stark emotionale (>=0.8) verfallen nie
+    def _is_core_memory(m: dict) -> bool:
+        return (
+            m.get("type") == "persuasion"
+            or m.get("emotional_weight", 0) >= 0.8
+            or m.get("is_core", False)
+        )
+
+    # Vergessen: schwache Erinnerungen verfallen nach 10 Ticks (außer Core Memories)
     memories = [
         m for m in memories
-        if m.get("emotional_weight", 0) >= MEMORY_DECAY_WEIGHT_THRESHOLD
+        if _is_core_memory(m)
+        or m.get("emotional_weight", 0) >= MEMORY_DECAY_WEIGHT_THRESHOLD
         or (current_tick - m.get("tick", 0)) <= MEMORY_DECAY_AFTER_TICKS
     ]
 
+    # Periodische Kompression: alle 5 Ticks mittlere Memories zusammenfassen
+    if current_tick > 0 and current_tick % 5 == 0:
+        # Finde nicht-Core Memories mit weight 0.3-0.6
+        compressible = [
+            m for m in memories
+            if not _is_core_memory(m)
+            and 0.3 <= m.get("emotional_weight", 0) < 0.6
+        ]
+        if len(compressible) >= 3:
+            # Zusammenfassen zu einer komprimierten Erinnerung
+            summaries = [m.get("summary", "") for m in compressible[:5]]
+            compressed = {
+                "tick": current_tick,
+                "type": "compressed",
+                "summary": f"Zusammenfassung vergangener Eindrücke: {'; '.join(s[:50] for s in summaries)}",
+                "emotional_weight": 0.5,
+            }
+            # Komprimierte ersetzen
+            memories = [m for m in memories if m not in compressible[:5]]
+            memories.append(compressed)
+
     # Neue Erinnerung hinzufügen
     if new_event and new_event.get("should_remember") and new_event.get("summary"):
+        is_core = new_event.get("type") == "persuasion" or float(new_event.get("emotional_weight", 0.5)) >= 0.8
         entry = {
             "tick": current_tick,
             "type": new_event.get("type", "personal"),
             "summary": new_event.get("summary", ""),
             "emotional_weight": float(new_event.get("emotional_weight", 0.5)),
+            "is_core": is_core,
         }
         memories.append(entry)
 
-    # Maximum einhalten: niedrigstes emotional_weight entfernen
+    # Maximum einhalten: niedrigstes emotional_weight entfernen (aber nie Core Memories)
     if len(memories) > MEMORY_MAX_ENTRIES:
-        memories.sort(key=lambda m: m.get("emotional_weight", 0), reverse=True)
-        memories = memories[:MEMORY_MAX_ENTRIES]
+        core = [m for m in memories if _is_core_memory(m)]
+        non_core = [m for m in memories if not _is_core_memory(m)]
+        non_core.sort(key=lambda m: m.get("emotional_weight", 0), reverse=True)
+        max_non_core = MEMORY_MAX_ENTRIES - len(core)
+        memories = core + non_core[:max(0, max_non_core)]
 
     return memories
 
@@ -209,19 +250,28 @@ def build_feed(
     ingame_day: int,
     max_items: int = 10,
     all_personas: list | None = None,
+    polarization_index: float = 1.0,
 ) -> list[dict]:
     """Erstellt einen personalisierten Feed für eine Persona.
 
     Score = Verbindungen×3 + Kommentare×0.5 + Reaktionen
           + Recency-Decay + Trending-Bonus + Plattform-Affinität.
-    Gibt die Top-max_items Posts als Dicts zurück.
+
+    Anti-Echo-Chamber-Mechaniken:
+    - Confirmation Bias auf 0.5 reduziert (war 2.0)
+    - Opposing-View-Injection: min. 2 Slots für Gegenmeinungen reserviert
+    - Konsens-Bremse: bei Polarization < 0.15 werden kontroverse Posts bevorzugt
     """
     connection_ids = set(str(c) for c in (persona.social_connections or []))
 
     # Plattform-Affinität aus current_state lesen
     platform_affinity = (persona.current_state or {}).get("platform_affinity", {})
 
-    scored: list[tuple[float, Post]] = []
+    # Persona-Durchschnittsmeinung für Bias-Berechnung
+    persona_dims = (persona.current_state or {}).get("opinion_dimensions", {})
+    persona_avg = (sum(persona_dims.values()) / len(persona_dims)) if persona_dims else 0.0
+
+    scored: list[tuple[float, Post, float]] = []  # (score, post, opinion_distance)
     for post in posts:
         score: float = 0.0
         if str(post.author_id) in connection_ids:
@@ -236,37 +286,63 @@ def build_feed(
         if len(post.reactions) > 5:
             score += 2
 
-        # Modul 5: Confirmation Bias Score (Echokammer-Mechanik)
-        if all_personas is not None:
-            persona_dims = (persona.current_state or {}).get("opinion_dimensions", {})
-            if persona_dims:
-                avg_opinion = sum(persona_dims.values()) / len(persona_dims)
-                author = next(
-                    (p for p in all_personas if str(p.id) == str(post.author_id)),
-                    None,
-                )
-                if author:
-                    author_dims = (author.current_state or {}).get("opinion_dimensions", {})
-                    if author_dims:
-                        author_avg = sum(author_dims.values()) / len(author_dims)
-                        similarity = 1.0 - abs(avg_opinion - author_avg)
-                        confirmation_bias = similarity * 2.0
+        # Meinungsdistanz berechnen (für Opposing-View-Injection)
+        opinion_distance = 0.0
 
-                        # Offene Personas bekommen weniger Echokammer-Effekt
-                        openness = (persona.personality_traits or {}).get("openness", 0.5)
-                        if openness > 0.7:
-                            confirmation_bias *= 0.7
+        # Confirmation Bias — reduziert von 2.0 auf 0.5
+        if all_personas is not None and persona_dims:
+            author = next(
+                (p for p in all_personas if str(p.id) == str(post.author_id)),
+                None,
+            )
+            if author:
+                author_dims = (author.current_state or {}).get("opinion_dimensions", {})
+                if author_dims:
+                    author_avg = sum(author_dims.values()) / len(author_dims)
+                    opinion_distance = abs(persona_avg - author_avg)
+                    similarity = 1.0 - opinion_distance
+                    confirmation_bias = similarity * 0.5  # War: 2.0
 
-                        score += confirmation_bias
+                    # Offene Personas bekommen weniger Echokammer-Effekt
+                    openness = (persona.personality_traits or {}).get("openness", 0.5)
+                    if openness > 0.7:
+                        confirmation_bias *= 0.7
+
+                    score += confirmation_bias
+
+                    # Konsens-Bremse: bei niedriger Polarisierung kontroverse Posts boosten
+                    if polarization_index < 0.15 and opinion_distance > 0.3:
+                        score += 2.0  # Kontroverse Stimmen im Konsens-Zustand sichtbarer machen
 
         # Plattform-Affinität: 0.5-1.5x Multiplikator
         platform_bonus = platform_affinity.get(post.platform.value, 0.5)
         score *= (0.5 + platform_bonus)
 
-        scored.append((score, post))
+        scored.append((score, post, opinion_distance))
 
     scored.sort(key=lambda x: x[0], reverse=True)
-    top_posts = [p for _, p in scored[:max_items]]
+
+    # --- Opposing-View-Injection ---
+    # Reserviere min. 2 Slots für Posts mit hoher Meinungsdistanz (> 0.3)
+    OPPOSING_SLOTS = 2
+    top_posts = [p for _, p, _ in scored[:max_items]]
+
+    # Finde Posts mit hoher Distanz die NICHT schon in top_posts sind
+    top_post_ids = {str(p.id) for p in top_posts}
+    opposing_candidates = [
+        (score, post, dist) for score, post, dist in scored
+        if dist > 0.3 and str(post.id) not in top_post_ids
+    ]
+    # Sortiere Opposing nach Distanz (höchste zuerst) und dann nach Score
+    opposing_candidates.sort(key=lambda x: (-x[2], -x[0]))
+
+    # Ersetze die schwächsten Posts im Feed durch Opposing-Views
+    for i, (_, opp_post, _) in enumerate(opposing_candidates[:OPPOSING_SLOTS]):
+        if len(top_posts) >= max_items:
+            # Ersetze den schwächsten Post (letzten)
+            top_posts[-1 - i] = opp_post
+        else:
+            top_posts.append(opp_post)
 
     return [
         {
@@ -413,12 +489,17 @@ def _build_persona_profile_block(persona: Persona, compact: bool = False) -> str
     if recent_actions:
         result += f"\nLetzte Aktionen: {json.dumps(recent_actions, ensure_ascii=False)}"
 
-    # Modul 1: Langzeitgedächtnis — Top-5
+    # Modul 1: Langzeitgedächtnis — Top-10 (war: Top-5)
     memories = list(persona.memory or [])
     if memories:
-        memories_sorted = sorted(memories, key=lambda m: m.get("emotional_weight", 0), reverse=True)
+        # Core Memories zuerst, dann nach emotional_weight
+        memories_sorted = sorted(
+            memories,
+            key=lambda m: (m.get("is_core", False), m.get("emotional_weight", 0)),
+            reverse=True,
+        )
         result += "\n\n=== Erinnerungen ==="
-        for mem in memories_sorted[:5]:
+        for mem in memories_sorted[:10]:
             weight = mem.get("emotional_weight", 0)
             label = "!" if weight >= 0.7 else ("~" if weight >= 0.4 else ".")
             result += f"\n{label} [Tag {mem.get('tick', '?')}] {mem.get('summary', '')}"
@@ -762,26 +843,55 @@ async def update_persona_state_async(
             updated_memory = _update_memory(persona_memory, memorable_event, tick_number)
             persona.memory = updated_memory
 
-        # Modul 2: Opinion Dimensions Update
+        # Modul 2: Opinion Dimensions Update mit Bounded Confidence
         opinion_shifts = parsed.get("opinion_shifts", {})
         if opinion_shifts:
             dims = dict(state.get("opinion_dimensions", {}))
+            convictions = dict(state.get("conviction", {}))
             # Initialisieren falls noch nicht vorhanden
             if not dims:
                 dims = _init_opinion_dimensions(persona.is_skeptic or False)
+            if not convictions:
+                # Initiale Conviction: Skeptiker starten mit höherer Überzeugung
+                base_conv = 0.4 if (persona.is_skeptic or False) else 0.2
+                convictions = {key: base_conv for key in OPINION_DIMENSIONS_KEYS}
 
-            # Deltas anwenden (mit Big-Five-Offenheits-Multiplikator)
+            # Big-Five-Offenheits-Multiplikator
             traits = persona.personality_traits or {}
             openness = traits.get("openness", 0.5)
             openness_multiplier = 1.3 if openness > 0.7 else (0.7 if openness < 0.3 else 1.0)
 
             for key in OPINION_DIMENSIONS_KEYS:
                 delta = float(opinion_shifts.get(key, 0.0))
-                delta *= openness_multiplier
                 current = dims.get(key, 0.0)
-                dims[key] = max(-1.0, min(1.0, current + delta))
+                conviction = convictions.get(key, 0.2)
+
+                # Bounded Confidence: Shift nur wenn Delta klein genug
+                # Je höher die Conviction, desto kleiner der akzeptierte Shift
+                confidence_threshold = 0.6 * (1.0 - conviction * 0.5)
+                if abs(delta) > confidence_threshold:
+                    # Post-Meinung zu weit entfernt — ignorieren oder abschwächen
+                    delta *= 0.1  # Stark abgeschwächt statt komplett ignoriert
+
+                # Max erlaubter Shift sinkt mit Conviction
+                max_shift = 0.3 * (1.0 - conviction * 0.7)
+                delta = max(-max_shift, min(max_shift, delta))
+                delta *= openness_multiplier
+
+                new_val = max(-1.0, min(1.0, current + delta))
+                dims[key] = new_val
+
+                # Conviction-Update: Bestätigung stärkt, Widerspruch schwächt
+                if delta != 0:
+                    if (current > 0 and delta > 0) or (current < 0 and delta < 0):
+                        # Bestätigung: Conviction steigt
+                        convictions[key] = min(1.0, conviction + 0.03)
+                    else:
+                        # Widerspruch: Conviction sinkt
+                        convictions[key] = max(0.0, conviction - 0.05)
 
             state["opinion_dimensions"] = dims
+            state["conviction"] = convictions
 
     except Exception as e:
         # Bei Fehler: opinion_evolution und mood aus bestehendem state unverändert lassen
@@ -876,6 +986,45 @@ async def run_tick(
         f"{len(existing_posts)} Posts (Tage {min_day}-{ingame_day})"
     )
 
+    # --- Polarization-Index vom vorherigen Tick laden (für Konsens-Bremse) ---
+    prev_polarization = 1.0  # Default: keine Konsens-Bremse
+    if tick_number > 1:
+        prev_tick_result = await db.execute(
+            select(SimulationTick)
+            .where(SimulationTick.simulation_id == simulation_id)
+            .where(SimulationTick.tick_number == tick_number - 1)
+        )
+        prev_tick = prev_tick_result.scalar_one_or_none()
+        if prev_tick and prev_tick.snapshot:
+            prev_polarization = prev_tick.snapshot.get("polarization_index", 1.0)
+
+    # --- Automatische Contrarian-Injection an Tag 7 und 14 ---
+    total_ticks = sim.total_ticks or 15
+    contrarian_days = {max(1, total_ticks // 2), max(1, total_ticks * 3 // 4)}
+    if ingame_day in contrarian_days and prev_polarization < 0.2:
+        try:
+            from app.simulation.stress_test import inject_contrarian_posts
+            injected = await inject_contrarian_posts(simulation_id, db, ingame_day, count=2)
+            if injected:
+                logger.info(
+                    f"Tick {tick_number}: {len(injected)} Contrarian-Posts injiziert "
+                    f"(Polarization={prev_polarization:.3f})"
+                )
+                # Posts neu laden nach Injection
+                posts_result = await db.execute(
+                    select(Post)
+                    .options(
+                        selectinload(Post.comments).selectinload(Comment.author),
+                        selectinload(Post.reactions),
+                        selectinload(Post.author),
+                    )
+                    .where(Post.simulation_id == simulation_id)
+                    .where(Post.ingame_day >= min_day)
+                )
+                existing_posts = list(posts_result.scalars().all())
+        except Exception as e:
+            logger.warning(f"Contrarian-Injection fehlgeschlagen: {e}")
+
     # --- Personas in 3 Waves aufteilen (30/30/40%) ---
     shuffled = list(personas)
     _random.shuffle(shuffled)
@@ -907,7 +1056,7 @@ async def run_tick(
 
         # --- Feeds bauen mit aktuellem Post-Stand ---
         feeds = {
-            str(p.id): build_feed(p, all_posts, ingame_day, all_personas=personas)
+            str(p.id): build_feed(p, all_posts, ingame_day, all_personas=personas, polarization_index=prev_polarization)
             for p in wave_personas
         }
 

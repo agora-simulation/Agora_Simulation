@@ -85,6 +85,8 @@ class AnalysisReport(Base):
     influence_network = Column(Text)     # Influence-Netzwerk-Analyse
     platform_dynamics = Column(Text)     # Plattform-Analyse (FeedBook vs Threadit)
     network_evolution = Column(Text)     # Netzwerk-Dynamik (Communities, Echokammern)
+    confidence_assessment = Column(Text)  # Konfidenz-Bewertung pro Erkenntnis
+    methodology_limitations = Column(Text)  # Was die Simulation NICHT leisten kann
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", back_populates="reports")

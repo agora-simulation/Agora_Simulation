@@ -1,6 +1,13 @@
 @if (isLoginPage()) {
   <router-outlet />
 } @else {
+  <!-- Ambient drifting orbs behind content -->
+  <div class="ambient-orbs" aria-hidden="true">
+    <div class="ambient-orb ambient-orb-1"></div>
+    <div class="ambient-orb ambient-orb-2"></div>
+    <div class="ambient-orb ambient-orb-3"></div>
+  </div>
+
   <div class="app-shell">
 
     <!-- ============================================================

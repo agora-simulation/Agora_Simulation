@@ -2,10 +2,10 @@
 
   <!-- Section Header -->
   <div class="mb-6">
-    <h2 style="font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;">
+    <h2 class="page-title" style="font-size: 26px; margin-bottom: 6px;">
       Einfluss
     </h2>
-    <p style="font-size: 14px; color: var(--ink-3); margin-top: 6px; max-width: 640px;">
+    <p style="font-size: 15px; color: var(--ink-2); margin-top: 6px; max-width: 640px;">
       Wie Meinungen wandern und das Narrativ entsteht.
     </p>
   </div>
@@ -49,9 +49,10 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
       <!-- Sankey -->
-      <section class="card lg:col-span-2" style="padding: 24px;" role="region" aria-label="Influence Flow">
-        <header class="flex items-center justify-between mb-4">
-          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+      <section class="card lg:col-span-2" style="padding: 28px;" role="region" aria-label="Influence Flow">
+        <header class="flex items-center justify-between mb-5">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 10px;">
+            <i class="pi pi-share-alt" style="color: var(--primary); text-shadow: 0 0 8px rgba(45,125,255,0.3);"></i>
             Einfluss-Strömung
           </h3>
           <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
@@ -59,12 +60,12 @@
           </span>
         </header>
         @if (events().length > 0) {
-          <div echarts [options]="sankeyChart()" class="h-[420px]"
+          <div echarts [options]="sankeyChart()" style="height: 520px;"
                role="img" aria-label="Sankey-Diagramm Einflussfluss"></div>
         } @else {
-          <div class="h-[420px] flex flex-col items-center justify-center text-center" style="padding: 0 32px;">
+          <div class="flex flex-col items-center justify-center text-center" style="height: 520px; padding: 0 32px;">
             <i class="pi pi-share-alt" style="font-size: 36px; color: var(--ink-4); margin-bottom: 16px;"></i>
-            <p style="font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px;">
+            <p style="font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px;">
               @if (simulation()?.status === 'running') {
                 Noch keine Bewegung
               } @else if (simulation()?.status === 'completed') {
@@ -86,9 +87,10 @@
       </section>
 
       <!-- Top-Liste: entweder Influencer (mit Events) oder aktivste Stimmen (Fallback) -->
-      <section class="card" style="padding: 24px;" role="region" aria-label="Rangliste">
-        <header class="flex items-center justify-between mb-2">
-          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+      <section class="card" style="padding: 28px;" role="region" aria-label="Rangliste">
+        <header class="flex items-center justify-between mb-4">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 10px;">
+            <i class="pi pi-star" style="color: var(--warning); text-shadow: 0 0 8px rgba(245,158,11,0.3);"></i>
             @if (events().length > 0) {
               Top-Influencer
             } @else {
@@ -96,39 +98,48 @@
             }
           </h3>
           @if (events().length === 0 && topPosters().length > 0) {
-            <span class="badge badge-muted" style="font-size: 10.5px;">Fallback</span>
+            <span class="badge badge-muted">Fallback</span>
           }
         </header>
 
         @if (events().length > 0 && topInfluencers().length > 0) {
-          <p style="font-size: 12.5px; color: var(--ink-3); margin-bottom: 14px; line-height: 1.45;">
+          <p style="font-size: 13.5px; color: var(--ink-2); margin-bottom: 16px; line-height: 1.5;">
             Personas, die andere am häufigsten beeinflusst haben.
           </p>
           <ol class="influencer-list">
             @for (inf of topInfluencers(); track inf.id; let i = $index) {
               <li class="influencer-row" style="cursor: pointer;" (click)="toggleInfluencer(inf.id)">
                 <div class="influencer-head">
-                  <span class="influencer-rank">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                  <span class="influencer-rank"
+                        [style.color]="i === 0 ? 'var(--warning)' : i === 1 ? 'var(--ink-2)' : i === 2 ? 'var(--cyan)' : 'var(--ink-3)'"
+                        [style.text-shadow]="i < 3 ? '0 0 8px currentColor' : 'none'">
+                    {{ (i + 1).toString().padStart(2, '0') }}
+                  </span>
                   <span class="influencer-name">{{ inf.name }}</span>
                   @if (inf.isSceptic) {
-                    <span class="badge badge-danger" style="font-size: 10.5px; padding: 2px 8px;">Skeptiker</span>
+                    <span class="badge badge-danger">Skeptiker</span>
                   }
                   <span class="influencer-count">{{ inf.count }}</span>
-                  <i class="pi" [class.pi-chevron-down]="expandedInfluencer() !== inf.id" [class.pi-chevron-up]="expandedInfluencer() === inf.id" style="font-size: 11px; color: var(--ink-3);"></i>
+                  <i class="pi" [class.pi-chevron-down]="expandedInfluencer() !== inf.id" [class.pi-chevron-up]="expandedInfluencer() === inf.id" style="font-size: 12px; color: var(--ink-3); transition: transform 200ms ease;"></i>
                 </div>
                 <div class="influencer-bar">
                   <div class="influencer-bar-fill"
                        [style.width.%]="topInfluencers().length > 0 ? (inf.count / topInfluencers()[0].count) * 100 : 0"></div>
                 </div>
                 @if (expandedInfluencer() === inf.id) {
-                  <div class="influencer-details animate-fade-in" style="margin-top: 10px; padding: 10px 0 4px 38px;">
+                  <div class="influencer-details animate-fade-in" style="margin-top: 12px;">
                     @for (detail of getInfluencerDetails(inf.id); track $index) {
-                      <div style="padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; gap: 8px; align-items: baseline;">
-                        <span style="color: var(--primary); font-weight: 500; white-space: nowrap;">→ {{ detail.targetName }}</span>
-                        <span class="badge badge-muted" style="font-size: 10px;">{{ detail.type }}</span>
-                        @if (detail.description) {
-                          <span style="color: var(--ink-3); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ detail.description }}</span>
-                        }
+                      <div class="detail-event">
+                        <i class="pi pi-arrow-right" style="font-size: 10px; color: var(--primary); flex-shrink: 0; margin-top: 3px;"></i>
+                        <div style="flex: 1; min-width: 0;">
+                          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                            <span style="font-size: 14px; font-weight: 600; color: var(--ink);">{{ detail.targetName }}</span>
+                            <span class="badge badge-primary" style="font-size: 10px;">{{ detail.type }}</span>
+                          </div>
+                          @if (detail.description) {
+                            <p style="font-size: 13.5px; color: var(--ink-2); margin: 0; line-height: 1.45;">{{ detail.description }}</p>
+                          }
+                        </div>
                       </div>
                     }
                   </div>
@@ -137,7 +148,7 @@
             }
           </ol>
         } @else if (topPosters().length > 0) {
-          <p style="font-size: 12.5px; color: var(--ink-3); margin-bottom: 14px; line-height: 1.45;">
+          <p style="font-size: 13.5px; color: var(--ink-2); margin-bottom: 16px; line-height: 1.5;">
             Personas mit den meisten Beiträgen — Proxy für Reichweite.
           </p>
           <ol class="influencer-list">
@@ -147,7 +158,7 @@
                   <span class="influencer-rank">{{ (i + 1).toString().padStart(2, '0') }}</span>
                   <span class="influencer-name">{{ inf.name }}</span>
                   @if (inf.isSceptic) {
-                    <span class="badge badge-danger" style="font-size: 10.5px; padding: 2px 8px;">Skeptiker</span>
+                    <span class="badge badge-danger">Skeptiker</span>
                   }
                   <span class="influencer-count">{{ inf.count }}</span>
                 </div>
@@ -160,7 +171,7 @@
             }
           </ol>
         } @else {
-          <p class="text-center py-12" style="color: var(--ink-3); font-size: 13.5px;">
+          <p class="text-center py-12" style="color: var(--ink-3); font-size: 14px;">
             Keine Daten vorhanden.
           </p>
         }
@@ -172,7 +183,7 @@
         <!-- Influence Type Breakdown -->
         <section class="card" style="padding: 24px;" role="region" aria-label="Einfluss-Typen">
           <header class="flex items-center justify-between mb-4">
-            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Einfluss-Typen</h3>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">Einfluss-Typen</h3>
           </header>
           <div echarts [options]="typeBreakdownChart()" style="height: 280px;"></div>
         </section>
@@ -183,7 +194,7 @@
     @if (events().length > 0) {
       <section class="card" style="padding: 24px;" role="region" aria-label="Influence-Events Timeline">
         <header class="flex items-center justify-between mb-4">
-          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">
             Einfluss-Ereignisse
           </h3>
           <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
@@ -232,29 +243,39 @@
     list-style: none;
     padding: 0;
     margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
   .influencer-row {
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
   }
-  .influencer-row:last-child { border-bottom: none; }
+  .influencer-row:hover {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    box-shadow: 0 0 16px rgba(45,125,255,0.06);
+  }
   .influencer-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
+    gap: 12px;
+    margin-bottom: 10px;
   }
   .influencer-rank {
     font-family: var(--font-mono);
-    font-size: 18px;
-    font-weight: 500;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--ink-3);
     flex-shrink: 0;
-    min-width: 28px;
+    min-width: 32px;
     font-variant-numeric: tabular-nums;
   }
   .influencer-name {
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--ink);
     flex: 1;
@@ -265,70 +286,90 @@
   }
   .influencer-count {
     font-family: var(--font-mono);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ink);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 8px rgba(45,125,255,0.3);
   }
   .influencer-bar {
-    height: 6px;
-    background: var(--border);
+    height: 8px;
+    background: var(--surface-3);
     border-radius: 999px;
     overflow: hidden;
   }
   .influencer-bar-fill {
     height: 100%;
-    background: var(--ink);
+    background: linear-gradient(90deg, var(--primary), var(--cyan));
     border-radius: 999px;
-    transition: width 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 8px rgba(45,125,255,0.3);
+  }
+
+  /* Detail events within expanded influencer */
+  .detail-event {
+    display: flex;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    border-left: 2px solid var(--primary);
+    transition: border-color 200ms ease;
+  }
+  .detail-event:hover {
+    border-left-color: var(--cyan);
   }
 
   .chronik {
     list-style: none;
     padding: 0;
     margin: 0;
-    max-height: 320px;
+    max-height: 420px;
     overflow-y: auto;
   }
   .chronik-row {
     display: grid;
     grid-template-columns: 80px 1fr;
-    gap: 12px;
-    padding: 10px 0;
+    gap: 14px;
+    padding: 12px 0;
     align-items: baseline;
     border-bottom: 1px solid var(--border);
   }
   .chronik-row:last-child { border-bottom: none; }
   .chronik-day {
     font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--primary);
+    text-shadow: 0 0 6px rgba(45,125,255,0.2);
   }
   .chronik-text {
-    font-size: 14px;
-    color: var(--ink-2);
-    line-height: 1.5;
+    font-size: 14.5px;
+    color: var(--ink);
+    line-height: 1.55;
   }
 
   .mood-pill {
-    padding: 5px 12px;
+    padding: 6px 14px;
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--ink-3);
     cursor: pointer;
-    transition: all 140ms ease;
+    transition: all 160ms ease;
   }
   .mood-pill:hover {
     border-color: var(--border-strong);
     color: var(--ink);
+    background: var(--surface-3);
   }
   .mood-pill-active {
     background: var(--primary);
     border-color: var(--primary);
     color: white;
+    box-shadow: 0 0 12px rgba(45,125,255,0.3);
   }
 </style>

@@ -9,6 +9,7 @@ import { Simulation, SimulationStats, TickSnapshot } from '../../../core/models/
 import { Post } from '../../../core/models/content.model';
 import { Persona } from '../../../core/models/persona.model';
 import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
+import { CardGlowDirective } from '../../../shared/directives/card-glow.directive';
 import { CHART, FONT_SANS, tooltipStyle, axisCommon, legendCommon, classifyMoodIndex, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 
 interface MoodBucket { key: string; label: string; color: string; count: number; }
@@ -16,7 +17,7 @@ interface MoodBucket { key: string; label: string; color: string; count: number;
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [NgxEchartsDirective, TruncatePipe, RouterLink],
+  imports: [NgxEchartsDirective, TruncatePipe, RouterLink, CardGlowDirective],
   providers: [provideEchartsCore({ echarts })],
   templateUrl: './overview.component.html',
 })
@@ -31,14 +32,41 @@ export class OverviewComponent implements OnInit {
   ticks = signal<TickSnapshot[]>([]);
   posts = signal<Post[]>([]);
   personas = signal<Persona[]>([]);
+  kpis = signal<any>(null);
   activityChartOption = signal<any>({});
   moodChartOption = signal<any>({});
+  engagementChartOption = signal<any>({});
+  npsChartOption = signal<any>({});
 
   private simId = '';
+
+  Math = Math;
 
   // Derived
   recentPosts = computed(() => [...this.posts()].sort((a, b) => b.ingame_day - a.ingame_day).slice(0, 8));
   skepticCount = computed(() => this.personas().filter(p => p.is_skeptic).length);
+
+  private dimensionLabels: Record<string, string> = {
+    product_quality: 'Produktqualität',
+    price_fairness: 'Preis-Fairness',
+    brand_trust: 'Markenvertrauen',
+    innovation: 'Innovation',
+    ethical_concerns: 'Ethik',
+    social_proof: 'Social Proof',
+    personal_relevance: 'Relevanz',
+  };
+
+  dimensionEntries = computed(() => {
+    const dims = this.kpis()?.dimension_breakdown;
+    if (!dims) return [];
+    return Object.entries(dims).map(([key, val]: [string, any]) => ({
+      key,
+      label: this.dimensionLabels[key] || key,
+      avg: val.avg,
+      positive_pct: val.positive_pct,
+      negative_pct: val.negative_pct,
+    })).sort((a, b) => b.avg - a.avg);
+  });
 
   moodBuckets = computed<MoodBucket[]>(() => {
     const buckets: MoodBucket[] = [
@@ -75,6 +103,10 @@ export class OverviewComponent implements OnInit {
     this.simService.getTicks(this.simId).subscribe(t => { this.ticks.set(t); this.buildActivityChart(t); });
     this.postService.list(this.simId, { limit: 200 }).subscribe(r => this.posts.set(r.items));
     this.personaService.list(this.simId, { limit: 200 }).subscribe(r => this.personas.set(r.items));
+    this.simService.getKpis(this.simId).subscribe({
+      next: k => { this.kpis.set(k); this.buildEngagementChart(k); this.buildNpsChart(k); },
+      error: () => {},
+    });
   }
 
   private buildActivityChart(ticks: TickSnapshot[]) {
@@ -139,5 +171,79 @@ export class OverviewComponent implements OnInit {
 
   getMoodColor(mood: string | undefined): string {
     return getMoodColorShared(mood);
+  }
+
+  getNpsColor(score: number): string {
+    if (score >= 50) return CHART.moss;
+    if (score >= 0) return CHART.threadit;
+    return CHART.vermillion;
+  }
+
+  getSentimentLabel(score: number): string {
+    if (score > 0.3) return 'Sehr positiv';
+    if (score > 0.1) return 'Positiv';
+    if (score > -0.1) return 'Neutral';
+    if (score > -0.3) return 'Negativ';
+    return 'Sehr negativ';
+  }
+
+  private buildEngagementChart(kpis: any) {
+    if (!kpis?.engagement_rate?.length) return;
+    const data = kpis.engagement_rate;
+    this.engagementChartOption.set({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', ...tooltipStyle },
+      grid: { top: 16, right: 16, bottom: 44, left: 44 },
+      xAxis: {
+        type: 'category',
+        data: data.map((d: any) => `${d.day}`),
+        ...axisCommon({
+          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11, formatter: (v: string) => `T${v}` },
+          splitLine: { show: false },
+        }),
+      },
+      yAxis: {
+        type: 'value',
+        ...axisCommon({
+          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11 },
+        }),
+      },
+      series: [
+        {
+          name: 'Engagement Rate',
+          type: 'line',
+          data: data.map((d: any) => d.rate),
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { color: CHART.feedbook, width: 2 },
+          itemStyle: { color: CHART.feedbook },
+          areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
+            { offset: 0, color: 'rgba(30, 58, 138, 0.15)' },
+            { offset: 1, color: 'rgba(30, 58, 138, 0.02)' },
+          ]}},
+        },
+      ],
+    });
+  }
+
+  private buildNpsChart(kpis: any) {
+    if (!kpis?.nps) return;
+    const nps = kpis.nps;
+    this.npsChartOption.set({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item', ...tooltipStyle },
+      series: [{
+        type: 'pie',
+        radius: ['55%', '75%'],
+        avoidLabelOverlap: false,
+        label: { show: false },
+        data: [
+          { value: nps.promoters, name: 'Promoter', itemStyle: { color: CHART.moss } },
+          { value: nps.passives, name: 'Passive', itemStyle: { color: CHART.inkMute } },
+          { value: nps.detractors, name: 'Detractor', itemStyle: { color: CHART.vermillion } },
+        ],
+      }],
+    });
   }
 }

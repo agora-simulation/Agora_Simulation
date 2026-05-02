@@ -13,12 +13,12 @@
 }
 
 /* ============================================================
-   Sidebar
+   Sidebar — Glassy dark panel
    ============================================================ */
 .sidebar {
-  width: 260px;
-  background: var(--surface-2);
-  border-right: 1px solid var(--border);
+  width: 252px;
+  background: rgba(8, 14, 28, 0.88);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -26,39 +26,81 @@
   flex-direction: column;
   flex-shrink: 0;
   overflow-y: auto;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+
+  /* Vertical gradient accent on the right edge */
+  box-shadow:
+    1px 0 0 rgba(255,255,255,0.04),
+    4px 0 32px rgba(0,0,0,0.4),
+    0 0 80px rgba(45, 125, 255, 0.06) inset;
+}
+
+/* Animated right-edge glow line */
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(45, 125, 255, 0.3) 20%,
+    rgba(0, 196, 238, 0.5) 50%,
+    rgba(45, 125, 255, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 8px rgba(0, 196, 238, 0.3);
+  z-index: 2;
 }
 
 .sidebar-brand {
-  padding: 24px 20px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+}
+
+/* Subtle glow behind brand area */
+.sidebar-brand::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 120px;
+  background: radial-gradient(ellipse at 40% 0%, rgba(45, 125, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .brand-link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   text-decoration: none;
   color: inherit;
   border-radius: var(--radius);
-  transition: background 140ms ease;
+  transition: opacity 160ms ease;
+  position: relative;
 
-  &:hover .brand-mark { background: var(--primary-d); transform: rotate(-3deg); }
+  &:hover { opacity: 0.85; }
+  &:hover .brand-mark { box-shadow: 0 0 20px rgba(45, 125, 255, 0.5), 0 0 40px rgba(45, 125, 255, 0.2); }
 }
 
 .brand-mark {
   width: 38px;
   height: 38px;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary) 0%, #1a5ce8 60%, var(--purple) 100%);
   color: #fff;
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius);
+  border-radius: 10px;
   flex-shrink: 0;
-  transition: background 140ms ease, transform 200ms ease;
+  box-shadow: 0 0 16px rgba(45, 125, 255, 0.4), 0 0 32px rgba(45, 125, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: box-shadow 300ms ease, transform 300ms ease;
+  animation: ambient-breathe 4s ease-in-out infinite;
 }
 
 .brand-text {
@@ -68,85 +110,122 @@
 }
 
 .brand-name {
+  font-family: var(--font-display);
   font-size: 17px;
   font-weight: 700;
   color: var(--ink);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 .brand-sub {
-  font-size: 11.5px;
-  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--cyan);
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  text-shadow: 0 0 12px rgba(0, 196, 238, 0.3);
 }
 
 /* === Nav === */
 .sidebar-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .nav-section-label {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
   color: var(--ink-4);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 8px 12px 6px;
+  padding: 10px 12px 6px;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 500;
-  color: var(--ink-2);
+  color: var(--ink-3);
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
-  transition: background 140ms ease, color 140ms ease;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.01em;
+  position: relative;
 
   i {
     font-size: 14px;
-    color: var(--ink-3);
+    color: var(--ink-4);
     width: 18px;
     text-align: center;
+    transition: color 200ms ease, text-shadow 200ms ease;
   }
 
   &:hover {
-    background: var(--surface-3);
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.08);
     color: var(--ink);
+    box-shadow: 0 0 16px rgba(45, 125, 255, 0.06);
 
-    i { color: var(--ink); }
+    i {
+      color: var(--ink);
+      text-shadow: 0 0 8px rgba(45, 125, 255, 0.3);
+    }
   }
 }
 
 .nav-link-active {
-  background: var(--ink) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, rgba(45, 125, 255, 0.2) 0%, rgba(45, 125, 255, 0.08) 100%) !important;
+  border-color: rgba(45, 125, 255, 0.3) !important;
+  color: var(--ink) !important;
+  font-weight: 600;
+  box-shadow: 0 0 20px rgba(45, 125, 255, 0.12), 0 0 40px rgba(45, 125, 255, 0.05), inset 0 0 0 1px rgba(45, 125, 255, 0.15);
 
-  i { color: #fff !important; }
+  i {
+    color: var(--primary) !important;
+    text-shadow: 0 0 12px rgba(45, 125, 255, 0.5);
+  }
+}
+
+/* Also support the back-compat class */
+.active-nav-link {
+  background: linear-gradient(135deg, rgba(45, 125, 255, 0.2) 0%, rgba(45, 125, 255, 0.08) 100%) !important;
+  border-color: rgba(45, 125, 255, 0.3) !important;
+  color: var(--ink) !important;
+  font-weight: 600;
+  box-shadow: 0 0 20px rgba(45, 125, 255, 0.12), 0 0 40px rgba(45, 125, 255, 0.05), inset 0 0 0 1px rgba(45, 125, 255, 0.15);
+
+  i {
+    color: var(--primary) !important;
+    text-shadow: 0 0 12px rgba(45, 125, 255, 0.5);
+  }
+
+  &::before { display: none; }
 }
 
 .nav-link-danger:hover {
   color: var(--danger);
-  background: var(--danger-l);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.15);
   i { color: var(--danger); }
 }
 
-/* === Footer === */
+/* === Sidebar Footer === */
 .sidebar-footer {
-  padding: 12px 12px 16px;
-  border-top: 1px solid var(--border);
+  padding: 10px 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.05);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -154,12 +233,14 @@
 
 .sidebar-meta {
   margin-top: 14px;
-  padding: 8px 12px 4px;
-  font-size: 11.5px;
+  padding: 8px 12px 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
   color: var(--ink-4);
   text-align: center;
+  letter-spacing: 0.04em;
 
-  span { color: var(--ink-4); }
+  span { color: var(--ink-3); }
 }
 
 /* ============================================================
@@ -168,17 +249,18 @@
 .main {
   flex: 1;
   min-width: 0;
-  background: var(--bg);
+  background: transparent;
 }
 
 /* ============================================================
-   Modal
+   Modal — Glassmorphism
    ============================================================ */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(14, 14, 12, 0.5);
-  backdrop-filter: blur(2px);
+  background: rgba(4, 8, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -187,13 +269,36 @@
 }
 
 .modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: rgba(13, 22, 42, 0.92);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-xl);
   padding: 28px 28px 22px;
   width: 100%;
   max-width: 440px;
   box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top shimmer line */
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15) 50%, transparent);
+}
+
+/* Glow in upper corner */
+.modal::after {
+  content: '';
+  position: absolute;
+  top: -40px; left: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(45, 125, 255, 0.08) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .modal-icon {
@@ -205,35 +310,34 @@
   justify-content: center;
   margin-bottom: 16px;
   font-size: 20px;
+  position: relative;
+  z-index: 1;
 }
 
 .modal-title {
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 700;
   color: var(--ink);
   margin-bottom: 6px;
   letter-spacing: -0.015em;
+  position: relative;
+  z-index: 1;
 }
 
 .modal-text {
   font-size: 14px;
   color: var(--ink-3);
-  line-height: 1.55;
+  line-height: 1.6;
   margin-bottom: 22px;
+  position: relative;
+  z-index: 1;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-}
-
-/* Back-compat — alte Klassen */
-.active-nav-link {
-  background: var(--ink) !important;
-  color: #fff !important;
-
-  i { color: #fff !important; }
-
-  &::before { display: none; }
+  position: relative;
+  z-index: 1;
 }

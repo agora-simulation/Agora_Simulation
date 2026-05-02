@@ -6,6 +6,7 @@ import Graph from 'graphology';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import { PersonaService } from '../../../core/services/persona.service';
+import { SimulationService } from '../../../core/services/simulation.service';
 import { Persona } from '../../../core/models/persona.model';
 import { getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 
@@ -21,11 +22,13 @@ const COLOR_EDGE_DIM = 'rgba(14,14,12,0.04)';
 export class NetworkComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private personaService = inject(PersonaService);
+  private simService = inject(SimulationService);
 
   graphContainer = viewChild<ElementRef>('graphContainer');
   personas = signal<Persona[]>([]);
   selectedPersona = signal<Persona | null>(null);
   loading = signal(true);
+  networkMetrics = signal<any>(null);
 
   // Netzwerk-Stats
   nodeCount = signal(0);
@@ -70,6 +73,14 @@ export class NetworkComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Computed: centrality for selected persona
+  selectedCentrality = computed(() => {
+    const sel = this.selectedPersona();
+    const metrics = this.networkMetrics();
+    if (!sel || !metrics?.centrality) return null;
+    return metrics.centrality.find((c: any) => c.persona_id === sel.id) || null;
+  });
+
   ngOnInit() {
     this.simId = this.route.parent!.snapshot.params['id'];
     this.personaService.list(this.simId, { limit: 200 }).subscribe(res => {
@@ -77,6 +88,10 @@ export class NetworkComponent implements OnInit, OnDestroy {
       this.computeNetworkStats();
       this.loading.set(false);
       setTimeout(() => this.renderGraph(), 100);
+    });
+    this.simService.getNetworkMetrics(this.simId).subscribe({
+      next: m => this.networkMetrics.set(m),
+      error: () => {},
     });
   }
 

@@ -2,7 +2,7 @@
 
   <!-- Section Header -->
   <header class="flex items-center gap-3 mb-5">
-    <h2 style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink);">Netzwerk</h2>
+    <h2 class="page-title" style="font-size: 26px; margin-bottom: 0;">Netzwerk</h2>
     <span class="badge badge-muted">{{ personas().length }} Personas</span>
   </header>
 
@@ -62,48 +62,129 @@
 
     <!-- Netzwerk-Statistiken -->
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
-      <div class="card" style="padding: 14px 16px;">
-        <div style="font-size: 24px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
+      <div class="card card-hover" style="padding: 16px 18px;">
+        <i class="pi pi-users" style="font-size: 16px; color: var(--primary); margin-bottom: 8px; display: block; text-shadow: 0 0 8px rgba(45,125,255,0.3);"></i>
+        <div class="glow-text" style="font-size: 26px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
           {{ nodeCount() }}
         </div>
-        <div style="font-size: 12px; color: var(--ink-3); font-weight: 500;">Personas</div>
+        <div style="font-size: 13px; color: var(--ink-2); font-weight: 500; margin-top: 2px;">Personas</div>
       </div>
-      <div class="card" style="padding: 14px 16px;">
-        <div style="font-size: 24px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
+      <div class="card card-hover" style="padding: 16px 18px;">
+        <i class="pi pi-link" style="font-size: 16px; color: var(--cyan); margin-bottom: 8px; display: block; text-shadow: 0 0 8px rgba(0,196,238,0.3);"></i>
+        <div class="glow-text-cyan" style="font-size: 26px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
           {{ edgeCount() }}
         </div>
-        <div style="font-size: 12px; color: var(--ink-3); font-weight: 500;">Verbindungen</div>
+        <div style="font-size: 13px; color: var(--ink-2); font-weight: 500; margin-top: 2px;">Verbindungen</div>
       </div>
-      <div class="card" style="padding: 14px 16px;">
-        <div style="font-size: 24px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
+      <div class="card card-hover" style="padding: 16px 18px;">
+        <i class="pi pi-share-alt" style="font-size: 16px; color: var(--purple); margin-bottom: 8px; display: block; text-shadow: 0 0 8px rgba(124,58,237,0.3);"></i>
+        <div style="font-size: 26px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; text-shadow: 0 0 12px rgba(124,58,237,0.2);">
           {{ avgConnections() }}
         </div>
-        <div style="font-size: 12px; color: var(--ink-3); font-weight: 500;">Ø Verbindungen</div>
+        <div style="font-size: 13px; color: var(--ink-2); font-weight: 500; margin-top: 2px;">Ø Verbindungen</div>
       </div>
-      <div class="card" style="padding: 14px 16px;">
-        <div style="font-size: 24px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums;">
-          {{ skepticPercent() }}%
-        </div>
-        <div style="font-size: 12px; color: var(--ink-3); font-weight: 500;">Skeptiker</div>
-      </div>
-      <div class="card" style="padding: 14px 16px;">
-        <div style="font-size: 24px; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums;">
-          {{ isolatedCount() }}
-        </div>
-        <div style="font-size: 12px; color: var(--ink-3); font-weight: 500;">Isoliert</div>
-      </div>
-      @if (strongestEdge()) {
+      @if (networkMetrics()?.graph_stats; as gs) {
         <div class="card" style="padding: 14px 16px;">
-          <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            {{ strongestEdge()!.source }}
+          <div style="font-size: 24px; font-weight: 700; color: var(--feedbook); font-variant-numeric: tabular-nums;">
+            {{ gs.density }}
           </div>
-          <div style="font-size: 11px; color: var(--ink-3);">
-            ↔ {{ strongestEdge()!.target }} ({{ strongestEdge()!.strength }})
-          </div>
-          <div style="font-size: 12px; color: var(--ink-3); font-weight: 500;">Stärkste Verbindung</div>
+          <div style="font-size: 13px; color: var(--ink-2); font-weight: 500;">Netz-Dichte</div>
         </div>
+        <div class="card" style="padding: 14px 16px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--threadit); font-variant-numeric: tabular-nums;">
+            {{ gs.avg_clustering }}
+          </div>
+          <div style="font-size: 13px; color: var(--ink-2); font-weight: 500;">Ø Clustering</div>
+        </div>
+        <div class="card" style="padding: 14px 16px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">
+            {{ gs.connected_components }}
+          </div>
+          <div style="font-size: 13px; color: var(--ink-2); font-weight: 500;">Communities</div>
+        </div>
+      } @else {
+        <div class="card" style="padding: 14px 16px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums;">
+            {{ skepticPercent() }}%
+          </div>
+          <div style="font-size: 13px; color: var(--ink-2); font-weight: 500;">Skeptiker</div>
+        </div>
+        <div class="card" style="padding: 14px 16px;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums;">
+            {{ isolatedCount() }}
+          </div>
+          <div style="font-size: 13px; color: var(--ink-2); font-weight: 500;">Isoliert</div>
+        </div>
+        @if (strongestEdge()) {
+          <div class="card" style="padding: 14px 16px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ strongestEdge()!.source }}
+            </div>
+            <div style="font-size: 11px; color: var(--ink-3);">
+              ↔ {{ strongestEdge()!.target }} ({{ strongestEdge()!.strength }})
+            </div>
+            <div style="font-size: 13px; color: var(--ink-2); font-weight: 500;">Stärkste Verb.</div>
+          </div>
+        }
       }
     </div>
+
+    <!-- Top-Rankings aus Netzwerk-Metriken -->
+    @if (networkMetrics()?.rankings; as rankings) {
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div class="card card-hover" style="padding: 18px 20px;">
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="pi pi-sitemap" style="font-size: 14px; color: var(--feedbook); text-shadow: 0 0 8px rgba(59,138,255,0.3);"></i>
+            Top Vernetzte
+          </h4>
+          @for (p of rankings.top_degree.slice(0, 5); track p.persona_id) {
+            <div class="flex items-center justify-between" style="font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--ink); font-weight: 500;">{{ p.name }}</span>
+              <span class="font-mono" style="font-size: 12px; color: var(--feedbook);">{{ p.degree_centrality }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="card card-hover" style="padding: 18px 20px;">
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="pi pi-arrows-alt" style="font-size: 14px; color: var(--threadit); text-shadow: 0 0 8px rgba(245,158,11,0.3);"></i>
+            Top Brückenbauer
+          </h4>
+          @for (p of rankings.top_betweenness.slice(0, 5); track p.persona_id) {
+            <div class="flex items-center justify-between" style="font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--ink); font-weight: 500;">{{ p.name }}</span>
+              <span class="font-mono" style="font-size: 12px; color: var(--threadit);">{{ p.betweenness_centrality }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="card card-hover" style="padding: 18px 20px;">
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="pi pi-bolt" style="font-size: 14px; color: var(--success); text-shadow: 0 0 8px rgba(16,185,129,0.3);"></i>
+            Top Einflussreich
+          </h4>
+          @for (p of rankings.top_eigenvector.slice(0, 5); track p.persona_id) {
+            <div class="flex items-center justify-between" style="font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--ink); font-weight: 500;">{{ p.name }}</span>
+              <span class="font-mono" style="font-size: 12px; color: var(--success);">{{ p.eigenvector_centrality }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="card card-hover" style="padding: 18px 20px;">
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <i class="pi pi-compass" style="font-size: 14px; color: var(--cyan); text-shadow: 0 0 8px rgba(0,196,238,0.3);"></i>
+            Top Erreichbar
+          </h4>
+          @for (p of rankings.top_closeness.slice(0, 5); track p.persona_id) {
+            <div class="flex items-center justify-between" style="font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--border);">
+              <span style="color: var(--ink); font-weight: 500;">{{ p.name }}</span>
+              <span class="font-mono" style="font-size: 12px; color: var(--cyan);">{{ p.closeness_centrality }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
 
     <!-- Graph Stage -->
     <div class="card net-stage" style="padding: 0;">
@@ -146,6 +227,28 @@
                   <dt>Verbindungen</dt>
                   <dd style="font-family: var(--font-mono);">{{ persona.social_connections?.length || 0 }}</dd>
                 </div>
+                @if (selectedCentrality(); as c) {
+                  <div class="data-row">
+                    <dt>Degree Centrality</dt>
+                    <dd style="font-family: var(--font-mono); color: var(--feedbook);">{{ c.degree_centrality }}</dd>
+                  </div>
+                  <div class="data-row">
+                    <dt>Betweenness</dt>
+                    <dd style="font-family: var(--font-mono); color: var(--threadit);">{{ c.betweenness_centrality }}</dd>
+                  </div>
+                  <div class="data-row">
+                    <dt>Eigenvector</dt>
+                    <dd style="font-family: var(--font-mono); color: var(--moss);">{{ c.eigenvector_centrality }}</dd>
+                  </div>
+                  <div class="data-row">
+                    <dt>Closeness</dt>
+                    <dd style="font-family: var(--font-mono);">{{ c.closeness_centrality }}</dd>
+                  </div>
+                  <div class="data-row">
+                    <dt>Clustering</dt>
+                    <dd style="font-family: var(--font-mono);">{{ c.clustering_coefficient }}</dd>
+                  </div>
+                }
               </dl>
 
               @if (persona.current_state?.platform_affinity) {
@@ -330,7 +433,11 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    background: var(--surface);
+    background:
+      linear-gradient(rgba(45,125,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(45,125,255,0.02) 1px, transparent 1px),
+      var(--surface);
+    background-size: 40px 40px, 40px 40px, 100% 100%;
   }
 
   /* Drawer */
@@ -339,13 +446,15 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 380px;
+    width: 400px;
     max-width: 90vw;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
-    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.06);
+    background: rgba(8, 14, 28, 0.92);
+    border-left: 1px solid rgba(45,125,255,0.15);
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.3), -2px 0 16px rgba(45,125,255,0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     transform: translateX(100%);
-    transition: transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 4;
     display: flex;
     flex-direction: column;
@@ -391,12 +500,12 @@
     border-bottom: 1px solid var(--border);
   }
   .data-row dt {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--ink-3);
+    color: var(--ink-2);
   }
   .data-row dd {
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--ink);
     text-align: right;
     font-weight: 500;
@@ -417,28 +526,30 @@
 
   /* Legende */
   .key-label {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--ink-3);
+    color: var(--ink-2);
   }
   .key-item {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: var(--ink-2);
+    font-size: 13.5px;
+    color: var(--ink);
+    font-weight: 500;
   }
   .key-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
   }
   .key-line {
-    width: 18px;
+    width: 20px;
     height: 2px;
-    background: var(--ink-4);
+    background: var(--ink-3);
     border-radius: 1px;
   }
 

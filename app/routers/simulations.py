@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.models import (
     AnalysisReport,
     Comment,
@@ -20,9 +20,9 @@ from app.models import (
 )
 from app.schemas import SimulationCreate, SimulationRead, SimulationRunResponse, TickRead
 from app.schemas.common import PaginatedResponse
-from app.schemas.simulation import SimulationResetResponse, SimulationStats
+from app.schemas.simulation import SimulationResetResponse, SimulationStats, MultiRunRequest, MultiRunResponse, MultiRunComparisonResponse
 from app.config import settings
-from app.simulation.runner import run_simulation_background
+from app.simulation.runner import run_simulation_background, create_multi_run_simulations, run_multi_simulation_background
 
 router = APIRouter()
 
@@ -58,6 +58,36 @@ async def list_simulations(
         offset=offset,
         has_more=(offset + limit) < total,
     )
+
+
+@router.get("/multi-run/{run_group_id}", response_model=list[SimulationRead])
+async def get_multi_run_simulations(
+    run_group_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> list[SimulationRead]:
+    """Listet alle Simulationen einer Multi-Run-Gruppe."""
+    result = await db.execute(
+        select(Simulation)
+        .where(Simulation.run_group_id == run_group_id)
+        .order_by(Simulation.run_index)
+    )
+    sims = result.scalars().all()
+    if not sims:
+        raise HTTPException(status_code=404, detail="Multi-Run-Gruppe nicht gefunden")
+    return sims
+
+
+@router.get("/multi-run/{run_group_id}/compare", response_model=MultiRunComparisonResponse)
+async def compare_multi_run(
+    run_group_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> MultiRunComparisonResponse:
+    """Vergleicht die Ergebnisse aller Runs einer Multi-Run-Gruppe.
+
+    Berechnet Varianz, Konfidenz-Scores und Narrativ-Stabilität.
+    """
+    from app.simulation.multi_run_analysis import analyze_multi_run
+    return await analyze_multi_run(run_group_id, db)
 
 
 @router.get("/{simulation_id}", response_model=SimulationRead)
@@ -184,6 +214,136 @@ async def list_ticks(
         .order_by(SimulationTick.tick_number.asc())
     )
     return result.scalars().all()
+
+
+@router.post("/{simulation_id}/multi-run", response_model=MultiRunResponse)
+async def start_multi_run(
+    simulation_id: UUID,
+    body: MultiRunRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> MultiRunResponse:
+    """Startet N parallele Simulationsläufe für Varianz-Analyse.
+
+    Erstellt Kopien der Quell-Simulation und startet sie sequentiell.
+    Ergebnisse werden über /multi-run/{run_group_id}/compare verglichen.
+    """
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    sim = result.scalar_one_or_none()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    run_group_id, sim_ids = await create_multi_run_simulations(
+        simulation_id, body.run_count,
+    )
+
+    background_tasks.add_task(run_multi_simulation_background, run_group_id, sim_ids)
+
+    return MultiRunResponse(
+        run_group_id=run_group_id,
+        simulation_ids=sim_ids,
+        run_count=body.run_count,
+        message=f"{body.run_count} Simulationsläufe gestartet. Vergleich über GET /simulations/multi-run/{run_group_id}/compare",
+    )
+
+
+@router.post("/{simulation_id}/stress-test/sensitivity")
+async def create_sensitivity_test_endpoint(
+    simulation_id: UUID,
+    skeptic_rate: float = Query(0.6, ge=0.1, le=0.9, description="Skeptiker-Anteil (0.1-0.9)"),
+    background_tasks: BackgroundTasks = None,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Erstellt eine Kopie mit anderem Skeptiker-Anteil und startet sie.
+
+    Vergleiche das Ergebnis mit der Original-Simulation, um zu sehen ob
+    die Erkenntnisse stabil bleiben.
+    """
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    from app.simulation.stress_test import create_sensitivity_test
+    clone_id = await create_sensitivity_test(simulation_id, skeptic_rate)
+
+    # Auto-Start
+    async with AsyncSessionLocal() as start_db:
+        await start_db.execute(
+            update(Simulation)
+            .where(Simulation.id == clone_id)
+            .values(status=SimulationStatus.running)
+        )
+        await start_db.commit()
+
+    background_tasks.add_task(run_simulation_background, clone_id)
+
+    return {
+        "original_id": str(simulation_id),
+        "sensitivity_id": str(clone_id),
+        "skeptic_rate": skeptic_rate,
+        "message": f"Sensitivity-Test mit {int(skeptic_rate * 100)}% Skeptikern gestartet.",
+    }
+
+
+@router.get("/{simulation_id}/stress-test/top-influencers")
+async def get_top_influencers(
+    simulation_id: UUID,
+    top_n: int = Query(3, ge=1, le=10),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    """Findet die einflussreichsten Personas — für Remove-and-Rerun."""
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    from app.simulation.stress_test import find_top_influencers
+    return await find_top_influencers(simulation_id, db, top_n)
+
+
+@router.post("/{simulation_id}/stress-test/remove-and-rerun")
+async def remove_and_rerun_endpoint(
+    simulation_id: UUID,
+    persona_ids: list[UUID],
+    background_tasks: BackgroundTasks = None,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Erstellt eine Kopie ohne bestimmte Personas und startet sie.
+
+    Entferne die einflussreichsten Akteure und schaue, ob das Ergebnis stabil bleibt.
+    Wenn ja → die Erkenntnis ist robust. Wenn nicht → sie war von Einzelpersonen abhängig.
+    """
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    from app.simulation.stress_test import create_remove_and_rerun
+    clone_id = await create_remove_and_rerun(simulation_id, persona_ids)
+
+    # Auto-Start
+    async with AsyncSessionLocal() as start_db:
+        await start_db.execute(
+            update(Simulation)
+            .where(Simulation.id == clone_id)
+            .values(status=SimulationStatus.running)
+        )
+        await start_db.commit()
+
+    background_tasks.add_task(run_simulation_background, clone_id)
+
+    return {
+        "original_id": str(simulation_id),
+        "rerun_id": str(clone_id),
+        "removed_persona_ids": [str(p) for p in persona_ids],
+        "message": "Remove-and-Rerun gestartet.",
+    }
 
 
 @router.delete("/{simulation_id}", status_code=status.HTTP_204_NO_CONTENT)

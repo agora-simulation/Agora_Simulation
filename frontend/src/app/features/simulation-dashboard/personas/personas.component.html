@@ -2,7 +2,7 @@
 
   <!-- Section Header -->
   <header class="flex items-center gap-3 mb-6">
-    <h2 style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink);">Personas</h2>
+    <h2 class="page-title" style="font-size: 26px; margin-bottom: 0;">Personas</h2>
     <span class="badge badge-muted">{{ filteredPersonas().length }} von {{ personas().length }}</span>
     @if (hasActiveFilters()) {
       <span class="badge badge-primary">{{ activeFilterCount() }} Filter aktiv</span>
@@ -95,10 +95,10 @@
                 <span class="persona-row-meta">{{ p.age }} J · {{ p.location }}</span>
               </span>
               @if (p.is_skeptic) {
-                <span class="badge badge-danger" style="font-size: 10.5px;">Skeptiker</span>
+                <span class="badge badge-danger" style="font-size: 11.5px;">Skeptiker</span>
               }
               @if (p.persona_type && p.persona_type !== 'individual') {
-                <span class="badge badge-muted" style="font-size: 10.5px;">
+                <span class="badge badge-muted" style="font-size: 11.5px;">
                   {{ p.persona_type === 'organization' ? 'Org' : p.persona_type === 'institution' ? 'Inst' : 'Pol' }}
                 </span>
               }
@@ -351,11 +351,11 @@
 <style>
   .filter-label {
     display: block;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--ink-3);
+    color: var(--ink-2);
     margin-bottom: 6px;
   }
 
@@ -487,15 +487,19 @@
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease;
   }
-  .persona-row:hover { background: var(--surface-2); }
+  .persona-row:hover {
+    background: var(--surface-2);
+    border-left-color: rgba(45,125,255,0.15);
+  }
   .persona-row-active {
-    background: var(--surface-3) !important;
+    background: linear-gradient(90deg, rgba(45,125,255,0.08), var(--surface-3)) !important;
     border-left-color: var(--primary) !important;
+    box-shadow: inset 3px 0 12px rgba(45,125,255,0.1);
   }
 
   .avatar-bubble {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -505,19 +509,25 @@
     font-size: 14px;
     flex-shrink: 0;
     letter-spacing: 0.02em;
+    box-shadow: 0 0 12px rgba(45,125,255,0.15);
+    transition: box-shadow 200ms ease;
+  }
+  .persona-row:hover .avatar-bubble {
+    box-shadow: 0 0 18px rgba(45,125,255,0.3);
   }
   .avatar-bubble-lg {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: 700;
-    font-size: 28px;
+    font-size: 30px;
     flex-shrink: 0;
     letter-spacing: 0.02em;
+    box-shadow: 0 0 24px rgba(45,125,255,0.2), 0 0 48px rgba(45,125,255,0.08);
   }
 
   .persona-row-text {
@@ -528,7 +538,7 @@
     gap: 2px;
   }
   .persona-row-name {
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--ink);
     white-space: nowrap;
@@ -536,41 +546,44 @@
     text-overflow: ellipsis;
   }
   .persona-row-meta {
-    font-size: 12.5px;
-    color: var(--ink-3);
+    font-size: 13px;
+    color: var(--ink-2);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .mood-dot {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
   }
   .mood-dot-lg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 10px currentColor;
+    animation: pulse 2.5s ease-in-out infinite;
   }
 
   /* Detail */
   .detail-wrap { min-height: 500px; }
 
   .dt {
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--ink-3);
+    color: var(--cyan);
     margin: 0 0 6px 0;
   }
   .dd {
-    font-size: 14.5px;
-    line-height: 1.55;
-    color: var(--ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink);
     margin: 0;
   }
   .detail-grid {
@@ -623,7 +636,8 @@
     top: 6px;
     bottom: 6px;
     width: 2px;
-    background: var(--border);
+    background: linear-gradient(to bottom, var(--primary), rgba(45,125,255,0.15));
+    border-radius: 1px;
   }
   .tl-item {
     position: relative;
@@ -638,23 +652,24 @@
     height: 12px;
     border-radius: 50%;
     background: var(--primary);
-    border: 2px solid var(--surface);
-    box-shadow: 0 0 0 1px var(--border);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px rgba(45,125,255,0.4), 0 0 0 1px rgba(45,125,255,0.2);
   }
   .tl-tick {
     display: block;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--primary);
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+    text-shadow: 0 0 8px rgba(45,125,255,0.3);
   }
   .tl-text {
-    font-size: 14px;
-    color: var(--ink-2);
+    font-size: 14.5px;
+    color: var(--ink);
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.55;
   }
 
   /* Chat */
@@ -671,10 +686,10 @@
   }
   .chat-bubble {
     max-width: 75%;
-    padding: 10px 14px;
-    font-size: 13.5px;
-    line-height: 1.5;
-    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    border-radius: 14px;
   }
   .chat-bubble-user {
     align-self: flex-end;
@@ -691,37 +706,48 @@
   }
 
   /* Big Five */
-  .bigfive-grid { display: flex; flex-direction: column; gap: 10px; }
-  .bigfive-row { display: flex; align-items: center; gap: 12px; }
-  .bigfive-label { font-size: 12.5px; color: var(--ink-3); width: 130px; flex-shrink: 0; }
-  .bigfive-bar-wrap { flex: 1; height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
-  .bigfive-bar { height: 100%; border-radius: 999px; transition: width 400ms ease; }
-  .bigfive-val { font-size: 12px; color: var(--ink-3); width: 32px; text-align: right; }
+  .bigfive-grid { display: flex; flex-direction: column; gap: 14px; }
+  .bigfive-row { display: flex; align-items: center; gap: 14px; }
+  .bigfive-label { font-size: 13.5px; color: var(--ink-2); width: 140px; flex-shrink: 0; font-weight: 500; }
+  .bigfive-bar-wrap { flex: 1; height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+  .bigfive-bar { height: 100%; border-radius: 999px; transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 0 8px rgba(45,125,255,0.2); }
+  .bigfive-val { font-size: 13px; color: var(--ink); width: 36px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 
   /* Demografie */
   .demo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .demo-chips .badge { display: flex; align-items: center; gap: 5px; }
 
   /* Memory */
-  .memory-list { display: flex; flex-direction: column; gap: 10px; }
-  .memory-item { padding: 12px 14px; background: var(--surface-2); border-radius: 8px; border-left: 3px solid var(--border-strong); }
-  .memory-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .memory-tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 999px; }
-  .memory-conflict { background: #fee2e2; color: #991b1b; }
-  .memory-persuasion { background: #d1fae5; color: #065f46; }
-  .memory-social { background: #dbeafe; color: #1e3a8a; }
-  .memory-surprise { background: #fef3c7; color: #92400e; }
-  .memory-personal { background: #f3e8ff; color: #6b21a8; }
-  .memory-tick { font-size: 11.5px; color: var(--ink-3); }
-  .memory-weight { font-size: 12px; color: #f59e0b; margin-left: auto; }
-  .memory-text { font-size: 13.5px; color: var(--ink-2); margin: 0; line-height: 1.5; }
+  .memory-list { display: flex; flex-direction: column; gap: 12px; }
+  .memory-item {
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--primary);
+    box-shadow: -3px 0 12px rgba(45,125,255,0.08);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .memory-item:hover {
+    border-left-color: var(--cyan);
+    box-shadow: -3px 0 16px rgba(0,196,238,0.12);
+  }
+  .memory-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .memory-tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 10px; border-radius: 999px; }
+  .memory-conflict { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .memory-persuasion { background: rgba(16,185,129,0.15); color: var(--success); }
+  .memory-social { background: rgba(45,125,255,0.15); color: var(--primary); }
+  .memory-surprise { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .memory-personal { background: rgba(124,58,237,0.15); color: var(--purple); }
+  .memory-tick { font-size: 12px; color: var(--ink-3); }
+  .memory-weight { font-size: 13px; color: var(--warning); margin-left: auto; }
+  .memory-text { font-size: 14px; color: var(--ink); margin: 0; line-height: 1.55; }
 
   /* Conversations */
   .conv-list { display: flex; flex-direction: column; gap: 8px; }
   .conv-item { width: 100%; text-align: left; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: background 120ms; }
   .conv-item:hover { background: var(--surface-3); }
   .conv-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .conv-count { font-size: 12.5px; font-weight: 600; color: var(--ink); }
-  .conv-date { font-size: 11.5px; color: var(--ink-3); }
-  .conv-summary { font-size: 13px; color: var(--ink-3); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conv-count { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .conv-date { font-size: 12px; color: var(--ink-3); }
+  .conv-summary { font-size: 13.5px; color: var(--ink-2); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
