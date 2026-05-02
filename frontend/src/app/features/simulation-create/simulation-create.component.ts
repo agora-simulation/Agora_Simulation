@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SimulationService } from '../../core/services/simulation.service';
 import { ProviderService } from '../../core/services/provider.service';
-import { SimulationCreate, LlmProvider } from '../../core/models/simulation.model';
+import { SimulationCreate, LlmProvider, ResearchMode } from '../../core/models/simulation.model';
 import { SimulationProviderConfig, PhaseProviderEntry, Preset, CostEstimate, Provider } from '../../core/models/provider.model';
 import { PhaseConfigComponent } from './phase-config.component';
 
@@ -31,6 +31,7 @@ export class SimulationCreateComponent {
   personaCount = signal(30);
   tickCount = signal(15);
   llmProvider = signal<LlmProvider>('anthropic');
+  researchMode = signal<ResearchMode>('quick');
 
   readonly providers: { id: LlmProvider; label: string; sub: string; icon: string }[] = [
     { id: 'anthropic', label: 'Claude (Anthropic)', sub: 'Sonnet 4.6 + Haiku 4.5', icon: 'pi-sparkles' },
@@ -299,6 +300,7 @@ export class SimulationCreateComponent {
       llm_provider: this.llmProvider(),
       llm_model_fast: this.resolveModelFast(),
       llm_model_smart: this.resolveModelSmart(),
+      research_mode: this.researchMode(),
     };
     if (this.useProviderConfig()) {
       data.provider_config = this.buildProviderConfig();

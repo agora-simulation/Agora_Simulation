@@ -34,7 +34,7 @@ async def reset_stale_simulations() -> int:
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             update(Simulation)
-            .where(Simulation.status == SimulationStatus.running)
+            .where(Simulation.status.in_([SimulationStatus.running, SimulationStatus.researching]))
             .values(status=SimulationStatus.failed, updated_at=datetime.now(timezone.utc).replace(tzinfo=None))
             .returning(Simulation.id)
         )
@@ -138,6 +138,56 @@ async def run_simulation_background(simulation_id: UUID):
                 await db.commit()
                 return
 
+            # 0. Web-Recherche (Deep Mode)
+            market_context_summary = None
+            research_mode = getattr(sim, "research_mode", "quick") or "quick"
+
+            if research_mode == "deep":
+                from app.models import MarketContext
+                ctx_result = await db.execute(
+                    select(MarketContext).where(MarketContext.simulation_id == simulation_id)
+                )
+                existing_ctx = ctx_result.scalar_one_or_none()
+
+                if not existing_ctx:
+                    # Recherche durchführen und danach PAUSIEREN
+                    await db.execute(
+                        update(Simulation).where(Simulation.id == simulation_id)
+                        .values(status=SimulationStatus.researching, updated_at=datetime.now(timezone.utc).replace(tzinfo=None))
+                    )
+                    await db.commit()
+
+                    logger.info(f"[{simulation_id}] Deep Mode: Starte Web-Recherche")
+                    try:
+                        from app.research import run_market_research
+                        research_resolved = await resolve_for_phase(sim, "persona_generation", db)
+                        existing_ctx = await run_market_research(
+                            simulation_id, db, resolved=research_resolved,
+                        )
+                        await db.commit()
+                    except Exception as e:
+                        logger.error(f"[{simulation_id}] Web-Recherche fehlgeschlagen: {e}")
+                        await db.execute(
+                            update(Simulation).where(Simulation.id == simulation_id)
+                            .values(status=SimulationStatus.failed, updated_at=datetime.now(timezone.utc).replace(tzinfo=None))
+                        )
+                        await db.commit()
+                        return
+
+                    # PAUSE: Status auf research_complete → User muss bestätigen
+                    await db.execute(
+                        update(Simulation).where(Simulation.id == simulation_id)
+                        .values(status=SimulationStatus.research_complete, updated_at=datetime.now(timezone.utc).replace(tzinfo=None))
+                    )
+                    await db.commit()
+                    logger.info(f"[{simulation_id}] Recherche abgeschlossen — warte auf User-Bestätigung")
+                    return  # <-- STOP hier. User muss POST /research/approve aufrufen.
+
+                # MarketContext existiert bereits (z.B. nach Approve)
+                if existing_ctx:
+                    market_context_summary = existing_ctx.prompt_summary
+                    logger.info(f"[{simulation_id}] MarketContext geladen ({len(market_context_summary or '')} Zeichen)")
+
             # 1. Personas generieren falls noch nicht vorhanden
             result = await db.execute(
                 select(Persona).where(Persona.simulation_id == simulation_id)
@@ -153,6 +203,7 @@ async def run_simulation_background(simulation_id: UUID):
                     persona_count=persona_count,
                     sim=sim,
                     db=db,
+                    market_context_summary=market_context_summary,
                 )
                 logger.info(f"[{simulation_id}] {len(raw_personas)} Personas generiert")
                 for p_data in raw_personas:
@@ -216,6 +267,7 @@ async def run_simulation_background(simulation_id: UUID):
                     simulation_id, tick_num, tick_num, db, semaphore,
                     action_resolved=action_resolved,
                     state_resolved=state_resolved,
+                    market_context_summary=market_context_summary,
                 )
 
                 await db.execute(

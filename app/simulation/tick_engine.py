@@ -39,7 +39,7 @@ from app.models import (
     InfluenceEvent,
 )
 
-AGENT_SYSTEM_PROMPT = """Du bist eine virtuelle Person in einer sozialen Simulation.
+AGENT_SYSTEM_PROMPT_BASE = """Du bist eine virtuelle Person in einer sozialen Simulation.
 Verhalte dich authentisch und konsistent mit deiner Persönlichkeit.
 Reagiere auf deinen Feed wie eine echte Person — nicht immer, nicht immer positiv.
 
@@ -47,6 +47,24 @@ WICHTIG: Erfinde KEINE konkreten Zahlen, Prozentsätze oder Statistiken (z.B. "+
 Du darfst nur qualitative Aussagen treffen ("deutlich bessere Ergebnisse", "spürbare Verbesserung", "merklicher Rückgang").
 Wenn du Zahlen nennst, müssen sie direkt aus deinem Profil oder deiner Erfahrung stammen.
 Erfundene Metriken verfälschen den Diskurs."""
+
+# Legacy-Kompatibilität
+AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_BASE
+
+
+def _build_agent_system_prompt(market_context_summary: str | None = None) -> str:
+    """Baut den Agent-System-Prompt, optional mit MarketContext."""
+    prompt = AGENT_SYSTEM_PROMPT_BASE
+    if market_context_summary:
+        prompt += f"""
+
+=== AKTUELLE MARKTLAGE ===
+{market_context_summary}
+=== ENDE MARKTLAGE ===
+
+Berücksichtige diese aktuelle Marktlage in deinem Verhalten und deinen Meinungen.
+Deine Reaktionen sollten die reale Stimmung und die aktuellen Debatten widerspiegeln."""
+    return prompt
 
 STATE_SYSTEM_PROMPT = """Du analysierst die psychologische Entwicklung einer virtuellen Person.
 Aktualisiere Meinungsentwicklung und Stimmung basierend auf den heutigen Aktionen."""
@@ -683,6 +701,7 @@ async def persona_action(
     temperature: float | None = None,
     top_p: float | None = None,
     top_k: int | None = None,
+    market_context_summary: str | None = None,
 ) -> dict:
     """Lässt eine Persona auf ihren Feed reagieren.
 
@@ -699,11 +718,13 @@ async def persona_action(
     if provider is None:
         provider = get_provider(None)
 
+    system_prompt = _build_agent_system_prompt(market_context_summary)
+
     try:
         async with semaphore:
             return await provider.call_tool(
                 tier="fast",
-                system=AGENT_SYSTEM_PROMPT,
+                system=system_prompt,
                 cache_system=True,
                 user_blocks=[
                     {"text": persona_profile, "cache": True},
@@ -913,6 +934,7 @@ async def run_tick(
     provider: LLMProvider | None = None,
     action_resolved: ResolvedProvider | None = None,
     state_resolved: ResolvedProvider | None = None,
+    market_context_summary: str | None = None,
 ) -> SimulationTick:
     """Führt einen kompletten Tick aus.
 
@@ -1080,6 +1102,7 @@ async def run_tick(
                     temperature=action_temperature,
                     top_p=action_top_p,
                     top_k=action_top_k,
+                    market_context_summary=market_context_summary,
                 )
                 for p in wave_personas
             ],

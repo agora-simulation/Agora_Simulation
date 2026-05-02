@@ -15,6 +15,8 @@ from app.database import Base
 
 class SimulationStatus(str, PyEnum):
     pending = "pending"
+    researching = "researching"
+    research_complete = "research_complete"
     running = "running"
     completed = "completed"
     failed = "failed"
@@ -39,6 +41,7 @@ class Simulation(Base):
     provider_config = Column(JSON, nullable=True)         # Neue granulare Provider-Config (überschreibt llm_provider wenn gesetzt)
     run_group_id = Column(UUID(as_uuid=True), nullable=True, index=True)   # Multi-Run: Gruppen-ID für zusammengehörige Runs
     run_index = Column(Integer, nullable=True)              # Multi-Run: 0-basierter Index innerhalb der Gruppe
+    research_mode = Column(String(10), nullable=False, default="quick")  # "quick" | "deep"
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
@@ -46,6 +49,7 @@ class Simulation(Base):
     posts = relationship("Post", back_populates="simulation", cascade="all, delete-orphan")
     ticks = relationship("SimulationTick", back_populates="simulation", cascade="all, delete-orphan")
     reports = relationship("AnalysisReport", back_populates="simulation", cascade="all, delete-orphan")
+    market_context = relationship("MarketContext", back_populates="simulation", uselist=False, cascade="all, delete-orphan")
 
 
 class SimulationTick(Base):

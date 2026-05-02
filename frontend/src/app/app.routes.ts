@@ -2,7 +2,11 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'simulations', pathMatch: 'full' },
+  {
+    path: '',
+    loadComponent: () => import('./features/landing/landing.component').then(c => c.LandingComponent),
+    pathMatch: 'full',
+  },
   {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then(c => c.LoginComponent),
@@ -51,5 +55,5 @@ export const routes: Routes = [
       { path: 'gespraech/chat',   redirectTo: 'tools',     pathMatch: 'full' },
     ],
   },
-  { path: '**', redirectTo: 'simulations' },
+  { path: '**', redirectTo: '' },
 ];

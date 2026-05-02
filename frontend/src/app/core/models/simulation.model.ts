@@ -17,11 +17,15 @@ export interface Simulation {
   llm_model_fast: string | null;
   llm_model_smart: string | null;
   provider_config: SimulationProviderConfig | null;
+  research_mode: ResearchMode;
+  run_group_id: string | null;
+  run_index: number | null;
   created_at: string;
   updated_at: string;
 }
 
-export type SimulationStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type SimulationStatus = 'pending' | 'researching' | 'research_complete' | 'running' | 'completed' | 'failed';
+export type ResearchMode = 'quick' | 'deep';
 
 export interface SimulationConfig {
   persona_count?: number;
@@ -50,6 +54,7 @@ export interface SimulationCreate {
   llm_model_fast?: string | null;
   llm_model_smart?: string | null;
   provider_config?: SimulationProviderConfig | null;
+  research_mode?: ResearchMode;
 }
 
 export interface SimulationStreamEvent {

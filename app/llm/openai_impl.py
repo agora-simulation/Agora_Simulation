@@ -26,7 +26,7 @@ class OpenAIProvider(LLMProvider):
 
     # Sicherer Output-Token-Cap pro Modell. GPT-4o liefert max 16384 Output-Token —
     # wer am Limit kratzt, riskiert Truncation mitten im Tool-Argument.
-    _MAX_TOKENS_CAP = 12000
+    _MAX_TOKENS_CAP = 16000
 
     def __init__(
         self,

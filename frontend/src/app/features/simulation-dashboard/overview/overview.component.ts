@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, computed, effect } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, computed, effect } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import * as echarts from 'echarts';
@@ -21,7 +21,7 @@ interface MoodBucket { key: string; label: string; color: string; count: number;
   providers: [provideEchartsCore({ echarts })],
   templateUrl: './overview.component.html',
 })
-export class OverviewComponent implements OnInit {
+export class OverviewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private simService = inject(SimulationService);
   private personaService = inject(PersonaService);
@@ -33,6 +33,9 @@ export class OverviewComponent implements OnInit {
   posts = signal<Post[]>([]);
   personas = signal<Persona[]>([]);
   kpis = signal<any>(null);
+  marketContext = signal<any>(null);
+  approvingResearch = signal(false);
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
   activityChartOption = signal<any>({});
   moodChartOption = signal<any>({});
   engagementChartOption = signal<any>({});
@@ -95,10 +98,57 @@ export class OverviewComponent implements OnInit {
   ngOnInit() {
     this.simId = this.route.parent!.snapshot.params['id'];
     this.loadData();
+    // Auto-Refresh alle 5 Sekunden wenn Simulation aktiv
+    this.pollInterval = setInterval(() => {
+      const sim = this.simulation();
+      if (sim && ['running', 'researching', 'pending'].includes(sim.status)) {
+        this.loadData();
+      }
+    }, 5000);
+  }
+
+  ngOnDestroy() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+  }
+
+  getStatusPhaseLabel(): string {
+    const sim = this.simulation();
+    if (!sim) return '';
+    switch (sim.status) {
+      case 'pending': return 'Simulation wird vorbereitet...';
+      case 'researching': return 'Web-Recherche läuft — aktuelle Marktdaten werden analysiert';
+      case 'research_complete': return 'Recherche abgeschlossen — bitte prüfen und bestätigen';
+      case 'running': {
+        const tick = sim.current_tick;
+        const total = sim.total_ticks;
+        if (tick === 0) return 'Personas werden generiert...';
+        return `Tag ${tick} von ${total} wird simuliert — Personas interagieren`;
+      }
+      case 'completed': return '';
+      case 'failed': return 'Simulation fehlgeschlagen';
+      default: return '';
+    }
+  }
+
+  isSimulationActive(): boolean {
+    const sim = this.simulation();
+    return !!sim && ['running', 'researching', 'pending'].includes(sim.status);
   }
 
   private loadData() {
-    this.simService.getById(this.simId).subscribe(s => this.simulation.set(s));
+    this.simService.getById(this.simId).subscribe(s => {
+      this.simulation.set(s);
+      // MarketContext laden wenn Deep Mode
+      if (s.research_mode === 'deep') {
+        this.simService.getMarketContext(this.simId).subscribe({
+          next: ctx => this.marketContext.set(ctx),
+          error: () => {},
+        });
+      }
+    });
     this.simService.getStats(this.simId).subscribe(s => this.stats.set(s));
     this.simService.getTicks(this.simId).subscribe(t => { this.ticks.set(t); this.buildActivityChart(t); });
     this.postService.list(this.simId, { limit: 200 }).subscribe(r => this.posts.set(r.items));
@@ -106,6 +156,17 @@ export class OverviewComponent implements OnInit {
     this.simService.getKpis(this.simId).subscribe({
       next: k => { this.kpis.set(k); this.buildEngagementChart(k); this.buildNpsChart(k); },
       error: () => {},
+    });
+  }
+
+  approveResearch() {
+    this.approvingResearch.set(true);
+    this.simService.approveResearch(this.simId).subscribe({
+      next: () => {
+        this.approvingResearch.set(false);
+        this.loadData();
+      },
+      error: () => this.approvingResearch.set(false),
     });
   }
 

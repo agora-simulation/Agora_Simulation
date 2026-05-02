@@ -59,4 +59,16 @@ export class SimulationService {
   getNetworkMetrics(id: string): Observable<any> {
     return this.api.get(`/analysis/${id}/network-metrics`);
   }
+
+  getMarketContext(id: string): Observable<any> {
+    return this.api.get(`/simulations/${id}/market-context`);
+  }
+
+  updateMarketContext(id: string, data: any): Observable<any> {
+    return this.api.put(`/simulations/${id}/market-context`, data);
+  }
+
+  approveResearch(id: string): Observable<{ simulation_id: string; message: string }> {
+    return this.api.post(`/simulations/${id}/research/approve`);
+  }
 }

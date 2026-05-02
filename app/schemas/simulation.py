@@ -7,6 +7,7 @@ from app.schemas.common import UUIDModel, TimestampMixin
 from app.schemas.provider import SimulationProviderConfig
 
 LLMProviderName = Literal["anthropic", "openai", "ollama"]
+ResearchMode = Literal["quick", "deep"]
 
 
 class SimulationConfig(BaseModel):
@@ -25,6 +26,7 @@ class SimulationCreate(BaseModel):
     llm_model_fast: str | None = Field(None, max_length=64)
     llm_model_smart: str | None = Field(None, max_length=64)
     provider_config: SimulationProviderConfig | None = None
+    research_mode: ResearchMode = Field("quick", description="'quick' = ohne Web-Recherche, 'deep' = mit Web-Recherche vor Persona-Generierung")
 
     @field_validator("webhook_url")
     @classmethod
@@ -65,6 +67,7 @@ class SimulationRead(UUIDModel, TimestampMixin):
     provider_config: dict | None = None
     run_group_id: UUID | None = None
     run_index: int | None = None
+    research_mode: str = "quick"
 
 
 class SimulationRunResponse(BaseModel):
@@ -102,6 +105,30 @@ class MultiRunResponse(BaseModel):
     simulation_ids: list[UUID]
     run_count: int
     message: str
+
+
+class MarketContextRead(BaseModel):
+    """Market Context Document aus der Web-Recherche."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    simulation_id: UUID
+    macro_context: str | None
+    industry_context: str | None
+    target_group_context: str | None
+    prompt_summary: str | None
+    raw_sources: list | None = None
+    research_queries: list | None = None
+    research_mode: str = "deep"
+    created_at: datetime | None = None
+
+
+class MarketContextUpdate(BaseModel):
+    """Manuelles Update des Market Context."""
+    macro_context: str | None = None
+    industry_context: str | None = None
+    target_group_context: str | None = None
+    prompt_summary: str | None = None
 
 
 class MultiRunComparisonResponse(BaseModel):

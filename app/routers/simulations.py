@@ -11,6 +11,7 @@ from app.models import (
     AnalysisReport,
     Comment,
     InfluenceEvent,
+    MarketContext,
     Persona,
     Post,
     Reaction,
@@ -20,7 +21,7 @@ from app.models import (
 )
 from app.schemas import SimulationCreate, SimulationRead, SimulationRunResponse, TickRead
 from app.schemas.common import PaginatedResponse
-from app.schemas.simulation import SimulationResetResponse, SimulationStats, MultiRunRequest, MultiRunResponse, MultiRunComparisonResponse
+from app.schemas.simulation import SimulationResetResponse, SimulationStats, MultiRunRequest, MultiRunResponse, MultiRunComparisonResponse, MarketContextRead, MarketContextUpdate
 from app.config import settings
 from app.simulation.runner import run_simulation_background, create_multi_run_simulations, run_multi_simulation_background
 
@@ -346,6 +347,122 @@ async def remove_and_rerun_endpoint(
     }
 
 
+# ---------------------------------------------------------------------------
+# Market Context Endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/{simulation_id}/market-context", response_model=MarketContextRead)
+async def get_market_context(
+    simulation_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> MarketContextRead:
+    """Gibt das Market-Context-Document der Simulation zurück."""
+    result = await db.execute(
+        select(MarketContext).where(MarketContext.simulation_id == simulation_id)
+    )
+    ctx = result.scalar_one_or_none()
+    if not ctx:
+        raise HTTPException(status_code=404, detail="Kein Market Context vorhanden. Simulation mit research_mode='deep' starten.")
+    return ctx
+
+
+@router.put("/{simulation_id}/market-context", response_model=MarketContextRead)
+async def update_market_context(
+    simulation_id: UUID,
+    body: MarketContextUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> MarketContextRead:
+    """Aktualisiert das Market-Context-Document manuell.
+
+    Ermöglicht dem Nutzer, das Recherche-Ergebnis zu korrigieren
+    oder zu ergänzen, bevor die Simulation läuft.
+    """
+    result = await db.execute(
+        select(MarketContext).where(MarketContext.simulation_id == simulation_id)
+    )
+    ctx = result.scalar_one_or_none()
+    if not ctx:
+        raise HTTPException(status_code=404, detail="Kein Market Context vorhanden")
+
+    # Nur gesetzte Felder aktualisieren
+    update_data = body.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(ctx, key, value)
+
+    await db.flush()
+    await db.refresh(ctx)
+    return ctx
+
+
+@router.post("/{simulation_id}/research", response_model=MarketContextRead)
+async def trigger_research(
+    simulation_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> MarketContextRead:
+    """Startet die Web-Recherche manuell (neu).
+
+    Überschreibt einen bestehenden MarketContext.
+    """
+    sim_result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    sim = sim_result.scalar_one_or_none()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    if sim.status == SimulationStatus.running:
+        raise HTTPException(status_code=409, detail="Simulation läuft bereits")
+
+    # Bestehenden Context löschen
+    await db.execute(
+        delete(MarketContext).where(MarketContext.simulation_id == simulation_id)
+    )
+    await db.flush()
+
+    from app.research import run_market_research
+    ctx = await run_market_research(simulation_id, db)
+    await db.flush()
+
+    return ctx
+
+
+@router.post("/{simulation_id}/research/approve", response_model=SimulationRunResponse)
+async def approve_research(
+    simulation_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> SimulationRunResponse:
+    """Bestätigt den MarketContext und startet die Simulation.
+
+    Nur aufrufbar wenn Status = research_complete.
+    Der User hat vorher den MarketContext geprüft und ggf. editiert.
+    """
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    sim = result.scalar_one_or_none()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    if sim.status != SimulationStatus.research_complete:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Simulation hat Status '{sim.status.value}', erwartet: 'research_complete'",
+        )
+
+    sim.status = SimulationStatus.running
+    await db.flush()
+
+    background_tasks.add_task(run_simulation_background, simulation_id)
+
+    return SimulationRunResponse(
+        simulation_id=simulation_id,
+        status=SimulationStatus.running,
+        message="MarketContext bestätigt — Simulation gestartet.",
+    )
+
+
 @router.delete("/{simulation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_simulation(
     simulation_id: UUID,
@@ -365,6 +482,7 @@ async def delete_simulation(
     await db.execute(delete(Comment).where(Comment.post_id.in_(post_ids_subquery)))
     await db.execute(delete(SimulationTick).where(SimulationTick.simulation_id == simulation_id))
     await db.execute(delete(AnalysisReport).where(AnalysisReport.simulation_id == simulation_id))
+    await db.execute(delete(MarketContext).where(MarketContext.simulation_id == simulation_id))
     await db.execute(delete(Post).where(Post.simulation_id == simulation_id))
     await db.execute(delete(Persona).where(Persona.simulation_id == simulation_id))
     await db.delete(sim)
@@ -419,6 +537,7 @@ async def reset_simulation(
     await db.execute(delete(Comment).where(Comment.post_id.in_(post_ids_subquery)))
     await db.execute(delete(SimulationTick).where(SimulationTick.simulation_id == simulation_id))
     await db.execute(delete(AnalysisReport).where(AnalysisReport.simulation_id == simulation_id))
+    await db.execute(delete(MarketContext).where(MarketContext.simulation_id == simulation_id))
     await db.execute(delete(Post).where(Post.simulation_id == simulation_id))
     await db.execute(delete(Persona).where(Persona.simulation_id == simulation_id))
 

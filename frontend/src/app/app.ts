@@ -26,7 +26,8 @@ export class App {
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
     ).subscribe(e => {
-      this.isLoginPage.set(e.urlAfterRedirects.startsWith('/login'));
+      const url = e.urlAfterRedirects;
+      this.isLoginPage.set(url === '/' || url.startsWith('/login'));
     });
   }
 

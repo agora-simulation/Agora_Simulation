@@ -44,6 +44,8 @@ export class SimulationListComponent implements OnInit {
   getStatusLabel(status: string): string {
     switch (status) {
       case 'pending': return 'Ausstehend';
+      case 'researching': return 'Recherchiert';
+      case 'research_complete': return 'Recherche fertig';
       case 'running': return 'Läuft';
       case 'completed': return 'Abgeschlossen';
       case 'failed': return 'Fehlgeschlagen';
@@ -54,5 +56,12 @@ export class SimulationListComponent implements OnInit {
   getProgress(sim: Simulation): number {
     if (!sim.total_ticks) return 0;
     return Math.round((sim.current_tick / sim.total_ticks) * 100);
+  }
+
+  approveResearch(sim: Simulation) {
+    this.simService.approveResearch(sim.id).subscribe({
+      next: () => this.loadSimulations(),
+      error: (err) => console.error('Approve fehlgeschlagen:', err),
+    });
   }
 }

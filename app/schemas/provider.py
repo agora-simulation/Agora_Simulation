@@ -107,3 +107,53 @@ class PresetInfo(BaseModel):
     agent_actions: PresetPhaseInfo
     state_updates: PresetPhaseInfo
     analysis_reports: PresetPhaseInfo
+
+
+# ---------------------------------------------------------------------------
+# Provider Capabilities & Model Discovery
+# ---------------------------------------------------------------------------
+
+class ParamCapability(BaseModel):
+    """Beschreibt ob ein Parameter unterstützt wird und ggf. Einschränkungen."""
+    supported: bool
+    default: float | int | None = None
+    min: float | int | None = None
+    max: float | int | None = None
+    reason: str | None = None  # Warum nicht unterstützt / Einschränkung
+
+
+class ModelCapabilities(BaseModel):
+    """Capabilities eines spezifischen Modells."""
+    model_config = ConfigDict(protected_namespaces=())
+
+    model_id: str
+    label: str
+    tier: str  # "fast" | "smart"
+    provider_type: ProviderType
+    temperature: ParamCapability
+    top_p: ParamCapability
+    top_k: ParamCapability
+    system_prompt: ParamCapability
+    caching: ParamCapability
+    max_output_tokens: int
+    pricing_input_per_1m: float  # USD pro 1M Input-Tokens
+    pricing_output_per_1m: float  # USD pro 1M Output-Tokens
+
+
+class ProviderCapabilities(BaseModel):
+    """Alle Capabilities eines Provider-Typs."""
+    provider_type: ProviderType
+    display_name: str
+    models: list[ModelCapabilities]
+    supports_api_key: bool = True
+    supports_base_url: bool = False
+    notes: list[str] = []
+
+
+class DiscoveredModel(BaseModel):
+    """Ein Modell das via API-Discovery gefunden wurde (z.B. Ollama)."""
+    model_config = ConfigDict(protected_namespaces=())
+
+    model_id: str
+    label: str
+    size: str | None = None  # z.B. "7B", "70B"

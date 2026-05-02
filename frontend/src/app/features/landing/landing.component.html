@@ -1,0 +1,563 @@
+<!-- ============================================================
+     HERO — mouse-tracking gradient + canvas constellation
+     ============================================================ -->
+<section class="hero" #heroEl>
+  <canvas #heroCanvas class="hero-canvas"></canvas>
+  <div class="hero-gradient-follow"></div>
+
+  <!-- Floating UI mockup fragments -->
+  <div class="hero-floater floater-1" aria-hidden="true">
+    <div class="floater-card">
+      <div class="floater-bar" style="width: 70%;"></div>
+      <div class="floater-bar" style="width: 100%;"></div>
+      <div class="floater-bar" style="width: 50%;"></div>
+    </div>
+  </div>
+  <div class="hero-floater floater-2" aria-hidden="true">
+    <div class="floater-card">
+      <div class="floater-dot-row">
+        <span class="floater-dot fd-blue"></span>
+        <span class="floater-dot fd-teal"></span>
+        <span class="floater-dot fd-amber"></span>
+      </div>
+      <div class="floater-bar" style="width: 85%;"></div>
+    </div>
+  </div>
+  <div class="hero-floater floater-3" aria-hidden="true">
+    <div class="floater-card floater-chart">
+      <div class="fc-bar" style="--h: 40%"></div>
+      <div class="fc-bar" style="--h: 70%"></div>
+      <div class="fc-bar" style="--h: 55%"></div>
+      <div class="fc-bar" style="--h: 90%"></div>
+      <div class="fc-bar" style="--h: 65%"></div>
+    </div>
+  </div>
+
+  <div class="hero-content">
+    <!-- Badge -->
+    <div class="hero-badge" [class.badge-in]="titleReady()">
+      <span class="hb-dot"></span>
+      KI-gestützte Sozialforschung
+    </div>
+
+    <!-- Split-letter animated title -->
+    <h1 class="hero-title" [class.title-in]="titleReady()">
+      <span class="hero-word-wrap">
+        @for (char of 'Virtuelle'; track $index) {
+          <span class="hero-char" [style.--ci]="$index">{{ char }}</span>
+        }
+      </span>
+      <span class="hero-word-wrap">
+        @for (char of 'Gesellschaften.'; track $index) {
+          <span class="hero-char" [style.--ci]="$index + 10">{{ char }}</span>
+        }
+      </span>
+      <br>
+      <span class="hero-word-wrap accent-line">
+        @for (char of 'Echte'; track $index) {
+          <span class="hero-char char-accent" [style.--ci]="$index + 26">{{ char }}</span>
+        }
+      </span>
+      <span class="hero-word-wrap accent-line">
+        @for (char of 'Erkenntnisse.'; track $index) {
+          <span class="hero-char char-accent" [style.--ci]="$index + 32">{{ char }}</span>
+        }
+      </span>
+    </h1>
+
+    <!-- Subtitle with typewriter -->
+    <p class="hero-sub" [class.sub-in]="titleReady()">
+      Mitra simuliert hunderte KI-Personas, die auf dein Produkt reagieren —
+      mit echten Meinungen, sozialen Netzwerken und messbarem Sentiment.<br>
+      <span class="typewriter">{{ typedText() }}<span class="cursor" [class.cursor-blink]="typedText().length >= fullText.length">|</span></span>
+    </p>
+
+    <!-- CTA buttons -->
+    <div class="hero-actions" [class.actions-in]="titleReady()">
+      <a routerLink="/login"
+         class="btn-cta-primary"
+         (mousemove)="onCtaMouseMove($event)"
+         (mouseleave)="onCtaMouseLeave()"
+         [style.transform]="'translate(' + ctaMagnetX() + 'px,' + ctaMagnetY() + 'px)'">
+        <span class="btn-cta-bg"></span>
+        <span class="btn-cta-text">
+          <span>Jetzt starten</span>
+          <i class="pi pi-arrow-right"></i>
+        </span>
+      </a>
+      <a href="#how" class="btn-cta-ghost">
+        Wie funktioniert's?
+        <i class="pi pi-chevron-down"></i>
+      </a>
+    </div>
+
+    <!-- Trust strip -->
+    <div class="hero-trust" [class.trust-in]="titleReady()">
+      <span>DSGVO-nativ</span>
+      <span class="trust-dot"></span>
+      <span>100 % synthetische Daten</span>
+      <span class="trust-dot"></span>
+      <span>Europäisch</span>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="scroll-indicator">
+    <div class="scroll-track">
+      <div class="scroll-thumb"></div>
+    </div>
+    <span class="scroll-label">Scroll</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     MARQUEE TICKER — infinite scroll trust strip
+     ============================================================ -->
+<div class="marquee reveal">
+  <div class="marquee-track">
+    @for (i of [0,1]; track i) {
+      <div class="marquee-set">
+        <span class="mq-item">500+ KI-Personas</span>
+        <span class="mq-sep">◆</span>
+        <span class="mq-item">Echtzeit-Sentiment</span>
+        <span class="mq-sep">◆</span>
+        <span class="mq-item">Netzwerk-Analyse</span>
+        <span class="mq-sep">◆</span>
+        <span class="mq-item">Automatische Reports</span>
+        <span class="mq-sep">◆</span>
+        <span class="mq-item">Persona-Interviews</span>
+        <span class="mq-sep">◆</span>
+        <span class="mq-item">Multi-Provider KI</span>
+        <span class="mq-sep">◆</span>
+        <span class="mq-item">NPS · Brand Awareness · Adoption</span>
+        <span class="mq-sep">◆</span>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ============================================================
+     FEATURES — Bento Grid with live mini-demos
+     ============================================================ -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <p class="section-eyebrow reveal">Fähigkeiten</p>
+    <h2 class="section-title reveal">
+      Alles, was eine echte Studie liefert.<br>
+      <span class="title-muted">In Stunden statt Wochen.</span>
+    </h2>
+
+    <div class="bento">
+      <!-- ---- LARGE: KI-Personas ---- -->
+      <div class="bento-card bento-lg bento-personas reveal" style="--i:0"
+           (mousemove)="onCardMouseMove($event, 'personas')"
+           (mouseleave)="onCardMouseLeave($event)">
+        <div class="feature-shine"></div>
+        <div class="bento-text">
+          <span class="bento-tag bento-tag-blue">Kern-Feature</span>
+          <h3>KI-Personas</h3>
+          <p>Bis zu 500 einzigartige Persönlichkeiten — mit Demografie, Big-Five-Profil, Werten und sozialem Netzwerk. Jede denkt anders.</p>
+        </div>
+        <div class="bento-demo demo-personas">
+          <!-- Animated persona stack -->
+          @for (a of [
+            { bg: 'var(--primary)', letter: 'A', name: 'Anna M.', trait: 'Offen · Extravertiert', delay: 0 },
+            { bg: 'var(--cyan)',    letter: 'K', name: 'Kai S.',   trait: 'Skeptisch · Analytisch', delay: 1 },
+            { bg: 'var(--purple)',  letter: 'L', name: 'Lena W.',  trait: 'Neugierig · Sozial', delay: 2 }
+          ]; track a.letter) {
+            <div class="persona-card-mini" [style.--pd]="a.delay">
+              <div class="pcm-avatar" [style.background]="a.bg">{{ a.letter }}</div>
+              <div class="pcm-info">
+                <span class="pcm-name">{{ a.name }}</span>
+                <span class="pcm-trait">{{ a.trait }}</span>
+              </div>
+              <div class="pcm-bars">
+                <div class="pcm-bar" style="--bw: 72%"></div>
+                <div class="pcm-bar" style="--bw: 55%"></div>
+                <div class="pcm-bar" style="--bw: 88%"></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- ---- LARGE: Live-Sentiment ---- -->
+      <div class="bento-card bento-lg bento-sentiment reveal" style="--i:1"
+           (mousemove)="onCardMouseMove($event, 'sentiment')"
+           (mouseleave)="onCardMouseLeave($event)">
+        <div class="feature-shine"></div>
+        <div class="bento-text">
+          <span class="bento-tag bento-tag-amber">Echtzeit</span>
+          <h3>Live-Sentiment</h3>
+          <p>NPS, Brand Awareness, Adoption Rate — beobachte wie sich Meinungen Tag für Tag entwickeln.</p>
+        </div>
+        <div class="bento-demo demo-sentiment">
+          <!-- Animated gauge + mini bars -->
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 120 70" class="gauge-svg">
+              <path d="M15 65 A50 50 0 0 1 105 65" fill="none" stroke="var(--surface-3)" stroke-width="8" stroke-linecap="round"/>
+              <path d="M15 65 A50 50 0 0 1 105 65" fill="none" stroke="var(--primary)" stroke-width="8" stroke-linecap="round"
+                    stroke-dasharray="142" stroke-dashoffset="42" class="gauge-fill"/>
+            </svg>
+            <div class="gauge-val">+42</div>
+            <div class="gauge-label">NPS Score</div>
+          </div>
+          <div class="sentiment-bars">
+            <div class="sb-row"><span class="sb-name">Positiv</span><div class="sb-track"><div class="sb-fill sb-fill-pos" style="--sw:68%"></div></div><span class="sb-pct">68%</span></div>
+            <div class="sb-row"><span class="sb-name">Neutral</span><div class="sb-track"><div class="sb-fill sb-fill-neu" style="--sw:22%"></div></div><span class="sb-pct">22%</span></div>
+            <div class="sb-row"><span class="sb-name">Negativ</span><div class="sb-track"><div class="sb-fill sb-fill-neg" style="--sw:10%"></div></div><span class="sb-pct">10%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- SMALL: Soziale Plattformen ---- -->
+      <div class="bento-card bento-sm reveal" style="--i:2"
+           (mousemove)="onCardMouseMove($event, 'social')"
+           (mouseleave)="onCardMouseLeave($event)">
+        <div class="feature-shine"></div>
+        <div class="bento-icon bento-icon-teal"><i class="pi pi-comments"></i></div>
+        <h3>Soziale Plattformen</h3>
+        <p>Posts, Kommentare, Reaktionen auf FeedBook & Threadit.</p>
+        <!-- Mini feed mock -->
+        <div class="mini-feed">
+          <div class="mf-post"><span class="mf-dot" style="background: var(--primary)"></span><div class="mf-lines"><div class="mf-l" style="width:80%"></div><div class="mf-l" style="width:60%"></div></div><span class="mf-react">♡ 12</span></div>
+          <div class="mf-post"><span class="mf-dot" style="background: var(--threadit)"></span><div class="mf-lines"><div class="mf-l" style="width:70%"></div><div class="mf-l" style="width:90%"></div></div><span class="mf-react">↺ 5</span></div>
+        </div>
+      </div>
+
+      <!-- ---- SMALL: Netzwerk ---- -->
+      <div class="bento-card bento-sm reveal" style="--i:3"
+           (mousemove)="onCardMouseMove($event, 'network')"
+           (mouseleave)="onCardMouseLeave($event)">
+        <div class="feature-shine"></div>
+        <div class="bento-icon bento-icon-plum"><i class="pi pi-share-alt"></i></div>
+        <h3>Netzwerk-Analyse</h3>
+        <p>Influencer, Communities und Meinungsströmungen.</p>
+        <!-- Mini constellation -->
+        <div class="mini-constellation">
+          <svg viewBox="0 0 160 80">
+            <line x1="30" y1="20" x2="80" y2="40" class="mc-line"/>
+            <line x1="80" y1="40" x2="130" y2="25" class="mc-line"/>
+            <line x1="80" y1="40" x2="110" y2="65" class="mc-line"/>
+            <line x1="30" y1="20" x2="50" y2="60" class="mc-line"/>
+            <line x1="50" y1="60" x2="110" y2="65" class="mc-line"/>
+            <circle cx="30" cy="20" r="5" class="mc-dot mc-dot-1"/>
+            <circle cx="80" cy="40" r="7" class="mc-dot mc-dot-2"/>
+            <circle cx="130" cy="25" r="5" class="mc-dot mc-dot-3"/>
+            <circle cx="110" cy="65" r="4" class="mc-dot mc-dot-4"/>
+            <circle cx="50" cy="60" r="4" class="mc-dot mc-dot-5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- ---- SMALL: Interviews ---- -->
+      <div class="bento-card bento-sm reveal" style="--i:4"
+           (mousemove)="onCardMouseMove($event, 'chat')"
+           (mouseleave)="onCardMouseLeave($event)">
+        <div class="feature-shine"></div>
+        <div class="bento-icon bento-icon-blue"><i class="pi pi-comment"></i></div>
+        <h3>Persona-Interviews</h3>
+        <p>Chatte direkt mit jeder Persona — stelle Fragen, teste Botschaften.</p>
+        <!-- Chat bubbles -->
+        <div class="mini-chat">
+          <div class="mc-bubble mc-user">Was hältst du vom Preis?</div>
+          <div class="mc-bubble mc-persona">Ehrlich gesagt etwas hoch für mein Budget, aber die Qualität überzeugt mich.</div>
+        </div>
+      </div>
+
+      <!-- ---- SMALL: Report ---- -->
+      <div class="bento-card bento-sm reveal" style="--i:5"
+           (mousemove)="onCardMouseMove($event, 'report')"
+           (mouseleave)="onCardMouseLeave($event)">
+        <div class="feature-shine"></div>
+        <div class="bento-icon bento-icon-teal"><i class="pi pi-file"></i></div>
+        <h3>Auto-Report</h3>
+        <p>KI-generierter Forschungsbericht mit Executive Summary und Empfehlungen.</p>
+        <!-- Doc mock -->
+        <div class="mini-doc">
+          <div class="md-title"></div>
+          <div class="md-line" style="width: 100%"></div>
+          <div class="md-line" style="width: 85%"></div>
+          <div class="md-line" style="width: 92%"></div>
+          <div class="md-divider"></div>
+          <div class="md-line md-line-hl" style="width: 60%"></div>
+          <div class="md-line" style="width: 95%"></div>
+          <div class="md-line" style="width: 78%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     HOW IT WORKS — rich horizontal cards
+     ============================================================ -->
+<section class="section section-alt" id="how">
+  <div class="section-inner">
+    <p class="section-eyebrow reveal">So funktioniert's</p>
+    <h2 class="section-title reveal">Drei Schritte zur Erkenntnis</h2>
+
+    <!-- Step 1 -->
+    <div class="hw-card reveal" style="--i:0">
+      <div class="hw-visual hw-visual-blue">
+        <div class="hw-num">01</div>
+        <div class="hw-icon-ring">
+          <i class="pi pi-pencil"></i>
+        </div>
+        <!-- Animated form mock -->
+        <div class="hw-mock-form">
+          <div class="hwm-label"></div>
+          <div class="hwm-input hwm-input-active">
+            <span class="hwm-cursor"></span>
+            <span class="hwm-typed">E-Auto Launch Q3 2026</span>
+          </div>
+          <div class="hwm-label" style="margin-top: 10px"></div>
+          <div class="hwm-textarea">
+            <div class="hwm-line" style="width: 92%"></div>
+            <div class="hwm-line" style="width: 68%"></div>
+            <div class="hwm-line" style="width: 81%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="hw-body">
+        <span class="hw-step-badge hw-step-blue">Schritt 1</span>
+        <h3>Beschreibe dein Produkt</h3>
+        <p>Gib eine Produktbeschreibung, Zielmarkt und Branche ein. Mitra recherchiert optional aktuelle Marktdaten per Web-Suche — vollautomatisch.</p>
+        <ul class="hw-checklist">
+          <li><i class="pi pi-check"></i> Produktname & Beschreibung</li>
+          <li><i class="pi pi-check"></i> Zielmarkt & Branche</li>
+          <li><i class="pi pi-check"></i> Optionale Web-Recherche</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="hw-connector reveal">
+      <svg viewBox="0 0 40 60" width="40" height="60">
+        <path d="M20 0 L20 60" stroke="var(--primary)" stroke-width="2" stroke-dasharray="4 4" opacity="0.3"/>
+        <circle cx="20" cy="30" r="4" fill="var(--primary)" opacity="0.2"/>
+      </svg>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="hw-card hw-card-reverse reveal" style="--i:1">
+      <div class="hw-visual hw-visual-teal">
+        <div class="hw-num">02</div>
+        <div class="hw-icon-ring hw-ring-teal">
+          <i class="pi pi-users"></i>
+        </div>
+        <!-- Animated persona network -->
+        <div class="hw-mock-personas">
+          @for (p of [0,1,2,3,4,5,6,7]; track p) {
+            <div class="hwp-avatar" [style.--p]="p">
+              <span class="hwp-letter">{{ ['A','M','S','K','L','J','T','R'][p] }}</span>
+            </div>
+          }
+          <svg class="hwp-lines" viewBox="0 0 220 120">
+            <line x1="35" y1="30" x2="95" y2="55"/>
+            <line x1="95" y1="55" x2="160" y2="35"/>
+            <line x1="95" y1="55" x2="130" y2="90"/>
+            <line x1="35" y1="30" x2="55" y2="85"/>
+            <line x1="55" y1="85" x2="130" y2="90"/>
+            <line x1="160" y1="35" x2="195" y2="75"/>
+            <line x1="130" y1="90" x2="195" y2="75"/>
+          </svg>
+        </div>
+      </div>
+      <div class="hw-body">
+        <span class="hw-step-badge hw-step-teal">Schritt 2</span>
+        <h3>KI generiert die Gesellschaft</h3>
+        <p>Hunderte Personas mit eigenen Persönlichkeiten, Meinungen und sozialen Verbindungen entstehen — und beginnen auf virtuellen Plattformen zu interagieren.</p>
+        <ul class="hw-checklist">
+          <li><i class="pi pi-check"></i> Big-Five Persönlichkeitsprofile</li>
+          <li><i class="pi pi-check"></i> Soziales Netzwerk mit Verbindungen</li>
+          <li><i class="pi pi-check"></i> Autonome Posts, Kommentare, Reaktionen</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Connector -->
+    <div class="hw-connector reveal">
+      <svg viewBox="0 0 40 60" width="40" height="60">
+        <path d="M20 0 L20 60" stroke="var(--primary)" stroke-width="2" stroke-dasharray="4 4" opacity="0.3"/>
+        <circle cx="20" cy="30" r="4" fill="var(--primary)" opacity="0.2"/>
+      </svg>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="hw-card reveal" style="--i:2">
+      <div class="hw-visual hw-visual-amber">
+        <div class="hw-num">03</div>
+        <div class="hw-icon-ring hw-ring-amber">
+          <i class="pi pi-chart-bar"></i>
+        </div>
+        <!-- Animated dashboard mock -->
+        <div class="hw-mock-dash">
+          <div class="hwd-kpis">
+            <div class="hwd-kpi">
+              <span class="hwd-val hwd-val-blue">78%</span>
+              <span class="hwd-lbl">Awareness</span>
+            </div>
+            <div class="hwd-kpi">
+              <span class="hwd-val hwd-val-teal">+42</span>
+              <span class="hwd-lbl">NPS</span>
+            </div>
+            <div class="hwd-kpi">
+              <span class="hwd-val hwd-val-amber">312</span>
+              <span class="hwd-lbl">Posts</span>
+            </div>
+          </div>
+          <div class="hwd-chart">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none" class="hwd-sparkline">
+              <defs>
+                <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.2"/>
+                  <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <polygon points="0,45 20,40 40,30 60,35 80,20 100,25 120,12 140,18 160,8 180,14 200,5 200,50 0,50" fill="url(#sparkGrad)"/>
+              <polyline points="0,45 20,40 40,30 60,35 80,20 100,25 120,12 140,18 160,8 180,14 200,5" class="hwd-line"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="hw-body">
+        <span class="hw-step-badge hw-step-amber">Schritt 3</span>
+        <h3>Analysiere die Ergebnisse</h3>
+        <p>Echtzeit-Dashboard mit KPIs, Sentiment-Verlauf, Netzwerk-Graph, Influencer-Ranking und einem vollständig KI-generierten Forschungsbericht.</p>
+        <ul class="hw-checklist">
+          <li><i class="pi pi-check"></i> NPS, Awareness, Adoption live</li>
+          <li><i class="pi pi-check"></i> Interaktiver Netzwerk-Graph</li>
+          <li><i class="pi pi-check"></i> Exportierbarer Report mit Empfehlungen</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     STATS — big counters
+     ============================================================ -->
+<section class="section stats-trigger reveal">
+  <div class="section-inner">
+    <div class="stats-grid">
+      <div class="stat-block">
+        <span class="stat-val">{{ counterPersonas() }}<span class="stat-plus">+</span></span>
+        <span class="stat-lbl">Personas pro Simulation</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-block">
+        <span class="stat-val">{{ counterDays() }}</span>
+        <span class="stat-lbl">Simulierte Tage möglich</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-block">
+        <span class="stat-val">{{ counterEvents() }}<span class="stat-plus">+</span></span>
+        <span class="stat-lbl">Interaktionen pro Lauf</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CTA — "The Simulation Comes Alive"
+     Living background with floating personas, connections, speech bubbles
+     ============================================================ -->
+<section class="section section-finale reveal" id="finale">
+  <div class="finale-bg" aria-hidden="true">
+    <!-- Floating persona avatars -->
+    @for (p of [
+      { letter: 'A', color: 'var(--primary)', x: 8,  y: 18, d: 0 },
+      { letter: 'M', color: 'var(--cyan)',    x: 22, y: 65, d: 1 },
+      { letter: 'S', color: 'var(--purple)',  x: 42, y: 12, d: 2 },
+      { letter: 'K', color: 'var(--threadit)',x: 78, y: 22, d: 3 },
+      { letter: 'L', color: 'var(--success)', x: 88, y: 58, d: 4 },
+      { letter: 'J', color: 'var(--primary)', x: 15, y: 82, d: 5 },
+      { letter: 'T', color: 'var(--danger)',  x: 65, y: 78, d: 6 },
+      { letter: 'R', color: 'var(--cyan)',    x: 52, y: 45, d: 7 },
+      { letter: 'N', color: 'var(--purple)',  x: 92, y: 85, d: 8 },
+      { letter: 'E', color: 'var(--threadit)',x: 5,  y: 45, d: 9 }
+    ]; track p.letter) {
+      <div class="fin-persona" [style.left.%]="p.x" [style.top.%]="p.y" [style.--fd]="p.d" [style.background]="p.color">
+        {{ p.letter }}
+      </div>
+    }
+
+    <!-- Connection lines (SVG) -->
+    <svg class="fin-connections" viewBox="0 0 1000 600" preserveAspectRatio="none">
+      <line x1="80" y1="108" x2="220" y2="390"/>
+      <line x1="220" y1="390" x2="520" y2="270"/>
+      <line x1="420" y1="72" x2="780" y2="132"/>
+      <line x1="780" y1="132" x2="880" y2="348"/>
+      <line x1="520" y1="270" x2="650" y2="468"/>
+      <line x1="150" y1="492" x2="650" y2="468"/>
+      <line x1="80" y1="108" x2="420" y2="72"/>
+      <line x1="880" y1="348" x2="920" y2="510"/>
+      <line x1="50" y1="270" x2="220" y2="390"/>
+      <line x1="520" y1="270" x2="780" y2="132"/>
+    </svg>
+
+    <!-- Floating speech bubbles -->
+    <div class="fin-bubble fin-bubble-1">Überzeugt mich!</div>
+    <div class="fin-bubble fin-bubble-2">Zu teuer...</div>
+    <div class="fin-bubble fin-bubble-3">Genial! 🔥</div>
+    <div class="fin-bubble fin-bubble-4">Brauche mehr Infos</div>
+    <div class="fin-bubble fin-bubble-5">Würde ich kaufen</div>
+
+    <!-- Pulse rings expanding from center -->
+    <div class="fin-pulse-ring fin-ring-1"></div>
+    <div class="fin-pulse-ring fin-ring-2"></div>
+    <div class="fin-pulse-ring fin-ring-3"></div>
+  </div>
+
+  <!-- Central CTA card -->
+  <div class="finale-card">
+    <div class="finale-glow"></div>
+    <div class="finale-content">
+      <div class="finale-icon">
+        <i class="pi pi-play-circle"></i>
+      </div>
+      <h2>
+        <span class="finale-line-1">Bereit, deine erste</span><br>
+        <span class="finale-line-2">virtuelle Gesellschaft</span><br>
+        <span class="finale-line-3">zu erschaffen?</span>
+      </h2>
+      <p>Keine Umfragen. Keine Wartezeiten. Keine echten Daten nötig.<br>Starte jetzt — die ersten Personas warten.</p>
+
+      <a routerLink="/login"
+         class="btn-finale"
+         (mousemove)="onCtaMouseMove($event)"
+         (mouseleave)="onCtaMouseLeave()"
+         [style.transform]="'translate(' + ctaMagnetX() + 'px,' + ctaMagnetY() + 'px)'">
+        <span class="btn-finale-ripple"></span>
+        <span class="btn-finale-border"></span>
+        <span class="btn-finale-text">
+          <span>Gesellschaft erschaffen</span>
+          <i class="pi pi-arrow-right"></i>
+        </span>
+      </a>
+
+      <div class="finale-trust">
+        <span><i class="pi pi-lock" style="font-size: 11px"></i> DSGVO-nativ</span>
+        <span><i class="pi pi-bolt" style="font-size: 11px"></i> Ergebnisse in Stunden</span>
+        <span><i class="pi pi-wallet" style="font-size: 11px"></i> Ab $2 pro Simulation</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="landing-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-mark">M</div>
+      <div>
+        <div class="footer-name">Mitra</div>
+        <div class="footer-sub">Simulations-Engine</div>
+      </div>
+    </div>
+    <p class="footer-copy">&copy; 2026 Mitra · DSGVO-nativ · Europäisch</p>
+  </div>
+</footer>

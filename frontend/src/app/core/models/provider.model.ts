@@ -82,3 +82,45 @@ export interface CostEstimateRequest {
   tick_count: number;
   provider_config: SimulationProviderConfig;
 }
+
+// ---------------------------------------------------------------------------
+// Provider Capabilities & Model Discovery
+// ---------------------------------------------------------------------------
+
+export interface ParamCapability {
+  supported: boolean;
+  default?: number | null;
+  min?: number | null;
+  max?: number | null;
+  reason?: string | null;
+}
+
+export interface ModelCapabilities {
+  model_id: string;
+  label: string;
+  tier: 'fast' | 'smart';
+  provider_type: ProviderType;
+  temperature: ParamCapability;
+  top_p: ParamCapability;
+  top_k: ParamCapability;
+  system_prompt: ParamCapability;
+  caching: ParamCapability;
+  max_output_tokens: number;
+  pricing_input_per_1m: number;
+  pricing_output_per_1m: number;
+}
+
+export interface ProviderCapabilities {
+  provider_type: ProviderType;
+  display_name: string;
+  models: ModelCapabilities[];
+  supports_api_key: boolean;
+  supports_base_url: boolean;
+  notes: string[];
+}
+
+export interface DiscoveredModel {
+  model_id: string;
+  label: string;
+  size?: string | null;
+}

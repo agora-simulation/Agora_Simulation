@@ -45,7 +45,7 @@
       </p>
 
       <div class="field">
-        <label for="sim-name" class="label-required">Titel der Simulation</label>
+        <label for="sim-name" class="label-required" title="Ein eindeutiger Name fuer diese Simulation — erscheint in der Simulationsliste.">Titel der Simulation</label>
         <input id="sim-name" type="text"
                [ngModel]="name()" (ngModelChange)="name.set($event)"
                placeholder='z. B. "E-Auto Launch Q3 2026"'
@@ -54,7 +54,7 @@
       </div>
 
       <div class="field">
-        <label for="sim-desc" class="label-required">Produktbeschreibung</label>
+        <label for="sim-desc" class="label-required" title="Je detaillierter die Beschreibung, desto realistischer die Persona-Reaktionen. Nenne konkrete Features, Preispunkte und Zielgruppen.">Produktbeschreibung</label>
         <textarea id="sim-desc"
                   [ngModel]="productDescription()" (ngModelChange)="productDescription.set($event)"
                   rows="5"
@@ -66,14 +66,14 @@
 
       <div class="field-row">
         <div class="field" style="margin-bottom: 0;">
-          <label for="sim-market">Zielmarkt <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+          <label for="sim-market" title="Definiert den geographischen und demographischen Rahmen der Simulation. Z.B. 'DACH, 25-45 Jahre' oder 'Europa, B2B-Entscheider'. Beeinflusst Persona-Generierung und Recherche.">Zielmarkt <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
           <input id="sim-market" type="text"
                  [ngModel]="targetMarket()" (ngModelChange)="targetMarket.set($event)"
                  placeholder="z. B. DACH, 25–45 Jahre"
                  class="input" />
         </div>
         <div class="field" style="margin-bottom: 0;">
-          <label for="sim-industry">Branche <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+          <label for="sim-industry" title="Die Branche bestimmt den Akteur-Mix (B2B vs B2C), welche Institutionen relevant sind und welche Fachbegriffe die Personas verwenden.">Branche <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
           <input id="sim-industry" type="text"
                  [ngModel]="industry()" (ngModelChange)="industry.set($event)"
                  placeholder="z. B. Automobil, FinTech"
@@ -109,6 +109,39 @@
             </button>
           }
         </div>
+      </div>
+
+      <!-- Research Mode -->
+      <div style="margin-bottom: 28px;">
+        <label style="margin-bottom: 12px;" id="research-label">Recherche-Modus</label>
+        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="research-label">
+          <button type="button"
+                  (click)="researchMode.set('quick')"
+                  role="radio"
+                  [attr.aria-checked]="researchMode() === 'quick'"
+                  class="card card-hover preset-card"
+                  [class.preset-active]="researchMode() === 'quick'">
+            <i class="pi pi-bolt" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
+            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">Quick</p>
+            <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.35;">Sofort starten — Personas basierend auf LLM-Wissen</p>
+          </button>
+          <button type="button"
+                  (click)="researchMode.set('deep')"
+                  role="radio"
+                  [attr.aria-checked]="researchMode() === 'deep'"
+                  class="card card-hover preset-card"
+                  [class.preset-active]="researchMode() === 'deep'">
+            <i class="pi pi-search" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
+            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">Deep</p>
+            <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.35;">Web-Recherche vor Start — aktuelle Marktlage, Branchentrends, Zielgruppen-Kontext</p>
+          </button>
+        </div>
+        @if (researchMode() === 'deep') {
+          <p class="label-hint" style="margin-top: 8px; color: var(--primary);">
+            <i class="pi pi-info-circle" style="font-size: 11px;"></i>
+            Deep Mode: Vor der Simulation wird eine Web-Recherche durchgeführt (~2-5 Min extra). Das Ergebnis kann vor dem Start geprüft und bearbeitet werden.
+          </p>
+        }
       </div>
 
       <!-- Provider-Auswahl -->
@@ -313,7 +346,7 @@
         <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px;">
           <div style="margin-bottom: 24px;">
             <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
-              <label for="persona-slider" style="margin-bottom: 0;">Anzahl Personas</label>
+              <label for="persona-slider" style="margin-bottom: 0;" title="Virtuelle Akteure in der Simulation. Mehr Personas = breitere Meinungsvielfalt und statistisch belastbarere Ergebnisse, aber hoehere Kosten und laengere Laufzeit. Empfehlung: 30 fuer Schnelltests, 100+ fuer belastbare Analysen.">Anzahl Personas</label>
               <span class="slider-value" aria-live="polite">{{ personaCount() }}</span>
             </div>
             <input id="persona-slider" type="range"
@@ -348,7 +381,7 @@
 
           <div>
             <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
-              <label for="tick-slider" style="margin-bottom: 0;">Simulierte Tage</label>
+              <label for="tick-slider" style="margin-bottom: 0;" title="Anzahl der simulierten Tage. Pro Tag posten, kommentieren und reagieren die Personas aufeinander. Mehr Tage = tiefere Meinungsentwicklung und laengere Narrative, aber hoehere Kosten. Empfehlung: 15 Standard, 30+ fuer komplexe Maerkte.">Simulierte Tage</label>
               <span class="slider-value" aria-live="polite">{{ tickCount() }}</span>
             </div>
             <input id="tick-slider" type="range"

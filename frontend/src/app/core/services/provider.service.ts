@@ -9,6 +9,8 @@ import {
   Preset,
   CostEstimate,
   CostEstimateRequest,
+  ProviderCapabilities,
+  DiscoveredModel,
 } from '../models/provider.model';
 
 @Injectable({ providedIn: 'root' })
@@ -45,5 +47,13 @@ export class ProviderService {
 
   estimateCost(data: CostEstimateRequest): Observable<CostEstimate> {
     return this.api.post<CostEstimate>('/providers/estimate-cost', data);
+  }
+
+  getCapabilities(): Observable<ProviderCapabilities[]> {
+    return this.api.get<ProviderCapabilities[]>('/providers/capabilities');
+  }
+
+  discoverModels(providerId: string): Observable<DiscoveredModel[]> {
+    return this.api.get<DiscoveredModel[]>(`/providers/${providerId}/models`);
   }
 }

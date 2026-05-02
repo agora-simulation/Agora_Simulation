@@ -52,7 +52,7 @@
       <section class="card lg:col-span-2" style="padding: 28px;" role="region" aria-label="Influence Flow">
         <header class="flex items-center justify-between mb-5">
           <h3 style="font-size: 18px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 10px;">
-            <i class="pi pi-share-alt" style="color: var(--primary); text-shadow: 0 0 8px rgba(45,125,255,0.3);"></i>
+            <i class="pi pi-share-alt" style="color: var(--primary); "></i>
             Einfluss-Strömung
           </h3>
           <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
@@ -90,7 +90,7 @@
       <section class="card" style="padding: 28px;" role="region" aria-label="Rangliste">
         <header class="flex items-center justify-between mb-4">
           <h3 style="font-size: 18px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 10px;">
-            <i class="pi pi-star" style="color: var(--warning); text-shadow: 0 0 8px rgba(245,158,11,0.3);"></i>
+            <i class="pi pi-star" style="color: var(--warning);"></i>
             @if (events().length > 0) {
               Top-Influencer
             } @else {
@@ -290,8 +290,7 @@
     font-weight: 700;
     color: var(--primary);
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 8px rgba(45,125,255,0.3);
-  }
+     }
   .influencer-bar {
     height: 8px;
     background: var(--surface-3);
@@ -303,7 +302,6 @@
     background: linear-gradient(90deg, var(--primary), var(--cyan));
     border-radius: 999px;
     transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 0 8px rgba(45,125,255,0.3);
   }
 
   /* Detail events within expanded influencer */
@@ -342,7 +340,6 @@
     font-size: 13px;
     font-weight: 600;
     color: var(--primary);
-    text-shadow: 0 0 6px rgba(45,125,255,0.2);
   }
   .chronik-text {
     font-size: 14.5px;
@@ -370,6 +367,5 @@
     background: var(--primary);
     border-color: var(--primary);
     color: white;
-    box-shadow: 0 0 12px rgba(45,125,255,0.3);
   }
 </style>

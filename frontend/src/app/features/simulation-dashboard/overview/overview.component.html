@@ -7,14 +7,136 @@
 </div>
 
 <!-- ============================================================
+     Live-Status-Banner (nur wenn Simulation aktiv)
+     ============================================================ -->
+@if (isSimulationActive() || simulation()?.status === 'research_complete') {
+  <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); display: flex; align-items: center; gap: 14px;"
+       [style.background]="simulation()?.status === 'research_complete' ? 'linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%)' : 'linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%)'"
+       [style.border]="simulation()?.status === 'failed' ? '1px solid var(--danger)' : '1px solid transparent'"
+       role="status" aria-live="polite">
+
+    <!-- Animated icon -->
+    @switch (simulation()?.status) {
+      @case ('researching') {
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
+          <i class="pi pi-search" style="color: #fff; font-size: 16px;"></i>
+        </div>
+      }
+      @case ('research_complete') {
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center;">
+          <i class="pi pi-check" style="color: #fff; font-size: 16px;"></i>
+        </div>
+      }
+      @case ('running') {
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: #d97706; display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
+          <i class="pi pi-cog pi-spin" style="color: #fff; font-size: 16px;"></i>
+        </div>
+      }
+      @default {
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--ink-3); display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
+          <i class="pi pi-clock" style="color: #fff; font-size: 16px;"></i>
+        </div>
+      }
+    }
+
+    <!-- Status text -->
+    <div style="flex: 1;">
+      <div style="font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px;">
+        {{ getStatusPhaseLabel() }}
+      </div>
+      @if (simulation()?.status === 'running' && stats()) {
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+          <div style="flex: 1; height: 6px; background: rgba(0,0,0,0.1); border-radius: 999px; overflow: hidden;">
+            <div style="height: 100%; background: #d97706; border-radius: 999px; transition: width 500ms ease;"
+                 [style.width.%]="stats()!.progress_pct">
+            </div>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;">
+            {{ stats()!.progress_pct }}%
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+@if (simulation()?.status === 'failed') {
+  <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); background: #fef2f2; border: 1px solid #fecaca; display: flex; align-items: center; gap: 14px;">
+    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--danger); display: flex; align-items: center; justify-content: center;">
+      <i class="pi pi-times" style="color: #fff; font-size: 16px;"></i>
+    </div>
+    <div>
+      <div style="font-size: 14px; font-weight: 700; color: #991b1b;">Simulation fehlgeschlagen</div>
+      <div style="font-size: 12px; color: #b91c1c; margin-top: 2px;">Prüfe die Server-Logs für Details.</div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================
+     MarketContext (Deep Mode) — Recherche-Ergebnis
+     ============================================================ -->
+@if (marketContext() && simulation()) {
+  <div class="card animate-fade-in" style="padding: 24px; margin-bottom: 24px; border-left: 4px solid var(--primary);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 4px;">
+          <i class="pi pi-search" style="margin-right: 6px; color: var(--primary);"></i>
+          Web-Recherche Ergebnis
+        </h3>
+        <p style="font-size: 12px; color: var(--ink-3);">
+          {{ marketContext().raw_sources?.length || 0 }} Quellen analysiert
+        </p>
+      </div>
+      @if (simulation()!.status === 'research_complete') {
+        <button class="btn btn-primary" (click)="approveResearch()"
+                [disabled]="approvingResearch()"
+                style="white-space: nowrap;">
+          @if (approvingResearch()) {
+            <i class="pi pi-spin pi-spinner" style="margin-right: 6px;"></i> Wird gestartet...
+          } @else {
+            <i class="pi pi-play" style="margin-right: 6px;"></i> Recherche bestätigen & Simulation starten
+          }
+        </button>
+      }
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+      <!-- Makro -->
+      <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px;">
+        <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Makro-Kontext</h4>
+        <p style="font-size: 12.5px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().macro_context }}</p>
+      </div>
+      <!-- Branche -->
+      <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px;">
+        <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Branchen-Kontext</h4>
+        <p style="font-size: 12.5px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().industry_context }}</p>
+      </div>
+      <!-- Zielgruppe -->
+      <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px;">
+        <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Zielgruppen-Kontext</h4>
+        <p style="font-size: 12.5px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().target_group_context }}</p>
+      </div>
+    </div>
+
+    @if (simulation()!.status === 'research_complete') {
+      <p style="font-size: 11.5px; color: var(--ink-3); margin-top: 12px; font-style: italic;">
+        <i class="pi pi-info-circle" style="font-size: 10px; margin-right: 4px;"></i>
+        Prüfe das Recherche-Ergebnis. Du kannst es über die API editieren (PUT /simulations/{{ simulation()!.id }}/market-context) bevor du die Simulation startest.
+      </p>
+    }
+  </div>
+}
+
+<!-- ============================================================
      KPI Strip — 4 große Cards
      ============================================================ -->
 @if (stats()) {
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in" style="margin-bottom: 24px;"
        role="region" aria-label="Kennzahlen">
 
-    <div class="card card-hover animate-breathe" appCardGlow style="padding: 22px;">
-      <i class="pi pi-chart-line" style="font-size: 24px; color: var(--primary); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(45,125,255,0.4);"></i>
+    <div class="card card-hover animate-breathe" appCardGlow style="padding: 22px;"
+         title="Simulationsfortschritt: Wie viele der geplanten Simulationstage bereits abgeschlossen sind.">
+      <i class="pi pi-chart-line" style="font-size: 24px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div class="glow-text" style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.progress_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
@@ -24,8 +146,9 @@
       </div>
     </div>
 
-    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 0.5s infinite;">
-      <i class="pi pi-users" style="font-size: 24px; color: var(--cyan); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(0,196,238,0.4);"></i>
+    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 0.5s infinite;"
+         title="Virtuelle Akteure in der Simulation: Einzelpersonen, Organisationen, Institutionen. Skeptiker haben eine kritische Grundhaltung zum Produkt.">
+      <i class="pi pi-users" style="font-size: 24px; color: var(--cyan); margin-bottom: 12px; display: block;"></i>
       <div class="glow-text-cyan" style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.persona_count }}
       </div>
@@ -35,8 +158,9 @@
       </div>
     </div>
 
-    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 1s infinite;">
-      <i class="pi pi-comment" style="font-size: 24px; color: var(--primary); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(45,125,255,0.4);"></i>
+    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 1s infinite;"
+         title="Gesamtzahl der von Personas verfassten Beitraege auf FeedBook und Threadit, plus die Anzahl der Kommentare auf diese Beitraege.">
+      <i class="pi pi-comment" style="font-size: 24px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div class="glow-text" style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.post_count }}
       </div>
@@ -46,9 +170,10 @@
       </div>
     </div>
 
-    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 1.5s infinite;">
-      <i class="pi pi-thumbs-up" style="font-size: 24px; color: var(--purple); margin-bottom: 12px; display: block; text-shadow: 0 0 12px rgba(124,58,237,0.4);"></i>
-      <div style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; text-shadow: 0 0 20px rgba(124,58,237,0.3);">
+    <div class="card card-hover" appCardGlow style="padding: 22px; animation: ambient-breathe 5s ease-in-out 1.5s infinite;"
+         title="Likes, Dislikes und Shares die Personas auf Beitraege anderer Personas gegeben haben. Zeigt das Engagement-Level der Simulation.">
+      <i class="pi pi-thumbs-up" style="font-size: 24px; color: var(--purple); margin-bottom: 12px; display: block;"></i>
+      <div style="font-size: 36px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ stats()!.reaction_count }}
       </div>
       <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Reaktionen</div>
@@ -65,7 +190,8 @@
        role="region" aria-label="Marktforschungs-KPIs">
 
     <!-- NPS -->
-    <div class="card card-hover" appCardGlow style="padding: 20px; position: relative; overflow: hidden;">
+    <div class="card card-hover" appCardGlow style="padding: 20px; position: relative; overflow: hidden;"
+         title="Net Promoter Score: Misst die Weiterempfehlungsbereitschaft. Berechnet aus Promotern (positiv) minus Detraktoren (negativ). Bereich: -100 bis +100. Ueber 50 = exzellent, 0-50 = gut, unter 0 = kritisch.">
       <div class="flex items-center justify-between" style="margin-bottom: 12px;">
         <i class="pi pi-gauge" style="font-size: 22px; color: var(--primary); display: block;"></i>
         <div echarts [options]="npsChartOption()" style="width: 56px; height: 56px;"></div>
@@ -81,7 +207,8 @@
     </div>
 
     <!-- Brand Awareness -->
-    <div class="card card-hover" appCardGlow style="padding: 20px;">
+    <div class="card card-hover" appCardGlow style="padding: 20px;"
+         title="Brand Awareness: Anteil der Personas die aktiv ueber das Produkt gepostet oder kommentiert haben. Zeigt wie viele Akteure das Produkt ueberhaupt wahrgenommen haben.">
       <i class="pi pi-eye" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ kpis().brand_awareness.awareness_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
@@ -93,7 +220,8 @@
     </div>
 
     <!-- Sentiment -->
-    <div class="card card-hover" appCardGlow style="padding: 20px;">
+    <div class="card card-hover" appCardGlow style="padding: 20px;"
+         title="Sentiment: Gewichteter Durchschnitt aller Meinungsdimensionen (Qualitaet, Preis, Vertrauen etc.) ueber alle Personas. Positiv = ueberwiegend Zustimmung, Negativ = ueberwiegend Ablehnung.">
       <i class="pi pi-heart" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
            [style.color]="kpis().sentiment.overall > 0.1 ? '#15803d' : kpis().sentiment.overall < -0.1 ? '#c8321f' : '#6b675c'">
@@ -106,7 +234,8 @@
     </div>
 
     <!-- Adoption -->
-    <div class="card card-hover" appCardGlow style="padding: 20px;">
+    <div class="card card-hover" appCardGlow style="padding: 20px;"
+         title="Adoption Rate: Anteil der Personas mit ueberwiegend positiver Meinung zum Produkt. Zeigt wie viele potenzielle Kunden das Produkt annehmen wuerden.">
       <i class="pi pi-check-circle" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ kpis().adoption.adoption_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
@@ -121,7 +250,8 @@
   <!-- Zweite KPI-Reihe: Virality, Engagement, Churn -->
   <div class="grid grid-cols-2 md:grid-cols-3 gap-4 animate-fade-in" style="margin-bottom: 24px;">
 
-    <div class="card card-hover" style="padding: 20px;">
+    <div class="card card-hover" style="padding: 20px;"
+         title="Virality Coefficient: Anteil der Beitraege mit mehr als 5 Reaktionen. Hoehere Werte deuten auf virale Verbreitung hin. Zeigt wie ansteckend die Diskussion um das Produkt ist.">
       <i class="pi pi-share-alt" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ kpis().virality.coefficient }}
@@ -132,7 +262,8 @@
       </div>
     </div>
 
-    <div class="card card-hover" style="padding: 20px;">
+    <div class="card card-hover" style="padding: 20px;"
+         title="Influence Events: Wie oft hat ein Persona-Beitrag die Meinung einer anderen Persona beeinflusst. Umfasst Meinungsaenderungen, Kommentare und Reaktionen. Mehr Events = lebendigere Diskussion.">
       <i class="pi pi-bolt" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div style="font-size: 34px; font-weight: 700; color: var(--ink); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">
         {{ kpis().total_influence_events }}
@@ -143,7 +274,8 @@
       </div>
     </div>
 
-    <div class="card card-hover" style="padding: 20px;">
+    <div class="card card-hover" style="padding: 20px;"
+         title="Churn Risk: Anteil der Personas die das Produkt wahrscheinlich ablehnen wuerden. Basiert auf negativen Meinungsdimensionen und hohem Neurotizismus. Ueber 20% = kritisch.">
       <i class="pi pi-exclamation-triangle" style="font-size: 22px; margin-bottom: 12px; display: block;"
          [style.color]="kpis().churn_risk.at_risk_pct > 20 ? '#c8321f' : '#a16207'"></i>
       <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
@@ -282,7 +414,7 @@
             style="padding: 16px 24px; display: flex; gap: 14px;"
             [style.border-bottom]="last ? 'none' : '1px solid var(--border)'">
           <!-- Avatar -->
-          <div style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 0 12px rgba(45,125,255,0.15);"
+          <div style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600;"
                [style.background]="getMoodColor(undefined)"
                aria-hidden="true">
             {{ (post.author_name || '?')[0]?.toUpperCase() }}

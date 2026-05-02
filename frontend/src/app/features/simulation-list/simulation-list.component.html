@@ -113,6 +113,18 @@
           <!-- Top row -->
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px;">
             @switch (sim.status) {
+              @case ('researching') {
+                <span class="badge badge-warning">
+                  <span class="dot dot-pulse" style="width: 7px; height: 7px;"></span>
+                  Recherchiert
+                </span>
+              }
+              @case ('research_complete') {
+                <span class="badge badge-info" style="background: var(--primary-light, #dbeafe); color: var(--primary);">
+                  <i class="pi pi-check-circle" style="font-size: 9px;"></i>
+                  Recherche fertig
+                </span>
+              }
               @case ('running') {
                 <span class="badge badge-warning">
                   <span class="dot dot-pulse" style="width: 7px; height: 7px;"></span>
@@ -174,8 +186,24 @@
           <!-- Footer -->
           <div style="border-top: 1px solid var(--border); padding-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
             <div style="flex: 1; min-width: 0;">
-              @if (sim.status === 'running') {
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 12.5px; color: var(--ink-2); font-weight: 600;">
+              @if (sim.status === 'researching') {
+                <p style="font-size: 12px; color: var(--warning); font-weight: 600;">
+                  <i class="pi pi-search" style="font-size: 11px; margin-right: 4px;"></i>
+                  Web-Recherche läuft...
+                </p>
+              } @else if (sim.status === 'research_complete') {
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <p style="font-size: 12px; color: var(--primary); font-weight: 600; flex: 1;">
+                    <i class="pi pi-check-circle" style="font-size: 11px; margin-right: 4px;"></i>
+                    Recherche abgeschlossen — Ergebnis prüfen
+                  </p>
+                  <button class="btn btn-sm btn-primary" (click)="approveResearch(sim); $event.stopPropagation()"
+                          style="white-space: nowrap; font-size: 11.5px; padding: 5px 12px;">
+                    <i class="pi pi-play" style="font-size: 10px;"></i> Simulation starten
+                  </button>
+                </div>
+              } @else if (sim.status === 'running') {
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 12.5px; color: var(--ink-2); font-weight: 600;">
                   <span>Tag {{ sim.current_tick }} / {{ sim.total_ticks }}</span>
                   <span>{{ getProgress(sim) }}%</span>
                 </div>
@@ -183,6 +211,14 @@
                   <div class="progress-fill progress-bar-glow"
                        [style.width.%]="getProgress(sim)"></div>
                 </div>
+                <p style="font-size: 10.5px; color: var(--ink-4); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                  <i class="pi pi-spin pi-cog" style="font-size: 9px;"></i>
+                  @if (sim.current_tick === 0) {
+                    Personas werden generiert...
+                  } @else {
+                    Personas interagieren — Aktionen, Kommentare, Reaktionen
+                  }
+                </p>
               } @else if (sim.status === 'completed') {
                 <p style="font-size: 12px; color: var(--success); font-weight: 600;">
                   <i class="pi pi-check-circle" style="font-size: 11px; margin-right: 4px;"></i>

@@ -1,5 +1,5 @@
 """
-Provider-Registry CRUD + Connectivity-Test + Presets + Kostenvorschau.
+Provider-Registry CRUD + Connectivity-Test + Presets + Kostenvorschau + Capabilities.
 """
 from uuid import UUID
 
@@ -12,9 +12,13 @@ from app.models.provider import LLMProviderRegistry
 from app.schemas.provider import (
     CostEstimateRequest,
     CostEstimateResponse,
+    DiscoveredModel,
+    ModelCapabilities,
+    ParamCapability,
     PhaseBreakdown,
     PresetInfo,
     PresetPhaseInfo,
+    ProviderCapabilities,
     ProviderCreate,
     ProviderRead,
     ProviderUpdate,
@@ -106,6 +110,157 @@ async def list_presets():
         )
         for key, val in _PRESETS.items()
     ]
+
+
+# ---------------------------------------------------------------------------
+# Capabilities (MUSS vor /{provider_id} stehen)
+# ---------------------------------------------------------------------------
+
+_SUPPORTED = lambda default=None, mn=None, mx=None: ParamCapability(supported=True, default=default, min=mn, max=mx)
+_UNSUPPORTED = lambda reason: ParamCapability(supported=False, reason=reason)
+
+_CAPABILITIES: list[ProviderCapabilities] = [
+    ProviderCapabilities(
+        provider_type="anthropic",
+        display_name="Anthropic Claude",
+        supports_base_url=False,
+        notes=[
+            "Claude 4.x Modelle ignorieren temperature, top_p und top_k — Sampling wird intern gesteuert.",
+            "Prompt-Caching (ephemeral) wird automatisch genutzt und spart Kosten bei wiederholten Calls.",
+        ],
+        models=[
+            ModelCapabilities(
+                model_id="claude-haiku-4-5-20251001", label="Claude Haiku 4.5", tier="fast",
+                provider_type="anthropic",
+                temperature=_UNSUPPORTED("Claude 4.x steuert Sampling intern — Temperature hat keinen Effekt."),
+                top_p=_UNSUPPORTED("Claude 4.x unterstuetzt kein Nucleus Sampling."),
+                top_k=_UNSUPPORTED("Claude 4.x ignoriert top_k aktuell."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=8192,
+                pricing_input_per_1m=1.00, pricing_output_per_1m=5.00,
+            ),
+            ModelCapabilities(
+                model_id="claude-sonnet-4-6", label="Claude Sonnet 4.6", tier="smart",
+                provider_type="anthropic",
+                temperature=_UNSUPPORTED("Claude 4.x steuert Sampling intern — Temperature hat keinen Effekt."),
+                top_p=_UNSUPPORTED("Claude 4.x unterstuetzt kein Nucleus Sampling."),
+                top_k=_UNSUPPORTED("Claude 4.x ignoriert top_k aktuell."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=16384,
+                pricing_input_per_1m=3.00, pricing_output_per_1m=15.00,
+            ),
+            ModelCapabilities(
+                model_id="claude-opus-4-7", label="Claude Opus 4.7", tier="smart",
+                provider_type="anthropic",
+                temperature=_UNSUPPORTED("Claude 4.x steuert Sampling intern — Temperature hat keinen Effekt."),
+                top_p=_UNSUPPORTED("Claude 4.x unterstuetzt kein Nucleus Sampling."),
+                top_k=_UNSUPPORTED("Claude 4.x ignoriert top_k aktuell."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=32768,
+                pricing_input_per_1m=5.00, pricing_output_per_1m=25.00,
+            ),
+        ],
+    ),
+    ProviderCapabilities(
+        provider_type="openai",
+        display_name="OpenAI GPT",
+        supports_base_url=True,
+        notes=[
+            "Reasoning-Modelle (o1, o3, o4) unterstuetzen keine Sampling-Parameter.",
+            "GPT-5-mini unterstuetzt keine Temperature ungleich 1.",
+            "top_k ist bei keinem OpenAI-Modell verfuegbar.",
+            "Caching erfolgt automatisch ab ~1000 Token Prefix-Laenge.",
+        ],
+        models=[
+            ModelCapabilities(
+                model_id="gpt-4o-mini", label="GPT-4o-mini", tier="fast",
+                provider_type="openai",
+                temperature=_SUPPORTED(default=0.7, mn=0.0, mx=2.0),
+                top_p=_SUPPORTED(default=1.0, mn=0.0, mx=1.0),
+                top_k=_UNSUPPORTED("OpenAI unterstuetzt kein top_k Sampling."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=12000,
+                pricing_input_per_1m=0.15, pricing_output_per_1m=0.60,
+            ),
+            ModelCapabilities(
+                model_id="gpt-5-mini", label="GPT-5-mini", tier="fast",
+                provider_type="openai",
+                temperature=_UNSUPPORTED("GPT-5-mini unterstuetzt keine Temperature-Einstellung."),
+                top_p=_SUPPORTED(default=1.0, mn=0.0, mx=1.0),
+                top_k=_UNSUPPORTED("OpenAI unterstuetzt kein top_k Sampling."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=12000,
+                pricing_input_per_1m=0.75, pricing_output_per_1m=4.50,
+            ),
+            ModelCapabilities(
+                model_id="gpt-4o", label="GPT-4o", tier="smart",
+                provider_type="openai",
+                temperature=_SUPPORTED(default=0.7, mn=0.0, mx=2.0),
+                top_p=_SUPPORTED(default=1.0, mn=0.0, mx=1.0),
+                top_k=_UNSUPPORTED("OpenAI unterstuetzt kein top_k Sampling."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=12000,
+                pricing_input_per_1m=2.50, pricing_output_per_1m=10.00,
+            ),
+            ModelCapabilities(
+                model_id="gpt-5", label="GPT-5", tier="smart",
+                provider_type="openai",
+                temperature=_SUPPORTED(default=0.7, mn=0.0, mx=2.0),
+                top_p=_SUPPORTED(default=1.0, mn=0.0, mx=1.0),
+                top_k=_UNSUPPORTED("OpenAI unterstuetzt kein top_k Sampling."),
+                system_prompt=_SUPPORTED(), caching=_SUPPORTED(),
+                max_output_tokens=12000,
+                pricing_input_per_1m=2.50, pricing_output_per_1m=15.00,
+            ),
+        ],
+    ),
+    ProviderCapabilities(
+        provider_type="ollama",
+        display_name="Ollama (Lokal)",
+        supports_base_url=True,
+        supports_api_key=False,
+        notes=[
+            "Lokale Ausfuehrung — keine API-Kosten, aber abhaengig von Hardware.",
+            "Alle Sampling-Parameter werden unterstuetzt.",
+            "Modelle muessen lokal installiert sein (ollama pull).",
+            "Verfuegbare Modelle werden dynamisch abgefragt ueber GET /providers/{id}/models.",
+        ],
+        models=[
+            ModelCapabilities(
+                model_id="qwen2.5:7b", label="Qwen 2.5 7B", tier="fast",
+                provider_type="ollama",
+                temperature=_SUPPORTED(default=0.7, mn=0.0, mx=2.0),
+                top_p=_SUPPORTED(default=0.9, mn=0.0, mx=1.0),
+                top_k=_SUPPORTED(default=40, mn=1, mx=200),
+                system_prompt=_SUPPORTED(), caching=_UNSUPPORTED("Ollama hat kein Prompt-Caching."),
+                max_output_tokens=8192,
+                pricing_input_per_1m=0.0, pricing_output_per_1m=0.0,
+            ),
+            ModelCapabilities(
+                model_id="llama3.1:8b", label="Llama 3.1 8B", tier="smart",
+                provider_type="ollama",
+                temperature=_SUPPORTED(default=0.7, mn=0.0, mx=2.0),
+                top_p=_SUPPORTED(default=0.9, mn=0.0, mx=1.0),
+                top_k=_SUPPORTED(default=40, mn=1, mx=200),
+                system_prompt=_SUPPORTED(), caching=_UNSUPPORTED("Ollama hat kein Prompt-Caching."),
+                max_output_tokens=8192,
+                pricing_input_per_1m=0.0, pricing_output_per_1m=0.0,
+            ),
+        ],
+    ),
+]
+
+
+@router.get("/capabilities", response_model=list[ProviderCapabilities])
+async def get_capabilities():
+    """Gibt die Capabilities aller Provider-Typen und ihrer Modelle zurück.
+
+    Das Frontend nutzt diese Daten um:
+    - Nicht-unterstützte Parameter auszublenden oder zu disablen
+    - Tooltips mit Erklärungen anzuzeigen warum ein Feld nicht verfügbar ist
+    - Sinnvolle Defaults pro Modell vorzuschlagen
+    """
+    return _CAPABILITIES
 
 
 # ---------------------------------------------------------------------------
@@ -292,3 +447,54 @@ async def test_provider(
         raise
     except Exception as e:
         return {"success": False, "message": f"Verbindung fehlgeschlagen: {str(e)}"}
+
+
+@router.get("/{provider_id}/models", response_model=list[DiscoveredModel])
+async def discover_models(
+    provider_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Listet verfügbare Modelle für einen Provider.
+
+    - Ollama: Dynamische Abfrage via API (zeigt lokal installierte Modelle)
+    - Anthropic/OpenAI: Gibt die statische Modell-Liste zurück
+    """
+    provider = await db.get(LLMProviderRegistry, provider_id)
+    if not provider:
+        raise HTTPException(404, detail="Provider nicht gefunden")
+
+    # Statische Modelle aus Capabilities
+    caps = next((c for c in _CAPABILITIES if c.provider_type == provider.provider_type), None)
+    static_models = [
+        DiscoveredModel(model_id=m.model_id, label=m.label, size=None)
+        for m in (caps.models if caps else [])
+    ]
+
+    if provider.provider_type != "ollama":
+        return static_models
+
+    # Ollama: Dynamische Abfrage
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(
+            api_key="ollama",
+            base_url=provider.base_url or "http://localhost:11434/v1",
+        )
+        models_response = await client.models.list()
+        discovered = [
+            DiscoveredModel(
+                model_id=m.id,
+                label=m.id.replace(":", " ").title(),
+                size=None,
+            )
+            for m in models_response.data
+        ]
+        # Statische Modelle + dynamisch entdeckte (ohne Duplikate)
+        seen = {m.model_id for m in discovered}
+        for s in static_models:
+            if s.model_id not in seen:
+                discovered.append(s)
+        return discovered
+    except Exception as e:
+        # Fallback auf statische Liste
+        return static_models
