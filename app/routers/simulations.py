@@ -83,6 +83,9 @@ async def create_simulation(
     # SimulationConfig Pydantic-Objekt → dict + total_ticks aus tick_count ableiten
     data["config"] = body.config.model_dump()
     data["total_ticks"] = body.config.tick_count
+    # provider_config: Pydantic → JSON-serialisierbares Dict (UUIDs als Strings)
+    if data.get("provider_config") is not None:
+        data["provider_config"] = body.provider_config.model_dump(mode="json")
 
     sim = Simulation(**data)
     db.add(sim)
@@ -153,6 +156,7 @@ async def clone_simulation(
         llm_provider=getattr(original, "llm_provider", "anthropic"),
         llm_model_fast=getattr(original, "llm_model_fast", None),
         llm_model_smart=getattr(original, "llm_model_smart", None),
+        provider_config=getattr(original, "provider_config", None),
         status=SimulationStatus.pending,
         current_tick=0,
     )
@@ -194,6 +198,15 @@ async def delete_simulation(
     if not sim:
         raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
 
+    # FK-gerechte Löschreihenfolge (InfluenceEvents referenzieren Posts)
+    post_ids_subquery = select(Post.id).where(Post.simulation_id == simulation_id)
+    await db.execute(delete(InfluenceEvent).where(InfluenceEvent.simulation_id == simulation_id))
+    await db.execute(delete(Reaction).where(Reaction.post_id.in_(post_ids_subquery)))
+    await db.execute(delete(Comment).where(Comment.post_id.in_(post_ids_subquery)))
+    await db.execute(delete(SimulationTick).where(SimulationTick.simulation_id == simulation_id))
+    await db.execute(delete(AnalysisReport).where(AnalysisReport.simulation_id == simulation_id))
+    await db.execute(delete(Post).where(Post.simulation_id == simulation_id))
+    await db.execute(delete(Persona).where(Persona.simulation_id == simulation_id))
     await db.delete(sim)
 
 
@@ -310,3 +323,118 @@ async def get_simulation_stats(
         comment_count=comment_count,
         reaction_count=reaction_count,
     )
+
+
+@router.get("/{simulation_id}/sentiment-stats")
+async def get_sentiment_stats(
+    simulation_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Aggregierte Sentiment-Statistiken für erweiterte Charts."""
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    sim = result.scalar_one_or_none()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    # 1. Reactions pro Tag + Platform
+    from app.models import Post as PostModel, Reaction as ReactionModel
+    reactions_query = (
+        select(
+            PostModel.ingame_day,
+            PostModel.platform,
+            ReactionModel.reaction_type,
+            func.count(ReactionModel.id).label("cnt"),
+        )
+        .join(ReactionModel, ReactionModel.post_id == PostModel.id)
+        .where(PostModel.simulation_id == simulation_id)
+        .group_by(PostModel.ingame_day, PostModel.platform, ReactionModel.reaction_type)
+        .order_by(PostModel.ingame_day)
+    )
+    reactions_result = await db.execute(reactions_query)
+    reactions_rows = reactions_result.all()
+
+    # Aggregiere zu [{ingame_day, platform, likes, dislikes, shares}]
+    from collections import defaultdict
+    day_platform_map: dict[tuple, dict] = defaultdict(lambda: {"likes": 0, "dislikes": 0, "shares": 0})
+    for row in reactions_rows:
+        key = (row.ingame_day, row.platform.value if hasattr(row.platform, 'value') else str(row.platform))
+        rtype = row.reaction_type.value if hasattr(row.reaction_type, 'value') else str(row.reaction_type)
+        if rtype == "like":
+            day_platform_map[key]["likes"] = row.cnt
+        elif rtype == "dislike":
+            day_platform_map[key]["dislikes"] = row.cnt
+        elif rtype == "share":
+            day_platform_map[key]["shares"] = row.cnt
+
+    reactions_by_day = [
+        {"ingame_day": k[0], "platform": k[1], **v}
+        for k, v in sorted(day_platform_map.items())
+    ]
+
+    # 2. Engagement pro Tag (Posts + Comments)
+    from app.models import Comment as CommentModel
+    posts_per_day = await db.execute(
+        select(PostModel.ingame_day, func.count(PostModel.id).label("cnt"))
+        .where(PostModel.simulation_id == simulation_id)
+        .group_by(PostModel.ingame_day)
+        .order_by(PostModel.ingame_day)
+    )
+    posts_map = {r.ingame_day: r.cnt for r in posts_per_day.all()}
+
+    comments_per_day = await db.execute(
+        select(CommentModel.ingame_day, func.count(CommentModel.id).label("cnt"))
+        .join(PostModel, PostModel.id == CommentModel.post_id)
+        .where(PostModel.simulation_id == simulation_id)
+        .group_by(CommentModel.ingame_day)
+        .order_by(CommentModel.ingame_day)
+    )
+    comments_map = {r.ingame_day: r.cnt for r in comments_per_day.all()}
+
+    all_days = sorted(set(list(posts_map.keys()) + list(comments_map.keys())))
+    engagement_by_day = []
+    for day in all_days:
+        p = posts_map.get(day, 0)
+        c = comments_map.get(day, 0)
+        engagement_by_day.append({
+            "ingame_day": day,
+            "posts": p,
+            "comments": c,
+            "engagement_rate": round(c / p, 2) if p > 0 else 0,
+        })
+
+    # 3. Meinungsdimensionen — Durchschnitt aktueller Personas (Skeptiker vs. Nicht-Skeptiker)
+    personas_result = await db.execute(
+        select(Persona).where(Persona.simulation_id == simulation_id)
+    )
+    personas = personas_result.scalars().all()
+
+    dims_all = {"product_quality": [], "price_fairness": [], "brand_trust": [],
+                "innovation": [], "ethical_concerns": [], "social_proof": [], "personal_relevance": []}
+    dims_skeptic = {k: [] for k in dims_all}
+    dims_non_skeptic = {k: [] for k in dims_all}
+
+    for p in personas:
+        od = (p.current_state or {}).get("opinion_dimensions", {})
+        if not od:
+            continue
+        target = dims_skeptic if p.is_skeptic else dims_non_skeptic
+        for k in dims_all:
+            v = od.get(k)
+            if v is not None:
+                dims_all[k].append(v)
+                target[k].append(v)
+
+    def avg_dims(d: dict) -> dict:
+        return {k: round(sum(v) / len(v), 3) if v else 0 for k, v in d.items()}
+
+    return {
+        "reactions_by_day": reactions_by_day,
+        "engagement_by_day": engagement_by_day,
+        "opinion_dimensions": {
+            "all": avg_dims(dims_all),
+            "skeptic": avg_dims(dims_skeptic),
+            "non_skeptic": avg_dims(dims_non_skeptic),
+        },
+    }

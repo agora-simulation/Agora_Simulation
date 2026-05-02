@@ -8,6 +8,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(..., min_length=1, max_length=50)
+    conversation_id: str | None = None
 
 
 class ChatResponse(BaseModel):

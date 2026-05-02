@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     max_concurrent_simulations: int = 3
     debug: bool = False
     admin_master_key: str = "change-me-in-production"
+    encryption_key: str = ""  # Fernet-Key für API-Key-Verschlüsselung; Fallback: admin_master_key
     cors_origins: list[str] = ["*"]  # In Produktion auf eigene Domain einschränken
 
     class Config:

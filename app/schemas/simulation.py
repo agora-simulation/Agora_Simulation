@@ -4,8 +4,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.simulation import SimulationStatus
 from app.schemas.common import UUIDModel, TimestampMixin
+from app.schemas.provider import SimulationProviderConfig
 
-LLMProviderName = Literal["anthropic", "openai"]
+LLMProviderName = Literal["anthropic", "openai", "ollama"]
 
 
 class SimulationConfig(BaseModel):
@@ -23,6 +24,7 @@ class SimulationCreate(BaseModel):
     llm_provider: LLMProviderName = "anthropic"
     llm_model_fast: str | None = Field(None, max_length=64)
     llm_model_smart: str | None = Field(None, max_length=64)
+    provider_config: SimulationProviderConfig | None = None
 
     @field_validator("webhook_url")
     @classmethod
@@ -60,6 +62,7 @@ class SimulationRead(UUIDModel, TimestampMixin):
     llm_provider: str = "anthropic"
     llm_model_fast: str | None = None
     llm_model_smart: str | None = None
+    provider_config: dict | None = None
 
 
 class SimulationRunResponse(BaseModel):

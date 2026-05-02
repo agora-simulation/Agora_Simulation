@@ -7,6 +7,7 @@ import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import { PersonaService } from '../../../core/services/persona.service';
 import { Persona } from '../../../core/models/persona.model';
+import { getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 
 const COLOR_DIM = 'rgba(14,14,12,0.12)';
 const COLOR_EDGE_DIM = 'rgba(14,14,12,0.04)';
@@ -25,6 +26,14 @@ export class NetworkComponent implements OnInit, OnDestroy {
   personas = signal<Persona[]>([]);
   selectedPersona = signal<Persona | null>(null);
   loading = signal(true);
+
+  // Netzwerk-Stats
+  nodeCount = signal(0);
+  edgeCount = signal(0);
+  avgConnections = signal(0);
+  skepticPercent = signal(0);
+  strongestEdge = signal<{source: string; target: string; strength: number} | null>(null);
+  isolatedCount = signal(0); // Personas ohne Verbindungen
 
   // Toolbar state
   searchTerm = signal('');
@@ -65,6 +74,7 @@ export class NetworkComponent implements OnInit, OnDestroy {
     this.simId = this.route.parent!.snapshot.params['id'];
     this.personaService.list(this.simId, { limit: 200 }).subscribe(res => {
       this.personas.set(res.items);
+      this.computeNetworkStats();
       this.loading.set(false);
       setTimeout(() => this.renderGraph(), 100);
     });
@@ -233,12 +243,66 @@ export class NetworkComponent implements OnInit, OnDestroy {
     });
   }
 
+  private computeNetworkStats() {
+    const personas = this.personas();
+    this.nodeCount.set(personas.length);
+
+    let totalConnections = 0;
+    let maxStrength = 0;
+    let strongest: {source: string; target: string; strength: number} | null = null;
+    let isolated = 0;
+
+    const personaMap = new Map(personas.map(p => [p.id, p.name]));
+
+    for (const p of personas) {
+      const connections = p.social_connections?.length || 0;
+      totalConnections += connections;
+
+      if (connections === 0) isolated++;
+
+      const strengths = p.current_state?.connection_strength || {};
+      for (const [targetId, strength] of Object.entries(strengths)) {
+        if ((strength as number) > maxStrength) {
+          maxStrength = strength as number;
+          strongest = {
+            source: p.name,
+            target: personaMap.get(targetId) || 'Unbekannt',
+            strength: Math.round((strength as number) * 100) / 100,
+          };
+        }
+      }
+    }
+
+    // Edges are bidirectional but stored once — count unique pairs
+    const edgeSet = new Set<string>();
+    for (const p of personas) {
+      for (const targetId of (p.social_connections || [])) {
+        const pair = [p.id, targetId].sort().join('-');
+        edgeSet.add(pair);
+      }
+    }
+
+    this.edgeCount.set(edgeSet.size);
+    this.avgConnections.set(personas.length > 0 ? Math.round(totalConnections / personas.length * 10) / 10 : 0);
+    this.skepticPercent.set(personas.length > 0 ? Math.round(personas.filter(p => p.is_skeptic).length / personas.length * 100) : 0);
+    this.strongestEdge.set(strongest);
+    this.isolatedCount.set(isolated);
+  }
+
+  getTopConnections(persona: Persona): {name: string; strength: number}[] {
+    const strengths = persona.current_state?.connection_strength || {};
+    const personaMap = new Map(this.personas().map(p => [p.id, p.name]));
+
+    return Object.entries(strengths)
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
+      .slice(0, 5)
+      .map(([id, strength]) => ({
+        name: personaMap.get(id) || 'Unbekannt',
+        strength: Math.round((strength as number) * 100) / 100,
+      }));
+  }
+
   private moodColor(mood: string): string {
-    const lower = mood.toLowerCase();
-    if (lower.includes('positiv') || lower.includes('begeistert') || lower.includes('optimist')) return '#3d5a3d';
-    if (lower.includes('negativ') || lower.includes('genervt') || lower.includes('wütend') || lower.includes('frustr')) return '#8b3a1b';
-    if (lower.includes('skepti') || lower.includes('kritisch') || lower.includes('besorgt')) return '#a16207';
-    if (lower.includes('neugier') || lower.includes('interessiert')) return '#1e3a8a';
-    return '#0e0e0c';
+    return getMoodColorShared(mood);
   }
 }

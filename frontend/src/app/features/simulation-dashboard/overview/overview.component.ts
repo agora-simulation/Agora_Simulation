@@ -9,7 +9,7 @@ import { Simulation, SimulationStats, TickSnapshot } from '../../../core/models/
 import { Post } from '../../../core/models/content.model';
 import { Persona } from '../../../core/models/persona.model';
 import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
-import { CHART, FONT_SANS, tooltipStyle, axisCommon, legendCommon } from '../../../shared/chart-theme';
+import { CHART, FONT_SANS, tooltipStyle, axisCommon, legendCommon, classifyMoodIndex, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 
 interface MoodBucket { key: string; label: string; color: string; count: number; }
 
@@ -51,11 +51,8 @@ export class OverviewComponent implements OnInit {
     for (const p of this.personas()) {
       const m = (p.current_state?.mood || '').toLowerCase();
       if (!m) { buckets[2].count++; continue; }
-      if (m.includes('positiv') || m.includes('begeistert')) buckets[0].count++;
-      else if (m.includes('neugier')) buckets[1].count++;
-      else if (m.includes('skepti') || m.includes('kritisch')) buckets[3].count++;
-      else if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr')) buckets[4].count++;
-      else buckets[2].count++;
+      const idx = classifyMoodIndex(m);
+      buckets[idx].count++;
     }
     return buckets;
   });
@@ -141,12 +138,6 @@ export class OverviewComponent implements OnInit {
   }
 
   getMoodColor(mood: string | undefined): string {
-    if (!mood) return CHART.inkMute;
-    const m = mood.toLowerCase();
-    if (m.includes('positiv') || m.includes('begeistert')) return CHART.moss;
-    if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr')) return CHART.vermillion;
-    if (m.includes('skepti') || m.includes('kritisch')) return CHART.threadit;
-    if (m.includes('neugier')) return CHART.feedbook;
-    return CHART.inkMute;
+    return getMoodColorShared(mood);
   }
 }

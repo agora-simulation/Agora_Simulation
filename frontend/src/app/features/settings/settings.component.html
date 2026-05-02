@@ -1,0 +1,221 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Einstellungen</h1>
+      <p class="page-subtitle">
+        LLM-Provider verwalten — hier registrierst du die KI-Anbieter, die fuer Simulationen genutzt werden.
+      </p>
+    </div>
+    <button class="btn btn-primary" (click)="openAddDialog()">
+      <i class="pi pi-plus"></i> Provider hinzufuegen
+    </button>
+  </div>
+
+  <!-- Info-Box -->
+  <div class="info-box" style="margin-bottom: 24px;">
+    <i class="pi pi-info-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px;"></i>
+    <div>
+      <p style="margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.55;">
+        <strong style="color: var(--ink);">Was sind Provider?</strong>
+        Provider sind die KI-Dienste (OpenAI, Anthropic, Ollama), die die Simulation antreiben.
+        Jeder Provider braucht einen API-Key fuer die Authentifizierung.
+        Du kannst mehrere Provider registrieren und pro Simulation flexibel zuweisen.
+        Der <strong>Standard-Provider</strong> wird automatisch fuer neue Simulationen vorgeschlagen.
+      </p>
+    </div>
+  </div>
+
+  <!-- Provider Cards -->
+  @if (loading()) {
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i> Lade Provider...
+    </div>
+  } @else if (providers().length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-box" style="font-size: 2rem; opacity: 0.4;"></i>
+      <p>Noch keine Provider registriert.</p>
+      <p style="font-size: 13px; color: var(--ink-3); margin-top: 4px;">
+        Registriere mindestens einen Provider um Simulationen starten zu koennen.
+      </p>
+      <button class="btn btn-primary" (click)="openAddDialog()">Ersten Provider hinzufuegen</button>
+    </div>
+  } @else {
+    <div class="provider-grid">
+      @for (provider of providers(); track provider.id) {
+        <div class="card provider-card">
+          <div class="provider-card-header">
+            <div class="provider-icon">
+              <i class="pi" [class]="getTypeIcon(provider.provider_type)"></i>
+            </div>
+            <div class="provider-info">
+              <h3 class="provider-name">{{ provider.name }}</h3>
+              <span class="provider-type-badge">{{ getTypeLabel(provider.provider_type) }}</span>
+            </div>
+            @if (provider.is_default) {
+              <span class="default-badge" title="Dieser Provider wird automatisch fuer neue Simulationen vorgeschlagen">Standard</span>
+            }
+          </div>
+
+          @if (provider.base_url) {
+            <div class="provider-detail">
+              <span class="detail-label">URL:</span>
+              <span class="detail-value">{{ provider.base_url }}</span>
+            </div>
+          }
+
+          <!-- Test Result -->
+          @if (testResultFor() === provider.id && testResult()) {
+            <div class="test-result" [class.success]="testResult()!.success" [class.error]="!testResult()!.success">
+              <i class="pi" [class]="testResult()!.success ? 'pi-check-circle' : 'pi-times-circle'"></i>
+              {{ testResult()!.message }}
+            </div>
+          }
+
+          <div class="provider-actions">
+            <button class="btn btn-sm btn-secondary" (click)="testProvider(provider.id)"
+                    [disabled]="testingId() === provider.id"
+                    title="Prueft ob der API-Key gueltig ist und eine Verbindung zum Provider hergestellt werden kann">
+              @if (testingId() === provider.id) {
+                <i class="pi pi-spin pi-spinner"></i>
+              } @else {
+                <i class="pi pi-wifi"></i>
+              }
+              Testen
+            </button>
+            <button class="btn btn-sm btn-secondary" (click)="openEditDialog(provider)"
+                    title="Name, API-Key oder Einstellungen aendern">
+              <i class="pi pi-pencil"></i> Bearbeiten
+            </button>
+            <button class="btn btn-sm btn-danger-outline" (click)="deleteProvider(provider.id, provider.name)"
+                    title="Provider dauerhaft entfernen — laufende Simulationen mit diesem Provider werden fehlschlagen">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Add Provider Dialog -->
+@if (showAddDialog()) {
+  <div class="modal-overlay" (click)="showAddDialog.set(false)" (keydown.escape)="showAddDialog.set(false)">
+    <div class="modal modal-wide animate-fade-in" (click)="$event.stopPropagation()">
+      <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+        <i class="pi pi-plus-circle"></i>
+      </div>
+      <h3 class="modal-title">Provider hinzufuegen</h3>
+      <p style="font-size: 13px; color: var(--ink-3); margin-bottom: 20px;">
+        Registriere einen neuen KI-Anbieter. Den API-Key bekommst du auf der Entwickler-Seite des jeweiligen Anbieters.
+      </p>
+
+      <div class="field">
+        <label for="add-name">Name</label>
+        <input id="add-name" type="text" class="input" placeholder="z.B. Mein OpenAI Account"
+               [ngModel]="newName()" (ngModelChange)="newName.set($event)" />
+        <p class="label-hint">Frei waehlbar — hilft dir, mehrere Accounts zu unterscheiden.</p>
+      </div>
+
+      <div class="field">
+        <label for="add-type">Typ</label>
+        <select id="add-type" class="input" [ngModel]="newType()" (ngModelChange)="newType.set($event)">
+          @for (t of providerTypes; track t.value) {
+            <option [value]="t.value">{{ t.label }}</option>
+          }
+        </select>
+        <p class="label-hint">
+          @if (newType() === 'anthropic') {
+            Claude-Modelle von Anthropic. API-Key beginnt mit <code>sk-ant-</code>. Erstelle ihn auf <strong>console.anthropic.com</strong>.
+          } @else if (newType() === 'openai') {
+            GPT-Modelle von OpenAI. API-Key beginnt mit <code>sk-</code>. Erstelle ihn auf <strong>platform.openai.com</strong>.
+          } @else {
+            Lokale Modelle via Ollama. Kein API-Key noetig — laeuft auf deinem Rechner. Kostenlos, aber langsamer und weniger leistungsfaehig.
+          }
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="add-key">API-Key</label>
+        <input id="add-key" type="password" class="input"
+               [placeholder]="newType() === 'ollama' ? 'Beliebig (z.B. ollama)' : 'sk-...'"
+               [ngModel]="newApiKey()" (ngModelChange)="newApiKey.set($event)" />
+        <p class="label-hint">Wird verschluesselt gespeichert und nie im Klartext angezeigt.</p>
+      </div>
+
+      @if (newType() === 'ollama') {
+        <div class="field">
+          <label for="add-url">Base URL</label>
+          <input id="add-url" type="text" class="input" placeholder="http://localhost:11434/v1"
+                 [ngModel]="newBaseUrl()" (ngModelChange)="newBaseUrl.set($event)" />
+          <p class="label-hint">Standard: <code>http://localhost:11434/v1</code> — anpassen wenn Ollama auf einem anderen Rechner laeuft.</p>
+        </div>
+      }
+
+      <div class="field-inline">
+        <input id="add-default" type="checkbox" [ngModel]="newIsDefault()" (ngModelChange)="newIsDefault.set($event)" />
+        <label for="add-default">Als Standard-Provider setzen</label>
+      </div>
+      <p class="label-hint" style="margin-top: -8px;">
+        Der Standard-Provider wird automatisch fuer neue Simulationen vorgeschlagen. Es kann nur einen geben.
+      </p>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="showAddDialog.set(false)">Abbrechen</button>
+        <button class="btn btn-primary" (click)="createProvider()"
+                [disabled]="!newName() || !newApiKey() || saving()">
+          @if (saving()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          }
+          Erstellen
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit Provider Dialog -->
+@if (showEditDialog()) {
+  <div class="modal-overlay" (click)="showEditDialog.set(false)" (keydown.escape)="showEditDialog.set(false)">
+    <div class="modal modal-wide animate-fade-in" (click)="$event.stopPropagation()">
+      <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+        <i class="pi pi-pencil"></i>
+      </div>
+      <h3 class="modal-title">Provider bearbeiten</h3>
+
+      <div class="field">
+        <label for="edit-name">Name</label>
+        <input id="edit-name" type="text" class="input"
+               [ngModel]="editName()" (ngModelChange)="editName.set($event)" />
+      </div>
+
+      <div class="field">
+        <label for="edit-key">Neuer API-Key</label>
+        <input id="edit-key" type="password" class="input" placeholder="Leer lassen = aktuellen Key beibehalten"
+               [ngModel]="editApiKey()" (ngModelChange)="editApiKey.set($event)" />
+        <p class="label-hint">Nur ausfuellen wenn du den Key aendern moechtest. Der aktuelle Key kann aus Sicherheitsgruenden nicht angezeigt werden.</p>
+      </div>
+
+      <div class="field">
+        <label for="edit-url">Base URL</label>
+        <input id="edit-url" type="text" class="input" placeholder="Nur fuer Ollama / Custom-Endpoints relevant"
+               [ngModel]="editBaseUrl()" (ngModelChange)="editBaseUrl.set($event)" />
+        <p class="label-hint">Fuer OpenAI und Anthropic leer lassen — die SDKs nutzen automatisch die richtigen Endpoints.</p>
+      </div>
+
+      <div class="field-inline">
+        <input id="edit-default" type="checkbox" [ngModel]="editIsDefault()" (ngModelChange)="editIsDefault.set($event)" />
+        <label for="edit-default">Als Standard-Provider setzen</label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="showEditDialog.set(false)">Abbrechen</button>
+        <button class="btn btn-primary" (click)="updateProvider()" [disabled]="!editName() || saving()">
+          @if (saving()) {
+            <i class="pi pi-spin pi-spinner"></i>
+          }
+          Speichern
+        </button>
+      </div>
+    </div>
+  </div>
+}

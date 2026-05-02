@@ -47,4 +47,8 @@ export class SimulationService {
   getTicks(id: string): Observable<TickSnapshot[]> {
     return this.api.get(`/simulations/${id}/ticks`);
   }
+
+  getSentimentStats(id: string): Observable<any> {
+    return this.api.get(`/simulations/${id}/sentiment-stats`);
+  }
 }

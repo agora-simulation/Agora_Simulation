@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models import AnalysisReport, Simulation
 from app.schemas import AnalysisReportRead
 from app.analysis.report_generator import generate_report
+from app.llm.resolver import resolve_for_phase
 
 router = APIRouter()
 
@@ -41,9 +42,9 @@ async def generate_report_endpoint(
     if not sim:
         raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
 
+    resolved = await resolve_for_phase(sim, "analysis_reports", db)
     report = await generate_report(
         simulation_id, db,
-        provider_name=getattr(sim, "llm_provider", None),
-        model=getattr(sim, "llm_model_smart", None) or None,
+        resolved=resolved,
     )
     return report

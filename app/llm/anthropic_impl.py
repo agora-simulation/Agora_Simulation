@@ -72,6 +72,22 @@ class AnthropicProvider(LLMProvider):
             out.append(entry)
         return out
 
+    def _sampling_kwargs(
+        self, temperature: float | None, top_p: float | None, top_k: int | None,
+    ) -> dict[str, Any]:
+        """Baut optionale Sampling-Parameter für die Anthropic API.
+
+        Neuere Claude-Modelle (4.x) akzeptieren temperature/top_p/top_k nicht
+        mehr — diese Parameter werden daher nicht mehr gesendet.
+        """
+        if any(v is not None for v in (temperature, top_p, top_k)):
+            logger.debug(
+                "Sampling-Parameter ignoriert (von Claude 4.x nicht unterstützt): "
+                "temperature=%s, top_p=%s, top_k=%s",
+                temperature, top_p, top_k,
+            )
+        return {}
+
     async def call_tool(
         self,
         *,
@@ -84,6 +100,9 @@ class AnthropicProvider(LLMProvider):
         tool_schema: dict,
         max_tokens: int,
         model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
     ) -> dict:
         system_payload: list[dict[str, Any]] = [{"type": "text", "text": system}]
         if cache_system:
@@ -108,6 +127,7 @@ class AnthropicProvider(LLMProvider):
             ],
             tools=[tool_def],
             tool_choice={"type": "tool", "name": tool_name},
+            **self._sampling_kwargs(temperature, top_p, top_k),
         )
 
         tool_block = next((b for b in message.content if b.type == "tool_use"), None)
@@ -129,6 +149,9 @@ class AnthropicProvider(LLMProvider):
         messages: list[ChatMessage],
         max_tokens: int,
         model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
     ) -> str:
         response = await self._retry(
             self._client.messages.create,
@@ -136,6 +159,7 @@ class AnthropicProvider(LLMProvider):
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": m["role"], "content": m["content"]} for m in messages],
+            **self._sampling_kwargs(temperature, top_p, top_k),
         )
         # Erster Text-Block
         for block in response.content:

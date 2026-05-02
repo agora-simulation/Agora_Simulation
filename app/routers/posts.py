@@ -33,11 +33,23 @@ async def list_posts(
     count_result = await db.execute(select(func.count()).select_from(query.subquery()))
     total = count_result.scalar_one()
 
-    # Paginierte Items
+    # Paginierte Items mit Author-Relation
     result = await db.execute(
-        query.order_by(Post.ingame_day.asc()).limit(limit).offset(offset)
+        query.options(selectinload(Post.author))
+        .order_by(Post.ingame_day.asc())
+        .limit(limit)
+        .offset(offset)
     )
-    items = result.scalars().all()
+    posts = result.scalars().all()
+
+    # author_name und is_skeptic aus der Relation ableiten
+    items = []
+    for post in posts:
+        read = PostRead.model_validate(post)
+        if post.author:
+            read.author_name = post.author.name
+            read.is_skeptic = post.author.is_skeptic
+        items.append(read)
 
     return PaginatedResponse(
         items=items,

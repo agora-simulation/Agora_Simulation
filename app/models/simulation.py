@@ -36,6 +36,7 @@ class Simulation(Base):
     llm_provider = Column(String(32), nullable=False, default="anthropic")   # "anthropic" | "openai"
     llm_model_fast = Column(String(64), nullable=True)    # Optional Override für Fast-Tier (Aktionen/State)
     llm_model_smart = Column(String(64), nullable=True)   # Optional Override für Smart-Tier (Persona-Gen/Report/Chat)
+    provider_config = Column(JSON, nullable=True)         # Neue granulare Provider-Config (überschreibt llm_provider wenn gesetzt)
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 

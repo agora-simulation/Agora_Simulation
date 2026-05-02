@@ -16,6 +16,7 @@ from app.simulation.persona_generator import generate_personas
 from app.simulation.tick_engine import run_tick
 from app.analysis.report_generator import generate_report
 from app.webhooks import dispatch_webhook
+from app.llm.resolver import resolve_for_phase
 
 logger = logging.getLogger("simulator.runner")
 
@@ -142,9 +143,6 @@ async def run_simulation_background(simulation_id: UUID):
             )
             existing_personas = result.scalars().all()
 
-            sim_provider_name = getattr(sim, "llm_provider", None)
-            sim_model_smart = getattr(sim, "llm_model_smart", None) or None
-
             if not existing_personas:
                 persona_count = sim.config.get("persona_count", 10) if sim.config else 10
                 raw_personas = await generate_personas(
@@ -152,15 +150,21 @@ async def run_simulation_background(simulation_id: UUID):
                     target_market=sim.target_market or "",
                     industry=sim.industry or "",
                     persona_count=persona_count,
-                    provider_name=sim_provider_name,
-                    model=sim_model_smart,
+                    sim=sim,
+                    db=db,
                 )
                 logger.info(f"[{simulation_id}] {len(raw_personas)} Personas generiert")
                 for p_data in raw_personas:
                     # Nur bekannte Felder übernehmen
                     allowed = {
                         "name", "age", "location", "occupation", "personality",
-                        "values", "communication_style", "initial_opinion", "is_skeptic"
+                        "values", "communication_style", "initial_opinion", "is_skeptic",
+                        # Modul 3: Erweiterte Felder
+                        "education_level", "income_bracket", "family_status",
+                        "political_leaning", "media_consumption", "tech_affinity",
+                        "personality_traits",
+                        # Entity-Typen
+                        "persona_type", "entity_subtype",
                     }
                     clean = {k: v for k, v in p_data.items() if k in allowed}
 
@@ -171,9 +175,16 @@ async def run_simulation_background(simulation_id: UUID):
                     else:
                         initial_affinity = {"feedbook": 0.7, "threadit": 0.3}
 
+                    # Modul 2: Initiale Opinion-Dimensions
+                    from app.simulation.tick_engine import _init_opinion_dimensions
+                    initial_dims = _init_opinion_dimensions(clean.get("is_skeptic", False))
+
                     persona = Persona(
                         simulation_id=simulation_id,
-                        current_state={"platform_affinity": initial_affinity},
+                        current_state={
+                            "platform_affinity": initial_affinity,
+                            "opinion_dimensions": initial_dims,
+                        },
                         extra={"preferred_platform": preferred},
                         **clean,
                     )
@@ -195,8 +206,16 @@ async def run_simulation_background(simulation_id: UUID):
                     logger.info(f"[{simulation_id}] Simulation abgebrochen (Status: {sim_check.status.value})")
                     return
 
+                # Pro Tick neu resolven (Multi-Provider Weighted-Random)
+                action_resolved = await resolve_for_phase(sim, "agent_actions", db)
+                state_resolved = await resolve_for_phase(sim, "state_updates", db)
+
                 logger.info(f"[{simulation_id}] Tick {tick_num}/{total_ticks} gestartet")
-                await run_tick(simulation_id, tick_num, tick_num, db, semaphore)
+                await run_tick(
+                    simulation_id, tick_num, tick_num, db, semaphore,
+                    action_resolved=action_resolved,
+                    state_resolved=state_resolved,
+                )
 
                 await db.execute(
                     update(Simulation)

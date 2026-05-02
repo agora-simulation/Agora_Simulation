@@ -67,21 +67,66 @@ class OpenAIProvider(LLMProvider):
         return self._model_fast if tier == "fast" else self._model_smart
 
     @staticmethod
-    def _is_o1_model(model: str) -> bool:
-        """Erkennt o1/o1-mini (kein system-Role, streaming eingeschränkt)."""
+    def _is_reasoning_model(model: str) -> bool:
+        """Erkennt Reasoning-Modelle (o1, o3, o4 etc.) die kein system-Role und keine Temperature unterstützen."""
         import re
-        return bool(re.match(r"^o1(-|$)", model))
+        return bool(re.match(r"^o[0-9]", model))
+
+    @staticmethod
+    def _supports_temperature(model: str) -> bool:
+        """Prüft ob das Modell Temperature-Parameter unterstützt."""
+        import re
+        # Reasoning-Modelle (o1, o3, ...) unterstützen keine Temperature
+        if re.match(r"^o[0-9]", model):
+            return False
+        # GPT-5-mini unterstützt derzeit keine Temperature ≠ 1
+        if "gpt-5-mini" in model:
+            return False
+        return True
 
     def _token_kwarg(self, max_tokens: int) -> dict:
         """Alle modernen OpenAI-Modelle nutzen max_completion_tokens."""
         return {"max_completion_tokens": min(max_tokens, self._MAX_TOKENS_CAP)}
+
+    def _sampling_kwargs(
+        self, model: str, temperature: float | None, top_p: float | None, top_k: int | None,
+    ) -> dict:
+        """Baut optionale Sampling-Parameter für die OpenAI API.
+
+        OpenAI unterstützt kein top_k — wird ignoriert.
+        o1-Modelle unterstützen kein temperature/top_p.
+        """
+        kw: dict = {}
+        if not self._supports_temperature(model):
+            return kw
+        if temperature is not None:
+            kw["temperature"] = temperature
+        if top_p is not None:
+            kw["top_p"] = top_p
+        if top_k is not None:
+            logger.debug("OpenAI: top_k=%d ignoriert (nicht unterstützt)", top_k)
+        return kw
 
     async def _retry(self, fn, *args, max_attempts: int = 3, base_delay: float = 1.0, **kwargs):
         last_exc: Exception | None = None
         for attempt in range(1, max_attempts + 1):
             try:
                 return await fn(*args, **kwargs)
-            except self._retryable as e:  # type: ignore[misc]
+            except Exception as e:
+                # Temperature/top_p nicht unterstützt → ohne Sampling-Params retry'n
+                err_str = str(e)
+                if "temperature" in err_str or "top_p" in err_str:
+                    logger.warning(
+                        "OpenAI: Sampling-Parameter nicht unterstützt für dieses Modell — retry ohne: %s", err_str[:200],
+                    )
+                    kwargs.pop("temperature", None)
+                    kwargs.pop("top_p", None)
+                    try:
+                        return await fn(*args, **kwargs)
+                    except Exception:
+                        raise
+                if not isinstance(e, self._retryable):
+                    raise
                 last_exc = e
                 if attempt == max_attempts:
                     break
@@ -111,6 +156,9 @@ class OpenAIProvider(LLMProvider):
         tool_schema: dict,
         max_tokens: int,
         model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
     ) -> dict:
         # cache_system / block.cache: no-op — OpenAI cached automatisch.
         user_text = self._merge_user_blocks(user_blocks)
@@ -134,7 +182,7 @@ class OpenAIProvider(LLMProvider):
             )
 
         # o1/o1-mini kennt kein system-Role — Inhalt als user-Nachricht voranstellen
-        if self._is_o1_model(resolved_model):
+        if self._is_reasoning_model(resolved_model):
             messages_list = [
                 {"role": "user", "content": f"[System]\n{system}\n\n{user_text}"},
             ]
@@ -151,6 +199,7 @@ class OpenAIProvider(LLMProvider):
             messages=messages_list,
             tools=[function_def],
             tool_choice={"type": "function", "function": {"name": tool_name}},
+            **self._sampling_kwargs(resolved_model, temperature, top_p, top_k),
         )
 
         choice = response.choices[0]
@@ -180,11 +229,14 @@ class OpenAIProvider(LLMProvider):
         messages: list[ChatMessage],
         max_tokens: int,
         model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
     ) -> str:
         resolved_model = self._resolve_model(tier, model)
         token_kwarg = self._token_kwarg(max_tokens)
 
-        if self._is_o1_model(resolved_model):
+        if self._is_reasoning_model(resolved_model):
             # o1/o1-mini kennt kein system-Role
             payload: list[dict] = [{"role": "user", "content": f"[System]\n{system}"}]
         else:
@@ -196,6 +248,7 @@ class OpenAIProvider(LLMProvider):
             model=resolved_model,
             **token_kwarg,
             messages=payload,
+            **self._sampling_kwargs(resolved_model, temperature, top_p, top_k),
         )
 
         text = response.choices[0].message.content

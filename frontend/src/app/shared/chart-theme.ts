@@ -42,6 +42,63 @@ export const axisCommon = (overrides: any = {}) => ({
   ...overrides,
 });
 
+/**
+ * Mood-Klassifizierung — geteilt von Overview, Personas, etc.
+ * Erweiterte Keyword-Listen für LLM-generierte deutsche Stimmungen.
+ * Rückgabe: 0=positiv, 1=neugierig, 2=neutral, 3=skeptisch, 4=negativ
+ */
+const MOOD_POSITIVE = [
+  'positiv', 'begeistert', 'froh', 'zufrieden', 'optimistisch', 'erfreut',
+  'glücklich', 'gluecklich', 'fröhlich', 'froehlich', 'beeindruckt',
+  'aufgeschlossen', 'hoffnungsvoll', 'enthusiastisch', 'überzeugt', 'ueberzeugt',
+  'motiviert', 'angetan', 'wohlwollend', 'euphorisch', 'dankbar', 'ermutigt',
+  'bestärkt', 'bestaerkt', 'unterstützend', 'unterstuetzend', 'freundlich',
+  'warmherzig', 'gelöst', 'geloest', 'heiter', 'beschwingt',
+];
+const MOOD_CURIOUS = [
+  'neugier', 'interessiert', 'gespannt', 'aufmerksam', 'wissbegierig',
+  'offen', 'fasziniert', 'lernbereit', 'aufnahmebereit', 'angeregt',
+  'inspiriert', 'nachdenklich',
+];
+const MOOD_SKEPTIC = [
+  'skepti', 'kritisch', 'misstrauisch', 'zweifel', 'vorsichtig',
+  'zurückhaltend', 'zurueckhaltend', 'abwartend', 'unsicher', 'argwöhnisch',
+  'argwoehnisch', 'hinterfragend', 'distanziert', 'reserviert', 'wachsam',
+  'bedenken', 'unentschlossen', 'zögerlich', 'zoegerlich', 'ablehnend',
+  'missbilligend', 'zwiegespalten',
+];
+const MOOD_NEGATIVE = [
+  'negativ', 'genervt', 'frustr', 'wüt', 'wut', 'verärgert', 'veraergert',
+  'ärgerlich', 'aergerlich', 'enttäuscht', 'enttaeuscht', 'empört', 'empoert',
+  'sauer', 'gereizt', 'aufgebracht', 'feindsel', 'abgeneigt', 'entrüstet',
+  'entruestet', 'unzufrieden', 'besorgt', 'verängstigt', 'veraengstigt',
+  'pessimistisch', 'resigniert', 'verbittert', 'wütend', 'wuetend',
+  'aggressiv', 'feindselig', 'ablehn',
+];
+
+export function classifyMoodIndex(mood: string): number {
+  if (!mood) return 2;
+  const m = mood.toLowerCase();
+  if (MOOD_POSITIVE.some(k => m.includes(k))) return 0;
+  if (MOOD_CURIOUS.some(k => m.includes(k))) return 1;
+  if (MOOD_SKEPTIC.some(k => m.includes(k))) return 3;
+  if (MOOD_NEGATIVE.some(k => m.includes(k))) return 4;
+  return 2;
+}
+
+export type MoodCategory = 'positiv' | 'neugierig' | 'neutral' | 'skeptisch' | 'negativ';
+const MOOD_CATEGORIES: MoodCategory[] = ['positiv', 'neugierig', 'neutral', 'skeptisch', 'negativ'];
+
+export function classifyMood(mood: string | undefined): MoodCategory {
+  return MOOD_CATEGORIES[classifyMoodIndex(mood || '')];
+}
+
+const MOOD_COLORS = [CHART.moss, CHART.feedbook, CHART.inkMute, CHART.threadit, CHART.vermillion];
+
+export function getMoodColor(mood: string | undefined): string {
+  return MOOD_COLORS[classifyMoodIndex(mood || '')];
+}
+
 /** Standard-Legende */
 export const legendCommon = (data: string[]) => ({
   data,

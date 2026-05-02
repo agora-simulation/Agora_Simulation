@@ -1,18 +1,24 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe, DatePipe } from '@angular/common';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
+import { EChartsOption } from 'echarts';
+import * as echarts from 'echarts';
 import { PersonaService } from '../../../core/services/persona.service';
-import { Persona, ChatMessage } from '../../../core/models/persona.model';
-import { CHART } from '../../../shared/chart-theme';
+import { Persona, ChatMessage, Conversation } from '../../../core/models/persona.model';
+import { CHART, tooltipStyle, classifyMood as classifyMoodShared, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
+import type { MoodCategory } from '../../../shared/chart-theme';
 
 export type SortKey = 'name' | 'mood' | 'skeptic' | 'reach';
-export type MoodKey = 'positiv' | 'negativ' | 'skeptisch' | 'neugierig' | 'neutral';
+export type MoodKey = MoodCategory;
 
 @Component({
   selector: 'app-personas',
   standalone: true,
-  imports: [FormsModule, ScrollingModule],
+  imports: [FormsModule, ScrollingModule, NgxEchartsDirective, DecimalPipe, DatePipe],
+  providers: [provideEchartsCore({ echarts })],
   templateUrl: './personas.component.html',
 })
 export class PersonasComponent implements OnInit {
@@ -48,6 +54,20 @@ export class PersonasComponent implements OnInit {
   chatMessages = signal<ChatMessage[]>([]);
   chatInput = signal('');
   chatLoading = signal(false);
+
+  radarChart = signal<EChartsOption>({});
+  showRadar = signal(false);
+  conversations = signal<Conversation[]>([]);
+  activeConversationId = signal<string | null>(null);
+  conversationsLoading = signal(false);
+
+  readonly bigFiveTraits = [
+    { key: 'openness', label: 'Offenheit' },
+    { key: 'conscientiousness', label: 'Gewissenhaftigkeit' },
+    { key: 'extraversion', label: 'Extraversion' },
+    { key: 'agreeableness', label: 'Verträglichkeit' },
+    { key: 'neuroticism', label: 'Neurotizismus' },
+  ];
 
   private simId = '';
 
@@ -146,19 +166,15 @@ export class PersonasComponent implements OnInit {
   }
 
   private classifyMood(mood: string | undefined): MoodKey {
-    if (!mood) return 'neutral';
-    const m = mood.toLowerCase();
-    if (m.includes('positiv') || m.includes('begeistert') || m.includes('froh')) return 'positiv';
-    if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr') || m.includes('wütend') || m.includes('wuet')) return 'negativ';
-    if (m.includes('skepti') || m.includes('kritisch')) return 'skeptisch';
-    if (m.includes('neugier') || m.includes('interess')) return 'neugierig';
-    return 'neutral';
+    return classifyMoodShared(mood);
   }
 
   selectPersona(p: Persona) {
     this.selectedPersona.set(p);
     this.showChat.set(false);
     this.chatMessages.set([]);
+    this.buildRadarChart(p);
+    this.loadConversations(p.id);
   }
 
   clearSelection() {
@@ -169,16 +185,11 @@ export class PersonasComponent implements OnInit {
 
   openChat() {
     this.showChat.set(true);
+    this.activeConversationId.set(null); // kein persistiertes Gespräch
   }
 
   getMoodColor(mood: string | undefined): string {
-    if (!mood) return CHART.inkMute;
-    const m = mood.toLowerCase();
-    if (m.includes('positiv') || m.includes('begeistert')) return CHART.moss;
-    if (m.includes('negativ') || m.includes('genervt') || m.includes('frustr')) return CHART.rust;
-    if (m.includes('skepti') || m.includes('kritisch')) return CHART.threadit;
-    if (m.includes('neugier')) return CHART.feedbook;
-    return CHART.inkMute;
+    return getMoodColorShared(mood);
   }
 
   initials(name: string): string {
@@ -188,10 +199,90 @@ export class PersonasComponent implements OnInit {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
+  buildRadarChart(persona: Persona) {
+    const dims = persona.current_state?.opinion_dimensions;
+    if (!dims) {
+      this.showRadar.set(false);
+      return;
+    }
+    const indicators = [
+      { name: 'Qualität', max: 1 },
+      { name: 'Preis', max: 1 },
+      { name: 'Vertrauen', max: 1 },
+      { name: 'Innovation', max: 1 },
+      { name: 'Ethik', max: 1 },
+      { name: 'Sozial', max: 1 },
+      { name: 'Relevanz', max: 1 },
+    ];
+    // Werte auf 0-1 normalisieren (von -1..1 auf 0..1)
+    const values = [
+      dims.product_quality,
+      dims.price_fairness,
+      dims.brand_trust,
+      dims.innovation,
+      dims.ethical_concerns,
+      dims.social_proof,
+      dims.personal_relevance,
+    ].map(v => Math.round(((v + 1) / 2) * 100) / 100);
+
+    this.radarChart.set({
+      tooltip: { trigger: 'item', ...tooltipStyle },
+      radar: {
+        indicator: indicators,
+        shape: 'polygon',
+        radius: '65%',
+        axisName: { color: '#6b6b63', fontSize: 11 },
+        splitLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } },
+        splitArea: { show: false },
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: values,
+          name: 'Meinung',
+          itemStyle: { color: CHART.feedbook },
+          lineStyle: { color: CHART.feedbook, width: 2 },
+          areaStyle: { color: CHART.feedbook, opacity: 0.15 },
+        }],
+      }],
+    });
+    this.showRadar.set(true);
+  }
+
+  loadConversations(personaId: string) {
+    this.conversationsLoading.set(true);
+    this.personaService.listConversations(personaId).subscribe({
+      next: (convs) => {
+        this.conversations.set(convs);
+        this.conversationsLoading.set(false);
+      },
+      error: () => this.conversationsLoading.set(false),
+    });
+  }
+
+  startNewConversation() {
+    const persona = this.selectedPersona();
+    if (!persona) return;
+    this.personaService.startConversation(persona.id).subscribe(res => {
+      this.activeConversationId.set(res.conversation_id);
+      this.chatMessages.set([]);
+      this.showChat.set(true);
+    });
+  }
+
+  loadConversationHistory(conv: Conversation) {
+    const persona = this.selectedPersona();
+    if (!persona) return;
+    this.personaService.getConversation(persona.id, conv.conversation_id).subscribe(detail => {
+      this.chatMessages.set(detail.messages);
+      this.activeConversationId.set(conv.conversation_id);
+      this.showChat.set(true);
+    });
+  }
+
   sendMessage() {
     const msg = this.chatInput().trim();
     if (!msg || this.chatLoading()) return;
-
     const persona = this.selectedPersona();
     if (!persona) return;
 
@@ -199,7 +290,12 @@ export class PersonasComponent implements OnInit {
     this.chatInput.set('');
     this.chatLoading.set(true);
 
-    this.personaService.chat(persona.id, { messages: this.chatMessages() }).subscribe({
+    const request: any = { messages: this.chatMessages() };
+    if (this.activeConversationId()) {
+      request.conversation_id = this.activeConversationId();
+    }
+
+    this.personaService.chat(persona.id, request).subscribe({
       next: (res) => {
         this.chatMessages.update(msgs => [...msgs, { role: 'assistant' as const, content: res.response }]);
         this.chatLoading.set(false);
@@ -209,5 +305,53 @@ export class PersonasComponent implements OnInit {
         this.chatLoading.set(false);
       },
     });
+  }
+
+  // Big Five helpers
+  getTraitValue(persona: Persona, key: string): number {
+    return (persona.personality_traits as any)?.[key] ?? 0.5;
+  }
+
+  getTraitColor(val: number): string {
+    if (val > 0.7) return CHART.moss;
+    if (val > 0.4) return CHART.feedbook;
+    return CHART.inkMute;
+  }
+
+  // Memory helpers
+  sortedMemories(persona: Persona) {
+    return [...(persona.memory || [])].sort((a, b) => b.emotional_weight - a.emotional_weight).slice(0, 8);
+  }
+
+  memTypeLabel(type: string): string {
+    const map: Record<string, string> = {
+      conflict: 'Konflikt', persuasion: 'Überzeugung',
+      social: 'Sozial', surprise: 'Überraschung', personal: 'Persönlich',
+    };
+    return map[type] || type;
+  }
+
+  weightLabel(w: number): string {
+    if (w >= 0.7) return '★★★';
+    if (w >= 0.4) return '★★';
+    return '★';
+  }
+
+  // Demografie helpers
+  incomeLabel(val: string): string {
+    const map: Record<string, string> = {
+      niedrig: 'Niedrigeinkommen', mittel: 'Mitteleinkommen',
+      hoch: 'Hoheinkommen', sehr_hoch: 'Sehr hohes Einkommen',
+    };
+    return map[val] || val;
+  }
+
+  familyLabel(val: string): string {
+    const map: Record<string, string> = {
+      single: 'Single', partnerschaft: 'Partnerschaft',
+      familie_klein: 'Familie (klein)', familie_gross: 'Familie (groß)',
+      alleinerziehend: 'Alleinerziehend', rentner: 'Rentner',
+    };
+    return map[val] || val;
   }
 }

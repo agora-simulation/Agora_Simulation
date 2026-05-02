@@ -1,5 +1,6 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import * as echarts from 'echarts';
 import { ApiService } from '../../../core/services/api.service';
@@ -14,7 +15,7 @@ import { CHART, FONT_MONO, FONT_SANS, tooltipStyle } from '../../../shared/chart
 @Component({
   selector: 'app-influence',
   standalone: true,
-  imports: [NgxEchartsDirective],
+  imports: [NgxEchartsDirective, FormsModule],
   providers: [provideEchartsCore({ echarts })],
   templateUrl: './influence.component.html',
 })
@@ -29,10 +30,46 @@ export class InfluenceComponent implements OnInit {
   personas = signal<Persona[]>([]);
   simulation = signal<Simulation | null>(null);
   sankeyChart = signal<any>({});
-  topInfluencers = signal<{ name: string; count: number; isSceptic: boolean }[]>([]);
+  topInfluencers = signal<{ id: string; name: string; count: number; isSceptic: boolean }[]>([]);
   // Fallback: Personas mit den meisten Posts (Proxy für Reichweite, wenn keine Events)
   topPosters = signal<{ name: string; count: number; isSceptic: boolean }[]>([]);
   loading = signal(true);
+
+  // Tag-Filter
+  selectedDay = signal<number | null>(null);
+  visibleCount = signal(50);
+
+  // Drill-Down
+  expandedInfluencer = signal<string | null>(null); // persona_id
+
+  // Influence-Type Chart
+  typeBreakdownChart = signal<any>({});
+
+  // Computed: verfügbare Tage
+  availableDays = computed(() => {
+    const days = new Set(this.events().map(e => e.ingame_day));
+    return Array.from(days).sort((a, b) => a - b);
+  });
+
+  // Computed: gefilterte Events
+  filteredEvents = computed(() => {
+    let evts = this.events();
+    const day = this.selectedDay();
+    if (day !== null) {
+      evts = evts.filter(e => e.ingame_day === day);
+    }
+    return evts.slice(0, this.visibleCount());
+  });
+
+  // Computed: hat mehr Events zum Laden?
+  hasMoreEvents = computed(() => {
+    let evts = this.events();
+    const day = this.selectedDay();
+    if (day !== null) {
+      evts = evts.filter(e => e.ingame_day === day);
+    }
+    return evts.length > this.visibleCount();
+  });
 
   private simId = '';
 
@@ -50,6 +87,7 @@ export class InfluenceComponent implements OnInit {
           this.events.set(influenceEvents);
           this.buildSankeyChart(influenceEvents, res.items);
           this.buildTopInfluencers(influenceEvents, res.items);
+          this.buildTypeBreakdown(influenceEvents);
 
           // Fallback: Top-Poster aus Posts berechnen
           this.postService.list(this.simId, { limit: 500 }).subscribe(postRes => {
@@ -144,9 +182,82 @@ export class InfluenceComponent implements OnInit {
       .slice(0, 10)
       .map(([id, count]) => {
         const p = personaMap.get(id);
-        return { name: p?.name || 'Unbekannt', count, isSceptic: p?.is_skeptic || false };
+        return { id, name: p?.name || 'Unbekannt', count, isSceptic: p?.is_skeptic || false };
       });
 
     this.topInfluencers.set(sorted);
+  }
+
+  setDayFilter(day: number | null) {
+    this.selectedDay.set(day);
+    this.visibleCount.set(50); // Reset pagination on filter change
+  }
+
+  loadMore() {
+    this.visibleCount.update(v => v + 50);
+  }
+
+  toggleInfluencer(personaId: string) {
+    this.expandedInfluencer.update(v => v === personaId ? null : personaId);
+  }
+
+  getInfluencerDetails(personaId: string): { targetName: string; type: string; description: string }[] {
+    const personaMap = new Map(this.personas().map(p => [p.id, p.name]));
+    return this.events()
+      .filter(e => e.source_persona_id === personaId)
+      .slice(0, 20) // max 20 Details
+      .map(e => ({
+        targetName: personaMap.get(e.target_persona_id) || 'Unbekannt',
+        type: e.influence_type,
+        description: e.description || '',
+      }));
+  }
+
+  private buildTypeBreakdown(events: InfluenceEvent[]) {
+    const typeMap = new Map<string, number>();
+    for (const e of events) {
+      typeMap.set(e.influence_type, (typeMap.get(e.influence_type) || 0) + 1);
+    }
+
+    const typeLabels: Record<string, string> = {
+      'opinion_shift': 'Meinungsänderung',
+      'positive_reaction': 'Positive Reaktion',
+      'negative_reaction': 'Negative Reaktion',
+      'engagement': 'Engagement',
+    };
+
+    const typeColors: Record<string, string> = {
+      'opinion_shift': CHART.vermillion,
+      'positive_reaction': CHART.moss,
+      'negative_reaction': CHART.rust,
+      'engagement': CHART.feedbook,
+    };
+
+    const data = Array.from(typeMap.entries()).map(([type, count]) => ({
+      value: count,
+      name: typeLabels[type] || type,
+      itemStyle: { color: typeColors[type] || CHART.inkMute },
+    }));
+
+    this.typeBreakdownChart.set({
+      tooltip: { trigger: 'item', ...tooltipStyle },
+      series: [{
+        type: 'pie',
+        radius: ['50%', '75%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderColor: '#ffffff', borderWidth: 3, borderRadius: 4 },
+        label: {
+          show: true,
+          formatter: '{b}\n{c} · {d}%',
+          color: CHART.ink,
+          fontFamily: FONT_SANS,
+          fontSize: 11,
+          fontWeight: 500,
+          lineHeight: 16,
+        },
+        labelLine: { lineStyle: { color: CHART.paperEdge, width: 1 } },
+        data,
+      }],
+    });
   }
 }

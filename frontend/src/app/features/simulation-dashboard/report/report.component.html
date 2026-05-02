@@ -25,6 +25,15 @@
 
       <span style="width: 1px; height: 24px; background: var(--border);"></span>
 
+      @if (report()) {
+        <button type="button" class="btn btn-secondary" (click)="downloadReport()" aria-label="Report herunterladen">
+          <i class="pi pi-file-export"></i>
+          <span>Report (.md)</span>
+        </button>
+      }
+
+      <span style="width: 1px; height: 24px; background: var(--border);"></span>
+
       <div class="export-group" role="group" aria-label="Export-Optionen">
         <button type="button" class="btn btn-secondary btn-sm" (click)="exportService.downloadJson(simId)">
           <i class="pi pi-download"></i> JSON
@@ -70,17 +79,44 @@
     <!-- Long-read + Outline Layout -->
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
 
-      <!-- LEFT: Long-Read Manuskript + Detail-Befunde -->
+      <!-- LEFT: Structured Summary + Detail-Befunde -->
       <div style="min-width: 0;">
-        <article class="card report-article">
-          <header class="report-header">
+
+        <!-- Summary Header Card -->
+        <div class="card report-article">
+          <header class="report-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
             <p class="eyebrow" style="margin-bottom: 8px;">Manuskript</p>
             <h2 style="font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;">
               Zusammenfassung
             </h2>
           </header>
-          <div class="report-prose">{{ report()!.full_report }}</div>
-        </article>
+
+          @if (summaryIntro()) {
+            <div class="report-prose" style="margin-top: 20px;" [innerHTML]="summaryIntro() | markdown"></div>
+          }
+        </div>
+
+        <!-- Structured sub-sections -->
+        @if (summarySubSections().length > 0) {
+          <div class="summary-sections">
+            @for (sub of summarySubSections(); track sub.heading; let i = $index) {
+              <article class="summary-section-card" [id]="'summary-section-' + i">
+                <header class="summary-section-header">
+                  <div class="summary-section-icon">
+                    <i [class]="'pi ' + sub.icon"></i>
+                  </div>
+                  <h3 class="summary-section-title">{{ sub.heading }}</h3>
+                </header>
+                <div class="report-prose" [innerHTML]="sub.body | markdown"></div>
+              </article>
+            }
+          </div>
+        } @else {
+          <!-- Fallback: render full_report as-is if no ### headers found -->
+          <article class="card report-article" style="margin-top: 12px;">
+            <div class="report-prose" [innerHTML]="report()!.full_report | markdown"></div>
+          </article>
+        }
 
         <!-- Section Cards -->
         <div class="mt-8">
@@ -96,7 +132,7 @@
                     <i [class]="'pi ' + section.icon"></i>
                     <h4>{{ section.label }}</h4>
                   </header>
-                  <div class="section-text">{{ getSectionContent(section.key) }}</div>
+                  <div class="section-text" [innerHTML]="getSectionContent(section.key) | markdown"></div>
                 </article>
               }
             }
@@ -109,6 +145,20 @@
         <div class="card report-outline">
           <p class="eyebrow" style="margin-bottom: 12px;">Inhalt</p>
           <ul class="outline-list">
+
+            @if (summarySubSections().length > 0) {
+              <li class="outline-group-label">Zusammenfassung</li>
+              @for (sub of summarySubSections(); track sub.heading; let i = $index) {
+                <li>
+                  <button type="button" class="outline-btn" (click)="scrollToSummarySection(i)">
+                    <span class="outline-dot" style="background: var(--primary);"></span>
+                    <span class="outline-label">{{ sub.heading }}</span>
+                  </button>
+                </li>
+              }
+              <li class="outline-group-label" style="margin-top: 8px;">Detail-Befunde</li>
+            }
+
             @for (section of sections; track section.key) {
               <li>
                 <button type="button"
@@ -219,10 +269,81 @@
     border-bottom: 1px solid var(--border);
   }
   .report-prose {
-    font-size: 16px;
-    line-height: 1.7;
+    font-size: 15.5px;
+    line-height: 1.75;
     color: var(--ink);
-    white-space: pre-wrap;
+  }
+  .report-prose :first-child { margin-top: 0; }
+  .report-prose h3 { font-size: 18px; font-weight: 700; color: var(--ink); margin: 28px 0 12px; }
+  .report-prose h4 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 20px 0 8px; }
+  .report-prose p { margin: 0 0 14px; }
+  .report-prose strong { font-weight: 600; color: var(--ink); }
+  .report-prose ul, .report-prose ol { margin: 0 0 14px; padding-left: 24px; }
+  .report-prose li { margin-bottom: 6px; }
+  .report-prose blockquote {
+    border-left: 3px solid var(--primary);
+    padding: 8px 16px;
+    margin: 14px 0;
+    background: var(--surface-2);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--ink-2);
+    font-style: italic;
+  }
+
+  .summary-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .summary-section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    scroll-margin-top: 110px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .summary-section-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-sm);
+  }
+  .summary-section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-section-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .summary-section-icon i {
+    font-size: 16px;
+    color: var(--primary);
+  }
+  .summary-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .outline-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-3);
+    padding: 4px 10px;
   }
 
   .section-card {
@@ -254,8 +375,22 @@
   }
   .section-text {
     font-size: 13.5px;
-    line-height: 1.55;
+    line-height: 1.6;
     color: var(--ink-2);
-    white-space: pre-wrap;
+  }
+  .section-text :first-child { margin-top: 0; }
+  .section-text :last-child { margin-bottom: 0; }
+  .section-text h3 { font-size: 14.5px; font-weight: 600; color: var(--ink); margin: 16px 0 6px; }
+  .section-text p { margin: 0 0 10px; }
+  .section-text strong { font-weight: 600; color: var(--ink); }
+  .section-text ul, .section-text ol { margin: 0 0 10px; padding-left: 20px; }
+  .section-text li { margin-bottom: 4px; }
+  .section-text blockquote {
+    border-left: 2px solid var(--primary);
+    padding: 6px 12px;
+    margin: 8px 0;
+    background: var(--surface-2);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-style: italic;
   }
 </style>

@@ -135,7 +135,7 @@ async def export_simulation_json(
 
     influence_data = [
         {
-            "event_id": str(e.id),
+            "id": str(e.id),
             "source_persona_id": str(e.source_persona_id),
             "target_persona_id": str(e.target_persona_id),
             "trigger_post_id": str(e.trigger_post_id) if e.trigger_post_id else None,

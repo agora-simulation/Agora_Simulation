@@ -18,6 +18,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/simulation-create/simulation-create.component').then(c => c.SimulationCreateComponent),
   },
   {
+    path: 'settings',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/settings/settings.component').then(c => c.SettingsComponent),
+  },
+  {
     path: 'simulation/:id',
     canActivate: [authGuard],
     loadComponent: () => import('./features/simulation-dashboard/simulation-dashboard.component').then(c => c.SimulationDashboardComponent),

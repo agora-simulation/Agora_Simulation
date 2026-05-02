@@ -9,6 +9,8 @@ class PostRead(UUIDModel, TimestampMixin):
     content: str
     ingame_day: int
     subreddit: str | None
+    author_name: str | None = None
+    is_skeptic: bool | None = None
 
 class CommentRead(UUIDModel, TimestampMixin):
     post_id: UUID

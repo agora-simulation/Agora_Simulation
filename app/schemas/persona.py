@@ -1,6 +1,7 @@
 from uuid import UUID
 from app.schemas.common import UUIDModel, TimestampMixin
 
+
 class PersonaRead(UUIDModel, TimestampMixin):
     simulation_id: UUID
     name: str
@@ -12,5 +13,17 @@ class PersonaRead(UUIDModel, TimestampMixin):
     communication_style: str | None
     initial_opinion: str | None
     is_skeptic: bool
+    persona_type: str = "individual"
+    entity_subtype: str | None = None
     current_state: dict
     social_connections: list
+    # Modul 1: Langzeitgedächtnis
+    memory: list[dict] = []
+    # Modul 3: Erweiterte Felder
+    education_level: str | None = None
+    income_bracket: str | None = None
+    family_status: str | None = None
+    political_leaning: str | None = None
+    media_consumption: list[str] = []
+    tech_affinity: float | None = None
+    personality_traits: dict = {}

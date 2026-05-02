@@ -96,7 +96,13 @@
               </span>
               @if (p.is_skeptic) {
                 <span class="badge badge-danger" style="font-size: 10.5px;">Skeptiker</span>
-              } @else {
+              }
+              @if (p.persona_type && p.persona_type !== 'individual') {
+                <span class="badge badge-muted" style="font-size: 10.5px;">
+                  {{ p.persona_type === 'organization' ? 'Org' : p.persona_type === 'institution' ? 'Inst' : 'Pol' }}
+                </span>
+              }
+              @if (!p.is_skeptic) {
                 <span class="mood-dot" [style.background]="getMoodColor(p.current_state?.mood)"></span>
               }
             </button>
@@ -124,11 +130,20 @@
                 @if (persona.is_skeptic) {
                   <span class="badge badge-danger">Skeptiker</span>
                 }
+                @if (persona.persona_type && persona.persona_type !== 'individual') {
+                  <span class="badge badge-muted">{{ persona.entity_subtype || persona.persona_type }}</span>
+                }
               </div>
-              <button (click)="openChat()" class="btn btn-primary">
-                <i class="pi pi-comments"></i>
-                <span>Mit Persona chatten</span>
-              </button>
+              <div class="flex gap-2 flex-wrap">
+                <button (click)="openChat()" class="btn btn-primary">
+                  <i class="pi pi-comments"></i>
+                  <span>Neues Gespräch</span>
+                </button>
+                <button (click)="startNewConversation()" class="btn btn-secondary">
+                  <i class="pi pi-save"></i>
+                  <span>Persistiertes Gespräch</span>
+                </button>
+              </div>
             </header>
 
             <div style="height: 1px; background: var(--border); margin: 0 0 28px 0;"></div>
@@ -189,6 +204,102 @@
                     </li>
                   }
                 </ol>
+              </section>
+            }
+
+            <!-- Big Five Persönlichkeitsmodell -->
+            @if (persona.personality_traits) {
+              <section class="mt-7 pt-6" style="border-top: 1px solid var(--border);">
+                <p class="dt mb-4">Persönlichkeitsprofil (Big Five)</p>
+                <div class="bigfive-grid">
+                  @for (trait of bigFiveTraits; track trait.key) {
+                    <div class="bigfive-row">
+                      <span class="bigfive-label">{{ trait.label }}</span>
+                      <div class="bigfive-bar-wrap">
+                        <div class="bigfive-bar"
+                             [style.width.%]="(getTraitValue(persona, trait.key) * 100)"
+                             [style.background]="getTraitColor(getTraitValue(persona, trait.key))">
+                        </div>
+                      </div>
+                      <span class="bigfive-val">{{ (getTraitValue(persona, trait.key) * 100 | number:'1.0-0') }}%</span>
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+
+            <!-- Demografie Section -->
+            @if (persona.education_level || persona.income_bracket || persona.political_leaning) {
+              <section class="mt-6">
+                <p class="dt mb-3">Demografie</p>
+                <div class="demo-chips">
+                  @if (persona.education_level) {
+                    <span class="badge badge-muted"><i class="pi pi-graduation-cap"></i> {{ persona.education_level }}</span>
+                  }
+                  @if (persona.income_bracket) {
+                    <span class="badge badge-muted"><i class="pi pi-wallet"></i> {{ incomeLabel(persona.income_bracket) }}</span>
+                  }
+                  @if (persona.family_status) {
+                    <span class="badge badge-muted"><i class="pi pi-users"></i> {{ familyLabel(persona.family_status) }}</span>
+                  }
+                  @if (persona.political_leaning) {
+                    <span class="badge badge-muted"><i class="pi pi-flag"></i> {{ persona.political_leaning }}</span>
+                  }
+                  @if (persona.tech_affinity !== null && persona.tech_affinity !== undefined) {
+                    <span class="badge badge-muted"><i class="pi pi-desktop"></i> Tech {{ (persona.tech_affinity * 100 | number:'1.0-0') }}%</span>
+                  }
+                </div>
+              </section>
+            }
+
+            <!-- Radar-Chart: Meinungsdimensionen -->
+            @if (showRadar()) {
+              <section class="mt-7 pt-6" style="border-top: 1px solid var(--border);">
+                <p class="dt mb-3">Meinungsdimensionen</p>
+                <div echarts [options]="radarChart()" style="height: 220px;"></div>
+              </section>
+            }
+
+            <!-- Erinnerungen -->
+            @if (persona.memory?.length) {
+              <section class="mt-7 pt-6" style="border-top: 1px solid var(--border);">
+                <p class="dt mb-4">Prägende Erinnerungen</p>
+                <div class="memory-list">
+                  @for (mem of sortedMemories(persona); track $index) {
+                    <div class="memory-item">
+                      <div class="memory-header">
+                        <span class="memory-tag" [class]="'memory-' + mem.type">{{ memTypeLabel(mem.type) }}</span>
+                        <span class="memory-tick">Tag {{ mem.tick }}</span>
+                        <span class="memory-weight" [style.opacity]="0.5 + mem.emotional_weight * 0.5">
+                          {{ weightLabel(mem.emotional_weight) }}
+                        </span>
+                      </div>
+                      <p class="memory-text">{{ mem.summary }}</p>
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+
+            <!-- Gesprächs-Historie -->
+            @if (conversations().length > 0) {
+              <section class="mt-7 pt-6" style="border-top: 1px solid var(--border);">
+                <p class="dt mb-3">Frühere Gespräche ({{ conversations().length }})</p>
+                <div class="conv-list">
+                  @for (conv of conversations(); track conv.conversation_id) {
+                    <button class="conv-item" (click)="loadConversationHistory(conv)">
+                      <div class="conv-meta">
+                        <span class="conv-count">{{ conv.message_count }} Nachrichten</span>
+                        <span class="conv-date">{{ conv.created_at | date:'dd.MM.' }}</span>
+                      </div>
+                      @if (conv.summary) {
+                        <p class="conv-summary">{{ conv.summary }}</p>
+                      } @else if (conv.preview) {
+                        <p class="conv-summary">{{ conv.preview }}</p>
+                      }
+                    </button>
+                  }
+                </div>
               </section>
             }
 
@@ -578,4 +689,39 @@
     border: 1px solid var(--border);
     border-bottom-left-radius: 4px;
   }
+
+  /* Big Five */
+  .bigfive-grid { display: flex; flex-direction: column; gap: 10px; }
+  .bigfive-row { display: flex; align-items: center; gap: 12px; }
+  .bigfive-label { font-size: 12.5px; color: var(--ink-3); width: 130px; flex-shrink: 0; }
+  .bigfive-bar-wrap { flex: 1; height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+  .bigfive-bar { height: 100%; border-radius: 999px; transition: width 400ms ease; }
+  .bigfive-val { font-size: 12px; color: var(--ink-3); width: 32px; text-align: right; }
+
+  /* Demografie */
+  .demo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .demo-chips .badge { display: flex; align-items: center; gap: 5px; }
+
+  /* Memory */
+  .memory-list { display: flex; flex-direction: column; gap: 10px; }
+  .memory-item { padding: 12px 14px; background: var(--surface-2); border-radius: 8px; border-left: 3px solid var(--border-strong); }
+  .memory-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .memory-tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 999px; }
+  .memory-conflict { background: #fee2e2; color: #991b1b; }
+  .memory-persuasion { background: #d1fae5; color: #065f46; }
+  .memory-social { background: #dbeafe; color: #1e3a8a; }
+  .memory-surprise { background: #fef3c7; color: #92400e; }
+  .memory-personal { background: #f3e8ff; color: #6b21a8; }
+  .memory-tick { font-size: 11.5px; color: var(--ink-3); }
+  .memory-weight { font-size: 12px; color: #f59e0b; margin-left: auto; }
+  .memory-text { font-size: 13.5px; color: var(--ink-2); margin: 0; line-height: 1.5; }
+
+  /* Conversations */
+  .conv-list { display: flex; flex-direction: column; gap: 8px; }
+  .conv-item { width: 100%; text-align: left; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: background 120ms; }
+  .conv-item:hover { background: var(--surface-3); }
+  .conv-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .conv-count { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .conv-date { font-size: 11.5px; color: var(--ink-3); }
+  .conv-summary { font-size: 13px; color: var(--ink-3); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>

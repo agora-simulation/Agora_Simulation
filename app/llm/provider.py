@@ -44,10 +44,14 @@ class LLMProvider(ABC):
         tool_schema: dict,
         max_tokens: int,
         model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
     ) -> dict:
         """Erzwungener Tool-Use. Liefert die geparsten Tool-Argumente.
 
         Wenn model gesetzt ist, wird dieses Modell verwendet; sonst der Tier-Default.
+        temperature, top_p, top_k werden an den Provider weitergereicht (soweit unterstützt).
         Wirft RuntimeError, wenn der Provider keine Tool-Antwort liefert
         (z. B. weil max_tokens erreicht wurde).
         """
@@ -62,10 +66,14 @@ class LLMProvider(ABC):
         messages: list[ChatMessage],
         max_tokens: int,
         model: str | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
     ) -> str:
         """Freie Textantwort eines Chat-Modells (für Persona-Chat).
 
         Wenn model gesetzt ist, wird dieses Modell verwendet; sonst der Tier-Default.
+        temperature, top_p, top_k werden an den Provider weitergereicht (soweit unterstützt).
         Liefert reinen Antworttext (kein Tool-Use).
         """
         ...

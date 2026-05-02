@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Persona, ChatRequest, ChatResponse } from '../models/persona.model';
+import { Persona, ChatRequest, ChatResponse, Conversation, ConversationDetail } from '../models/persona.model';
 import { PaginatedResponse } from '../models/api.model';
 
 @Injectable({ providedIn: 'root' })
@@ -18,5 +18,17 @@ export class PersonaService {
 
   chat(personaId: string, messages: ChatRequest): Observable<ChatResponse> {
     return this.api.post(`/personas/${personaId}/chat`, messages);
+  }
+
+  startConversation(personaId: string): Observable<{conversation_id: string; persona_id: string}> {
+    return this.api.post(`/personas/${personaId}/chat/start`, {});
+  }
+
+  listConversations(personaId: string): Observable<Conversation[]> {
+    return this.api.get(`/personas/${personaId}/conversations`);
+  }
+
+  getConversation(personaId: string, conversationId: string): Observable<ConversationDetail> {
+    return this.api.get(`/personas/${personaId}/conversations/${conversationId}`);
   }
 }

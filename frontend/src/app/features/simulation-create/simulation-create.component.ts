@@ -2,16 +2,20 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SimulationService } from '../../core/services/simulation.service';
+import { ProviderService } from '../../core/services/provider.service';
 import { SimulationCreate, LlmProvider } from '../../core/models/simulation.model';
+import { SimulationProviderConfig, PhaseProviderEntry, Preset, CostEstimate, Provider } from '../../core/models/provider.model';
+import { PhaseConfigComponent } from './phase-config.component';
 
 @Component({
   selector: 'app-simulation-create',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, PhaseConfigComponent],
   templateUrl: './simulation-create.component.html',
 })
 export class SimulationCreateComponent {
   private simService = inject(SimulationService);
+  private providerService = inject(ProviderService);
   private router = inject(Router);
 
   currentStep = signal(1);
@@ -57,6 +61,10 @@ export class SimulationCreateComponent {
       { id: 'gpt-4o',       label: 'GPT-4o (Legacy, ausgewogen)',        tier: 'smart' },
       { id: 'gpt-5',        label: 'GPT-5 (Top-Qualität)',               tier: 'smart' },
     ],
+    ollama: [
+      { id: 'qwen2.5:7b',   label: 'Qwen 2.5 7B (Lokal)',   tier: 'fast'  },
+      { id: 'llama3.1:8b',  label: 'Llama 3.1 8B (Lokal)',   tier: 'smart' },
+    ],
   };
 
   /** Aktuelle Modell-Optionen für Fast-Tier abhängig vom Provider. */
@@ -79,10 +87,116 @@ export class SimulationCreateComponent {
 
   selectedPreset = signal('Standard');
 
+  // Multi-Provider Config (Advanced)
+  useProviderConfig = signal(false);
+  providerPresets = signal<Preset[]>([]);
+  selectedProviderPreset = signal<string | null>(null);
+  liveCostEstimate = signal<CostEstimate | null>(null);
+  costLoading = signal(false);
+
+  personaGenEntries = signal<PhaseProviderEntry[]>([]);
+  agentActionEntries = signal<PhaseProviderEntry[]>([]);
+  stateUpdateEntries = signal<PhaseProviderEntry[]>([]);
+  analysisEntries = signal<PhaseProviderEntry[]>([]);
+
   applyPreset(preset: typeof this.presets[0]) {
     this.selectedPreset.set(preset.label);
     this.personaCount.set(preset.personas);
     this.tickCount.set(preset.ticks);
+  }
+
+  loadProviderPresets() {
+    this.providerService.getPresets().subscribe(presets => this.providerPresets.set(presets));
+  }
+
+  toggleProviderConfig() {
+    const next = !this.useProviderConfig();
+    this.useProviderConfig.set(next);
+    if (next) {
+      if (this.providerPresets().length === 0) this.loadProviderPresets();
+      if (this.availableProviders().length === 0) {
+        this.providerService.list().subscribe(p => this.availableProviders.set(p));
+      }
+    }
+  }
+
+  applyProviderPreset(preset: Preset) {
+    this.selectedProviderPreset.set(preset.id);
+
+    // Modell-Mapping: tier → konkretes Modell je Provider
+    const resolveModel = (tier: string, providerId: string): string => {
+      const provider = this.availableProviders().find(p => p.id === providerId);
+      const type = provider?.provider_type || 'openai';
+      const models = this.modelOptions[type as LlmProvider] || [];
+      const match = models.find(m => m.tier === tier);
+      return match?.id || models[0]?.id || 'gpt-5-mini';
+    };
+
+    const buildEntry = (phase: { model_tier: string; temperature: number }): PhaseProviderEntry => {
+      const providers = this.availableProviders();
+      const defaultP = providers.find(p => p.is_default) || providers[0];
+      if (!defaultP) return { provider_id: '', model: '', weight: 100, temperature: phase.temperature, top_p: null, top_k: null };
+      return {
+        provider_id: defaultP.id,
+        model: resolveModel(phase.model_tier, defaultP.id),
+        weight: 100,
+        temperature: phase.temperature,
+        top_p: null,
+        top_k: null,
+      };
+    };
+
+    this.personaGenEntries.set([buildEntry(preset.persona_generation)]);
+    this.agentActionEntries.set([buildEntry(preset.agent_actions)]);
+    this.stateUpdateEntries.set([buildEntry(preset.state_updates)]);
+    this.analysisEntries.set([buildEntry(preset.analysis_reports)]);
+    this.updateCostEstimate();
+  }
+
+  availableProviders = signal<Provider[]>([]);
+
+  onPhaseEntriesChange(phase: string, entries: PhaseProviderEntry[]) {
+    switch (phase) {
+      case 'persona_generation': this.personaGenEntries.set(entries); break;
+      case 'agent_actions': this.agentActionEntries.set(entries); break;
+      case 'state_updates': this.stateUpdateEntries.set(entries); break;
+      case 'analysis_reports': this.analysisEntries.set(entries); break;
+    }
+    this.updateCostEstimate();
+  }
+
+  private costDebounce: ReturnType<typeof setTimeout> | null = null;
+
+  updateCostEstimate() {
+    if (this.costDebounce) clearTimeout(this.costDebounce);
+    this.costDebounce = setTimeout(() => {
+      const config = this.buildProviderConfig();
+      if (!config) return;
+      this.costLoading.set(true);
+      this.providerService.estimateCost({
+        persona_count: this.personaCount(),
+        tick_count: this.tickCount(),
+        provider_config: config,
+      }).subscribe({
+        next: (est) => { this.liveCostEstimate.set(est); this.costLoading.set(false); },
+        error: () => this.costLoading.set(false),
+      });
+    }, 500);
+  }
+
+  buildProviderConfig(): SimulationProviderConfig | null {
+    const pg = this.personaGenEntries();
+    const aa = this.agentActionEntries();
+    const su = this.stateUpdateEntries();
+    const ar = this.analysisEntries();
+    if (!pg.length || !aa.length || !su.length || !ar.length) return null;
+    return {
+      persona_generation: { entries: pg },
+      agent_actions: { entries: aa },
+      state_updates: { entries: su },
+      analysis_reports: { entries: ar },
+      preset: this.selectedProviderPreset(),
+    };
   }
 
   /** Personas-Slider: bis 100 in 5er-Schritten, ab 100 in 25er-Schritten. */
@@ -109,12 +223,29 @@ export class SimulationCreateComponent {
     return this.name().trim().length > 0 && this.productDescription().trim().length > 10;
   }
 
-  /** API-Kosten = Haiku-Aktionen + Sonnet Persona-Gen + Sonnet Report. */
+  /** API-Kosten geschätzt auf Basis von Token-Verbrauch und aktuellen Preisen. */
   estimatedCost(): string {
-    const haiku = this.personaCount() * this.tickCount() * 0.00016;
-    const personaGen = this.personaCount() * 0.001;   // Sonnet Batches
-    const report = 0.05;                              // Sonnet Final-Report (Pauschal)
-    return (haiku + personaGen + report).toFixed(2);
+    const p = this.llmProvider();
+    // Preise pro 1M Tokens: [input, output]
+    const prices: Record<string, { fast: [number, number]; smart: [number, number] }> = {
+      anthropic: { fast: [1.00, 5.00], smart: [3.00, 15.00] },
+      openai:    { fast: [0.75, 4.50], smart: [2.50, 15.00] },
+      ollama:    { fast: [0, 0],       smart: [0, 0] },
+    };
+    const pr = prices[p] || prices['openai'];
+    const personas = this.personaCount();
+    const ticks = this.tickCount();
+
+    // Persona-Gen: ~800 input + 350 output tokens pro Persona (smart)
+    const genCost = personas * (800 * pr.smart[0] + 350 * pr.smart[1]) / 1_000_000;
+    // Tick-Aktionen: ~600 input + 200 output pro Persona*Tick (fast)
+    const actionCost = personas * ticks * (600 * pr.fast[0] + 200 * pr.fast[1]) / 1_000_000;
+    // State-Updates: ~400 input + 100 output pro Persona*Tick (fast)
+    const stateCost = personas * ticks * (400 * pr.fast[0] + 100 * pr.fast[1]) / 1_000_000;
+    // Report: ~8000 input + 4000 output (smart, einmalig)
+    const reportCost = (8000 * pr.smart[0] + 4000 * pr.smart[1]) / 1_000_000;
+
+    return (genCost + actionCost + stateCost + reportCost).toFixed(2);
   }
 
   estimatedMinutes(): number {
@@ -169,6 +300,9 @@ export class SimulationCreateComponent {
       llm_model_fast: this.resolveModelFast(),
       llm_model_smart: this.resolveModelSmart(),
     };
+    if (this.useProviderConfig()) {
+      data.provider_config = this.buildProviderConfig();
+    }
     this.simService.create(data).subscribe({
       next: (sim) => {
         this.simService.run(sim.id).subscribe({

@@ -1,0 +1,8 @@
+ Einfluss: Einfluss-Strömung zeigt bei mir nichts an. Einfluss-Ereignisse (chronologisch) 3865 Ereignisse:         
+  Es wird nur Tag 1 angezeigt. Wir brauchen da eine Flexible lösung, falls ein User alles sehen will! Top-Influencer Personas, die andere am häufigsten beeinflusst haben: Das ist zu wenig.. schön das man sieht, wer den meisten einfluss hat... Das muss aber besser aufgeschlüsselt werden. das ist immerhin ein Analyse tool. der user muss nachvollziehen können, wen hat er beeinflusst, mit welchem post hat er ihn Eeeinflusst, solche sachen. Reiter Sentiment. Auch viel zu wenig informationen.Plattform-Verteilung 63 Beiträge: Zu wenig informationen. Aktive Personas im Verlauf: Zu wenig informationen. Gesellschaftliche Polarisierung: zu wenig informationen. Mach dir bitte gedanken, wie wir dem User auch dort mehr informationen zur verfügung stellen können. Reiter Netzwerk: Auch viel zu wenig informationen.
+  Du siehst also ein Schema.. Informationen müssen wir viel dran arbeiten und eventuel den aufbau der              
+  seiten etwas überdenken.
+
+  Ideenansatz:
+
+  Momentan generieren wir ja nur Personen. Was ist denn, wenn wir nicht nur Personen generieren sondern auch Unternehmen, Schulen (Grundschule, Mittelschule, Hochschule), Vereine, Politiker, Unabhängige Prüfstellen (gemeint sind unternehmen wie TÜV, Forschungseinrichtungen usw.). Wir wollen ja die gesellschaft simulieren. und je nach Produkt, Kampagne, Idee, fühlen sich ja entsprechende stellen angesprochen. Beispiel: Ich hab einen Nano bot erfunden. Da würden sich Tech Firmen sofort drauf stürzen und handwerksbetriebe halt eher weniger. du verstehst auf was ich hinaus will?

@@ -198,6 +198,115 @@
         }
       </div>
 
+      <!-- Multi-Provider Config -->
+      <div style="margin-bottom: 28px;">
+        <button type="button"
+                (click)="toggleProviderConfig()"
+                style="background: transparent; border: none; color: var(--ink-3); font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px;"
+                [attr.aria-expanded]="useProviderConfig()">
+          <i class="pi" [class.pi-chevron-right]="!useProviderConfig()" [class.pi-chevron-down]="useProviderConfig()" style="font-size: 10px;"></i>
+          Multi-Provider-Konfiguration (pro Phase)
+        </button>
+
+        @if (useProviderConfig()) {
+          <div style="margin-top: 12px; padding: 18px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);">
+            <div class="info-box" style="margin-bottom: 16px;">
+              <i class="pi pi-info-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px;"></i>
+              <div style="font-size: 12.5px; color: var(--ink-2); line-height: 1.55;">
+                <strong style="color: var(--ink);">Multi-Provider-Modus:</strong>
+                Konfiguriere pro Simulationsphase, welche Provider und Modelle verwendet werden.
+                Du kannst mehrere Provider pro Phase hinzufuegen — die API-Calls werden dann nach Gewichtung (Anteil %) statistisch verteilt.
+                Das ist nuetzlich um Rate-Limits zu umgehen oder verschiedene KI-Modelle zu vergleichen.
+              </div>
+            </div>
+
+            @if (providerPresets().length > 0) {
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                  <label style="font-size: 12.5px; margin: 0;">Quality-Presets</label>
+                  <span class="tooltip-wrap">
+                    <i class="pi pi-info-circle tooltip-icon"></i>
+                    <span class="tooltip-box">Vorgefertigte Konfigurationen, die Temperature und Modell-Tier (schnell/Qualitaet) pro Phase automatisch setzen. Du kannst danach alles manuell anpassen.</span>
+                  </span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  @for (preset of providerPresets(); track preset.id) {
+                    <button type="button" class="btn btn-sm"
+                            [class.btn-primary]="selectedProviderPreset() === preset.id"
+                            [class.btn-secondary]="selectedProviderPreset() !== preset.id"
+                            (click)="applyProviderPreset(preset)"
+                            [title]="preset.description">
+                      {{ preset.label }}
+                    </button>
+                  }
+                </div>
+                @if (selectedProviderPreset(); as presetId) {
+                  @for (preset of providerPresets(); track preset.id) {
+                    @if (preset.id === presetId) {
+                      <p style="font-size: 11.5px; color: var(--ink-3); margin-top: 6px; padding: 6px 10px; background: var(--surface); border-left: 3px solid var(--primary); border-radius: var(--radius-sm);">
+                        {{ preset.description }}
+                      </p>
+                    }
+                  }
+                }
+              </div>
+            }
+
+            <app-phase-config
+              label="Persona-Generierung"
+              hint="Smart-Tier"
+              [initialEntries]="personaGenEntries()"
+              (entriesChange)="onPhaseEntriesChange('persona_generation', $event)" />
+
+            <app-phase-config
+              label="Agenten-Aktionen (Tick)"
+              hint="Fast-Tier"
+              [initialEntries]="agentActionEntries()"
+              (entriesChange)="onPhaseEntriesChange('agent_actions', $event)" />
+
+            <app-phase-config
+              label="State-Updates (Tick)"
+              hint="Fast-Tier"
+              [initialEntries]="stateUpdateEntries()"
+              (entriesChange)="onPhaseEntriesChange('state_updates', $event)" />
+
+            <app-phase-config
+              label="Analyse & Report"
+              hint="Smart-Tier"
+              [initialEntries]="analysisEntries()"
+              (entriesChange)="onPhaseEntriesChange('analysis_reports', $event)" />
+
+            <!-- Live Cost Estimate -->
+            @if (liveCostEstimate()) {
+              <div style="margin-top: 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                <p class="eyebrow" style="margin-bottom: 8px;">Kostenvorschau (Multi-Provider)</p>
+                <div style="display: flex; gap: 24px; align-items: baseline;">
+                  <div>
+                    <span style="font-size: 20px; font-weight: 700; color: var(--primary);">
+                      ${{ liveCostEstimate()!.total_estimated_usd.toFixed(2) }}
+                    </span>
+                    <span style="font-size: 12px; color: var(--ink-3); margin-left: 4px;">geschaetzt</span>
+                  </div>
+                  @for (phase of ['persona_generation', 'agent_actions', 'state_updates', 'analysis_reports']; track phase) {
+                    @if (liveCostEstimate()!.breakdown[phase]) {
+                      <div style="font-size: 11.5px; color: var(--ink-3);">
+                        {{ phase === 'persona_generation' ? 'Persona-Gen' : phase === 'agent_actions' ? 'Aktionen' : phase === 'state_updates' ? 'State' : 'Analyse' }}:
+                        ${{ liveCostEstimate()!.breakdown[phase].estimated_usd.toFixed(3) }}
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+            @if (costLoading()) {
+              <p style="font-size: 12px; color: var(--ink-4); margin-top: 8px;">
+                <i class="pi pi-spin pi-spinner" style="font-size: 11px;"></i> Kosten werden berechnet...
+              </p>
+            }
+          </div>
+        }
+      </div>
+
       <!-- Sliders -->
       <div style="margin-bottom: 28px;">
         <label style="margin-bottom: 12px;">Feinabstimmung</label>
@@ -343,7 +452,8 @@
       <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
         <span class="eyebrow" style="margin: 0;">KI-Anbieter</span>
         <span style="font-size: 13.5px; color: var(--ink); font-weight: 600;">
-          @if (llmProvider() === 'anthropic') { Claude (Anthropic) } @else { OpenAI }
+          @if (llmProvider() === 'anthropic') { Claude (Anthropic) } @else if (llmProvider() === 'ollama') { Ollama (Lokal) } @else { OpenAI }
+          @if (useProviderConfig()) { + Multi-Provider }
         </span>
       </div>
     </section>
@@ -539,6 +649,59 @@
     margin-top: 8px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+  }
+
+  /* === Info Box === */
+  .info-box {
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--primary-l);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    align-items: flex-start;
+  }
+
+  /* === Tooltips === */
+  .tooltip-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .tooltip-icon {
+    font-size: 12px;
+    color: var(--ink-4);
+    cursor: help;
+    transition: color 150ms;
+  }
+  .tooltip-wrap:hover .tooltip-icon { color: var(--primary); }
+  .tooltip-box {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: #fff;
+    font-size: 11.5px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    width: 240px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    pointer-events: none;
+    font-weight: 400;
+  }
+  .tooltip-wrap:hover .tooltip-box { display: block; }
+  .tooltip-box::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--ink);
   }
 
   /* === Sticky Footer === */

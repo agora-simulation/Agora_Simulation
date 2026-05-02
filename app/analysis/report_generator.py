@@ -12,12 +12,65 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.llm import get_provider
+from app.llm.resolver import ResolvedProvider
 from app.models import AnalysisReport, Post, Comment, Simulation, InfluenceEvent
 
-ANALYST_SYSTEM_PROMPT = """Du bist ein erfahrener Marktforscher und Analyst.
-Analysiere die Ergebnisse einer sozialen Simulation objektiv und präzise.
-Hebe Überraschungen, Wendepunkte und nicht-offensichtliche Erkenntnisse hervor.
-Sei kritisch — eine gute Analyse zeigt auch Risiken und Schwächen auf."""
+def _build_analyst_system_prompt(
+    sim,
+    persona_type_counts: dict[str, int],
+    total_posts: int,
+    total_events: int,
+) -> str:
+    """Baut einen szenarienspezifischen System-Prompt für die Analyse."""
+    # Szenario-Kontext ableiten
+    orgs = persona_type_counts.get("organization", 0)
+    insts = persona_type_counts.get("institution", 0)
+    pols = persona_type_counts.get("politician", 0)
+    individuals = persona_type_counts.get("individual", 0)
+    total = sum(persona_type_counts.values()) or 1
+    org_ratio = (orgs + insts + pols) / total
+
+    if org_ratio > 0.4:
+        scenario_hint = (
+            "Dies ist ein B2B/institutionelles Szenario mit vielen Organisationen und Institutionen. "
+            "Analysiere besonders: Entscheidungsprozesse in Organisationen, regulatorische Hürden, "
+            "Beschaffungszyklen, Fachdiskurse zwischen Institutionen, und ob Branchenverbände/Prüfstellen "
+            "als Multiplikatoren oder Blocker auftreten. Vergleiche die Perspektiven von Fachleuten, "
+            "Organisationen und Regulierern."
+        )
+    elif org_ratio > 0.15:
+        scenario_hint = (
+            "Dies ist ein gemischtes Szenario mit Einzelpersonen und relevanten Organisationen. "
+            "Analysiere sowohl die öffentliche Meinung der Einzelpersonen als auch die strategischen "
+            "Positionierungen der Unternehmen und Institutionen. Wo divergieren Experten-Meinung und "
+            "Konsumenten-Stimmung?"
+        )
+    else:
+        scenario_hint = (
+            "Dies ist ein konsumentenorientiertes B2C-Szenario. "
+            "Analysiere besonders: Konsumenten-Sentiment, virale Dynamiken, Mundpropaganda, "
+            "Kaufbereitschaft, und ob Skeptiker andere Konsumenten beeinflusst haben."
+        )
+
+    actor_breakdown = ", ".join(
+        f"{count} {typ}" for typ, count in sorted(persona_type_counts.items(), key=lambda x: -x[1])
+    )
+
+    return f"""Du bist ein Senior-Analyst einer renommierten Strategieberatung.
+Du erstellst professionelle Marktanalyse-Reports auf Basis simulierter Gesellschaftsdaten.
+
+{scenario_hint}
+
+Akteur-Mix dieser Simulation: {actor_breakdown}.
+Datenbasis: {total_posts} Beiträge, {total_events} Einfluss-Ereignisse.
+
+## Formatierung
+- Schreibe in professionellem, sachlichem Deutsch
+- Verwende Markdown: **Fettdruck** für Kernaussagen, Aufzählungen für Empfehlungen
+- Quantifiziere wo möglich ("73% der Labore zeigten Interesse" statt "viele waren interessiert")
+- Zitiere konkrete Beispiele aus der Simulation (Name, Post-Inhalt, Kontext)
+- Jede Sektion soll eigenständig lesbar sein — kein "wie oben erwähnt"
+- Verwende Zwischenüberschriften (### ) innerhalb langer Sektionen"""
 
 ANALYSIS_REPORT_TOOL_NAME = "analysis_report"
 ANALYSIS_REPORT_TOOL_DESC = "Strukturierter Analyse-Report der Simulation"
@@ -26,43 +79,84 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
         "properties": {
             "full_report": {
                 "type": "string",
-                "description": "Kompletter Analyse-Report als Fließtext",
+                "description": (
+                    "Executive Summary als Markdown (800-1500 Wörter). "
+                    "Struktur: ### Ausgangslage, ### Kernerkenntnisse (3-5 nummerierte Punkte mit **Fett** für Kernaussagen), "
+                    "### Risiken & Chancen, ### Strategische Empfehlungen (als Aufzählung). "
+                    "Quantifiziere: Prozentsätze, Persona-Anzahlen, Vergleichswerte."
+                ),
             },
             "sentiment_over_time": {
                 "type": "string",
-                "description": "JSON-String: Sentiment-Verlauf über die Tage",
+                "description": (
+                    "Markdown: Sentiment-Verlauf über die simulierten Tage. "
+                    "Beschreibe Phase für Phase: Anfangsphase (Tag 1-3), Mittelteil, Endphase. "
+                    "Nenne konkrete Stimmungsumschwünge mit Ursache und betroffenen Akteuren."
+                ),
             },
             "key_turning_points": {
                 "type": "string",
-                "description": "Wichtige Wendepunkte der Simulation",
+                "description": (
+                    "Markdown: 3-6 Wendepunkte als nummerierte Liste. "
+                    "Pro Punkt: **Tag X — Titel**: Was passiert ist, wer beteiligt war, welche Auswirkung. "
+                    "Zitiere konkrete Posts oder Akteur-Namen."
+                ),
             },
             "criticism_points": {
                 "type": "string",
-                "description": "Hauptkritikpunkte und Bedenken",
+                "description": (
+                    "Markdown: Hauptkritikpunkte als Aufzählung. "
+                    "Pro Punkt: **Kritikthema**: Wer kritisiert (mit Namen/Typ), Kernargument, "
+                    "wie viele Akteure teilen diese Kritik (%). Sortiert nach Schwere."
+                ),
             },
             "opportunities": {
                 "type": "string",
-                "description": "Erkannte Chancen und positive Reaktionen",
+                "description": (
+                    "Markdown: Erkannte Chancen und positive Signale. "
+                    "Pro Punkt: **Chance**: Beschreibung, welche Akteure positiv reagiert haben, "
+                    "geschätztes Potenzial. Konkrete Zitate aus der Simulation einbauen."
+                ),
             },
             "target_segment_analysis": {
                 "type": "string",
-                "description": "Zielgruppen-Segmentierung",
+                "description": (
+                    "Markdown: Zielgruppen-Segmentierung mit ### pro Segment. "
+                    "Pro Segment: Beschreibung, Größe (Anzahl/%), Haltung, Schlüssel-Akteure namentlich, "
+                    "Empfehlung für Ansprache. Bei B2B: nach Organisationstyp segmentieren."
+                ),
             },
             "unexpected_findings": {
                 "type": "string",
-                "description": "Überraschende Erkenntnisse",
+                "description": (
+                    "Markdown: 3-5 überraschende Erkenntnisse. "
+                    "Dinge die man nicht erwartet hätte. Konkret und mit Evidenz aus der Simulation."
+                ),
             },
             "influence_network": {
                 "type": "string",
-                "description": "Analyse des Influence-Netzwerks: Schlüsselpersonen, Überzeugungsketten, einflussreichste Posts",
+                "description": (
+                    "Markdown: Analyse des Einfluss-Netzwerks. "
+                    "### Top-Influencer (wer hat die meisten Meinungen verändert, mit Zahlen), "
+                    "### Überzeugungsketten (Pfade: A beeinflusst B beeinflusst C), "
+                    "### Einflussreichste Beiträge (konkrete Post-Inhalte zitieren)."
+                ),
             },
             "platform_dynamics": {
                 "type": "string",
-                "description": "Plattform-Analyse: Unterschiede FeedBook vs Threadit, Migration, wo wird wie diskutiert",
+                "description": (
+                    "Markdown: FeedBook vs. Threadit Vergleich. "
+                    "Tonalität-Unterschiede, welche Akteure wo aktiver sind, "
+                    "ob bestimmte Themen plattformspezifisch diskutiert werden."
+                ),
             },
             "network_evolution": {
                 "type": "string",
-                "description": "Netzwerk-Dynamik: Community-Bildung, Echokammern, Fragmentierung",
+                "description": (
+                    "Markdown: Netzwerk-Dynamik über die Simulation. "
+                    "Community-Bildung, Echokammern, ob sich Lager gebildet haben, "
+                    "Brücken-Akteure zwischen Communities."
+                ),
             },
         },
         "required": [
@@ -85,13 +179,26 @@ async def generate_report(
     db: AsyncSession,
     provider_name: str | None = None,
     model: str | None = None,
+    resolved: ResolvedProvider | None = None,
 ) -> AnalysisReport:
     """Generiert den Analyse-Report asynchron via konfigurierten LLM-Provider.
 
     Lädt alle Posts via selectinload (kein Lazy Loading).
     Speichert AnalysisReport in DB und committet.
+
+    resolved: Neues System — überschreibt provider_name/model wenn gesetzt.
     """
-    provider = get_provider(provider_name)
+    if resolved:
+        provider = resolved.provider
+        model = resolved.model
+        temperature = resolved.temperature
+        top_p = resolved.top_p
+        top_k = resolved.top_k
+    else:
+        provider = get_provider(provider_name)
+        temperature = None
+        top_p = None
+        top_k = None
     # Simulation laden
     result = await db.execute(
         select(Simulation)
@@ -121,67 +228,114 @@ async def generate_report(
     )
     influence_events = influence_result.scalars().all()
 
-    # Post-Daten für den Prompt aufbereiten
+    # Post-Daten für den Prompt aufbereiten — gekürzt um Context-Limit einzuhalten
+    # Bei großen Simulationen: Content auf 200 Zeichen kürzen, max 300 Posts
+    MAX_POSTS = 300
+    MAX_CONTENT_LEN = 200
     post_data = []
-    for post in posts:
+    for post in posts[:MAX_POSTS]:
+        content = post.content
+        if len(content) > MAX_CONTENT_LEN:
+            content = content[:MAX_CONTENT_LEN] + "…"
+        comments = []
+        for c in post.comments[:3]:  # Max 3 Kommentare pro Post
+            c_content = c.content
+            if len(c_content) > MAX_CONTENT_LEN:
+                c_content = c_content[:MAX_CONTENT_LEN] + "…"
+            comments.append({
+                "author": c.author.name if c.author else "?",
+                "content": c_content,
+            })
         post_data.append(
             {
                 "author": post.author.name if post.author else "Unbekannt",
                 "is_skeptic": post.author.is_skeptic if post.author else False,
                 "platform": post.platform.value,
                 "ingame_day": post.ingame_day,
-                "content": post.content,
-                "comments": [
-                    {
-                        "author": c.author.name if c.author else "?",
-                        "content": c.content,
-                    }
-                    for c in post.comments
-                ],
+                "content": content,
+                "comments": comments,
                 "reactions_count": len(post.reactions),
             }
         )
+    if len(posts) > MAX_POSTS:
+        logger.info(f"[{simulation_id}] Report: {len(posts)} Posts auf {MAX_POSTS} gekürzt")
 
-    # Influence-Events zusammenfassen
+    # Influence-Events zusammenfassen — max 200 Events, Beschreibung gekürzt
+    MAX_EVENTS = 200
+    persona_name_map = {str(p.id): p.name for p in sim.personas}
     influence_data = []
-    for event in influence_events:
-        source_name = next(
-            (p.name for p in sim.personas if str(p.id) == str(event.source_persona_id)),
-            "Unbekannt"
-        )
-        target_name = next(
-            (p.name for p in sim.personas if str(p.id) == str(event.target_persona_id)),
-            "Unbekannt"
-        )
+    for event in influence_events[:MAX_EVENTS]:
+        desc = event.description or ""
+        if len(desc) > 150:
+            desc = desc[:150] + "…"
         influence_data.append({
             "day": event.ingame_day,
-            "source": source_name,
-            "target": target_name,
+            "source": persona_name_map.get(str(event.source_persona_id), "Unbekannt"),
+            "target": persona_name_map.get(str(event.target_persona_id), "Unbekannt"),
             "type": event.influence_type,
-            "description": event.description,
+            "description": desc,
         })
+    if len(influence_events) > MAX_EVENTS:
+        logger.info(f"[{simulation_id}] Report: {len(influence_events)} Events auf {MAX_EVENTS} gekürzt")
 
-    # Persona-Endzustände für den Report
+    # Persona-Endzustände für den Report (mit Opinion-Dimensionen — Modul 2)
     persona_states = []
     for p in sim.personas:
         state = p.current_state or {}
-        persona_states.append({
+        opinion_dims = state.get("opinion_dimensions", {})
+        persona_entry = {
             "name": p.name,
             "is_skeptic": p.is_skeptic,
             "final_opinion": state.get("opinion_evolution", p.initial_opinion),
             "final_mood": state.get("mood", "neutral"),
             "platform_affinity": state.get("platform_affinity", {}),
             "connection_count": len(p.social_connections or []),
-        })
+        }
+        if opinion_dims:
+            persona_entry["opinion_dimensions"] = opinion_dims
+            # Durchschnittliche Gesamt-Meinung berechnen
+            avg = sum(opinion_dims.values()) / len(opinion_dims)
+            persona_entry["overall_opinion_score"] = round(avg, 2)
+        persona_states.append(persona_entry)
+
+    # Dimensionsanalyse über alle Personas (für den Prompt)
+    all_dims: dict[str, list[float]] = {}
+    for p in sim.personas:
+        state = p.current_state or {}
+        dims = state.get("opinion_dimensions", {})
+        for key, val in dims.items():
+            all_dims.setdefault(key, []).append(val)
+
+    dimension_summary = {}
+    for key, values in all_dims.items():
+        if values:
+            dimension_summary[key] = {
+                "avg": round(sum(values) / len(values), 2),
+                "min": round(min(values), 2),
+                "max": round(max(values), 2),
+                "positive_pct": round(sum(1 for v in values if v > 0.1) / len(values) * 100, 1),
+            }
 
     skeptic_count = sum(1 for p in sim.personas if p.is_skeptic)
+
+    # Persona-Typ-Statistiken für dynamischen System-Prompt
+    persona_type_counts: dict[str, int] = {}
+    for p in sim.personas:
+        ptype = getattr(p, "persona_type", "individual") or "individual"
+        persona_type_counts[ptype] = persona_type_counts.get(ptype, 0) + 1
+
+    # Dynamischen System-Prompt bauen
+    system_prompt = _build_analyst_system_prompt(
+        sim, persona_type_counts, len(posts), len(influence_events),
+    )
 
     simulation_context = f"""Produkt: {sim.product_description}
 Zielmarkt: {sim.target_market}
 Branche: {sim.industry}
-Simulierte Ticks: {sim.current_tick}
-Personas gesamt: {len(sim.personas)}
-Skeptiker: {skeptic_count}"""
+Simulierte Tage: {sim.current_tick}
+Akteure gesamt: {len(sim.personas)} ({', '.join(f'{v} {k}' for k, v in sorted(persona_type_counts.items(), key=lambda x: -x[1]))})
+Skeptiker: {skeptic_count} ({round(skeptic_count / max(len(sim.personas), 1) * 100)}%)
+Beiträge: {len(posts)} | Einfluss-Events: {len(influence_events)}"""
 
     influence_section = ""
     if influence_data:
@@ -197,6 +351,17 @@ Persona-Endzustände:
 {json.dumps(persona_states, ensure_ascii=False, indent=2)}
 """
 
+    dimension_section = ""
+    if dimension_summary:
+        dimension_section = f"""
+
+Meinungsdimensionen-Analyse (Durchschnitt über alle Personas):
+{json.dumps(dimension_summary, ensure_ascii=False, indent=2)}
+
+Interpretation: product_quality/price_fairness/brand_trust/innovation/ethical_concerns/social_proof/personal_relevance
+Werte: -1.0 (sehr negativ) bis +1.0 (sehr positiv), positive_pct = % der Personas mit positivem Wert (>0.1)
+"""
+
     prompt = f"""Analysiere diese Simulation:
 
 {simulation_context}
@@ -205,7 +370,7 @@ Alle simulierten Beiträge (chronologisch):
 {json.dumps(post_data, ensure_ascii=False, indent=2)}
 {influence_section}
 {persona_states_section}
-
+{dimension_section}
 Erstelle einen strukturierten Report mit:
 1. Sentiment-Verlauf über die simulierten Tage
 2. Wichtige Wendepunkte (was hat die Stimmung gekippt?)
@@ -217,6 +382,8 @@ Erstelle einen strukturierten Report mit:
 8. Influence-Netzwerk: Wer hat wen überzeugt? Welche Posts waren besonders einflussreich?
 9. Plattform-Analyse: Wo wurde positiver/negativer diskutiert? Plattform-Migration?
 10. Netzwerk-Dynamik: Haben sich Communities gebildet? Echokammern?
+11. Meinungsdimensionen: Welche Dimensionen (Preis, Qualität, Marke etc.) waren am stärksten/schwächsten? \
+    Konkrete Aussagen wie "73% der Skeptiker wurden bei Produktqualität überzeugt, aber Preis bleibt Dealbreaker"
 
 Sei konkret, zitiere Beispiele aus der Simulation."""
 
@@ -225,7 +392,7 @@ Sei konkret, zitiere Beispiele aus der Simulation."""
     )
     data = await provider.call_tool(
         tier="smart",
-        system=ANALYST_SYSTEM_PROMPT,
+        system=system_prompt,
         cache_system=True,
         user_blocks=[{"text": prompt}],
         tool_name=ANALYSIS_REPORT_TOOL_NAME,
@@ -233,6 +400,9 @@ Sei konkret, zitiere Beispiele aus der Simulation."""
         tool_schema=ANALYSIS_REPORT_TOOL_SCHEMA,
         max_tokens=16000,
         model=model,
+        temperature=temperature,
+        top_p=top_p,
+        top_k=top_k,
     )
 
     if "full_report" not in data:

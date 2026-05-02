@@ -48,5 +48,66 @@
              role="img" aria-label="Persona-Aktivitaet im Zeitverlauf"></div>
       </section>
     </div>
+
+    @if (hasPolarization()) {
+      <div class="card" style="padding: 24px; margin-top: 20px;">
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">
+          Gesellschaftliche Polarisierung
+        </h3>
+        <p style="font-size: 13px; color: var(--ink-3); margin: 0 0 16px 0;">
+          Standardabweichung der Meinungsdimensionen aller Personas (letzter Tick)
+        </p>
+        <div echarts [options]="polarizationChart()" style="height: 200px;"></div>
+        <p style="font-size: 12px; color: var(--ink-4); text-align: center; margin: 8px 0 0;">
+          0% = Einigkeit · 100% = maximale Spaltung
+        </p>
+      </div>
+    }
+
+    <!-- Reactions Verlauf -->
+    @if (hasReactions()) {
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" style="margin-top: 20px;">
+        <section class="card" style="padding: 24px;" role="region" aria-label="Reactions-Verlauf">
+          <header class="flex items-center justify-between mb-4">
+            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Reaktionen im Verlauf</h3>
+          </header>
+          <div echarts [options]="reactionsChart()" class="h-[320px]"></div>
+        </section>
+
+        <!-- Engagement Rate -->
+        @if (hasEngagement()) {
+          <section class="card" style="padding: 24px;" role="region" aria-label="Engagement-Rate">
+            <header class="flex items-center justify-between mb-4">
+              <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Engagement-Rate</h3>
+              <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">Kommentare / Beiträge</span>
+            </header>
+            <div echarts [options]="engagementChart()" class="h-[320px]"></div>
+          </section>
+        }
+      </div>
+    }
+
+    <!-- Meinungsdimensionen + Echo-Kammern -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" style="margin-top: 20px;">
+      @if (hasOpinionDims()) {
+        <section class="card" style="padding: 24px;" role="region" aria-label="Meinungsdimensionen">
+          <header class="flex items-center justify-between mb-4">
+            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Meinungsdimensionen</h3>
+            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">Skeptiker vs. Befürworter</span>
+          </header>
+          <div echarts [options]="opinionRadarChart()" style="height: 300px;"></div>
+        </section>
+      }
+
+      @if (hasClusters()) {
+        <section class="card" style="padding: 24px;" role="region" aria-label="Echo-Kammern">
+          <header class="flex items-center justify-between mb-4">
+            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Echo-Kammern</h3>
+            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">Cluster-Entwicklung</span>
+          </header>
+          <div echarts [options]="clusterChart()" class="h-[320px]"></div>
+        </section>
+      }
+    </div>
   }
 </div>

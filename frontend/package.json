@@ -24,6 +24,7 @@
     "echarts": "^6.0.0",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",
+    "marked": "^18.0.3",
     "ngx-echarts": "^21.0.0",
     "primeicons": "^7.0.0",
     "primeng": "^21.1.6",

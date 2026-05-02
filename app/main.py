@@ -11,6 +11,7 @@ from app.routers import stream
 from app.routers import chat
 from app.routers import admin
 from app.routers import export
+from app.routers import providers
 from app.auth import verify_api_key
 from app.database import get_db
 from app.middleware.logging import RequestLoggingMiddleware, SimulatorFormatter
@@ -60,6 +61,7 @@ app = FastAPI(
         {"name": "chat", "description": "Direktes Gespräch mit einzelnen Personas"},
         {"name": "stream", "description": "SSE Live-Updates während der Simulation"},
         {"name": "export", "description": "JSON und CSV Export"},
+        {"name": "providers", "description": "LLM-Provider Verwaltung (Registry, Presets, Kosten)"},
         {"name": "admin", "description": "API-Key Verwaltung (Master-Key erforderlich)"},
         {"name": "system", "description": "Health Check und Metriken"},
     ],
@@ -68,13 +70,14 @@ app = FastAPI(
 # --- Middleware (order matters: added last = executed first) ---
 from app.config import settings as _settings
 
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_settings.cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RequestLoggingMiddleware)
 
 # --- Exception handlers ---
 register_exception_handlers(app)
@@ -117,6 +120,13 @@ app.include_router(
     chat.router,
     prefix="",
     tags=["chat"],
+    dependencies=[Depends(verify_api_key)],
+)
+# Provider registry — LLM Provider CRUD, Presets, Cost Estimation
+app.include_router(
+    providers.router,
+    prefix="/providers",
+    tags=["providers"],
     dependencies=[Depends(verify_api_key)],
 )
 # Admin router — secured by separate master key, no API-key auth
