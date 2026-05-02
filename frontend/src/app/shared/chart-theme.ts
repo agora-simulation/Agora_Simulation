@@ -1,5 +1,5 @@
 /**
- * Mitra Chart Theme — geteilt von allen ECharts-Visualisierungen.
+ * Agora Chart Theme — geteilt von allen ECharts-Visualisierungen.
  * Clean, modern, Inter-Sans-Serif, abgestimmt auf die neuen Theme-Variablen.
  */
 

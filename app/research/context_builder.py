@@ -8,7 +8,7 @@ import logging
 from app.llm import LLMProvider, get_provider
 from app.research.web_search import SearchSession
 
-logger = logging.getLogger("simulator.research.context_builder")
+logger = logging.getLogger("agora.research.context_builder")
 
 # ---------------------------------------------------------------------------
 # Tool-Definitionen
@@ -92,39 +92,52 @@ async def generate_search_queries(
     provider: LLMProvider | None = None,
     model: str | None = None,
 ) -> dict:
-    """Generiert Suchqueries basierend auf Simulation-Parametern."""
+    """Generiert Suchqueries via einfachem Chat-Call (kein Tool-Use).
+
+    Tool-Use scheitert bei GPT-5 regelmäßig an finish_reason=length.
+    Stattdessen: Chat-Prompt der eine nummerierte Liste zurückgibt, die wir parsen.
+    """
     if provider is None:
         provider = get_provider(None)
 
-    prompt = f"""Generiere präzise Web-Suchbegriffe für eine Marktrecherche.
-
-Produkt: {product_description}
-Zielmarkt: {target_market}
-Branche: {industry}
-
-Ziel: Aktuelle Lage des Zielmarkts verstehen, um realistische Personas zu generieren.
-
-Regeln für Suchbegriffe:
-- Deutsch oder Englisch je nach Zielmarkt
-- Konkret und aktuell (z.B. "Wirtschaftslage Deutschland 2026" statt "Wirtschaft Deutschland")
-- Branchenspezifisch (z.B. "MarTech Markt Europa Trends 2026")
-- Zielgruppen-relevant (z.B. "CMO Herausforderungen B2B 2026")
-
-Nutze das search_queries Tool."""
-
-    result = await provider.call_tool(
-        tier="fast",
-        system="Du bist ein Research-Analyst. Generiere präzise Suchbegriffe.",
-        cache_system=True,
-        user_blocks=[{"text": prompt}],
-        tool_name=QUERY_GENERATION_TOOL_NAME,
-        tool_description=QUERY_GENERATION_TOOL_DESC,
-        tool_schema=QUERY_GENERATION_TOOL_SCHEMA,
-        max_tokens=4096,
-        model=model,
+    prompt = (
+        f"Produkt: {product_description[:300]}\n"
+        f"Zielmarkt: {target_market}\n"
+        f"Branche: {industry}\n\n"
+        f"Generiere genau 9 präzise Web-Suchbegriffe für eine Marktrecherche.\n"
+        f"3 für Makro-Kontext (Wirtschaft/Politik des Zielmarkts),\n"
+        f"3 für Branchen-Kontext (aktuelle News/Wettbewerb/Regulierung),\n"
+        f"3 für Zielgruppen-Kontext (Trends/Schmerzpunkte/Diskurse).\n\n"
+        f"Antworte NUR mit den 9 Suchbegriffen, einer pro Zeile, ohne Nummerierung oder Erklärung."
     )
 
-    return result
+    try:
+        text = await provider.chat(
+            system="Du bist ein Research-Analyst. Antworte nur mit Suchbegriffen, einer pro Zeile.",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=512,
+            model=model,
+        )
+
+        # Text zu Queries parsen — eine Query pro Zeile
+        lines = [line.strip().lstrip("0123456789.-) ") for line in text.strip().split("\n")]
+        queries = [q for q in lines if q and len(q) > 5][:9]
+
+        if len(queries) >= 3:
+            return {
+                "macro_queries": queries[:3],
+                "industry_queries": queries[3:6] if len(queries) > 3 else [],
+                "target_group_queries": queries[6:9] if len(queries) > 6 else [],
+            }
+    except Exception as e:
+        logger.warning(f"Query-Generierung fehlgeschlagen: {e}")
+
+    # Fallback
+    return {
+        "macro_queries": [f"Wirtschaftslage {target_market or 'Deutschland'} 2026"],
+        "industry_queries": [f"{industry or 'Technologie'} Markt Trends 2026"],
+        "target_group_queries": [f"{industry or 'Technologie'} Zielgruppe Herausforderungen 2026"],
+    }
 
 
 async def synthesize_context(

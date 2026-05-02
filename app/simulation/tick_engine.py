@@ -18,7 +18,7 @@ import logging
 import random as _random
 from uuid import UUID
 
-logger = logging.getLogger("simulator.tick_engine")
+logger = logging.getLogger("agora.tick_engine")
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

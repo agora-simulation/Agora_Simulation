@@ -10,7 +10,7 @@ from app.llm.provider import LLMProvider
 if TYPE_CHECKING:
     from app.models.provider import LLMProviderRegistry
 
-logger = logging.getLogger("simulator.llm.factory")
+logger = logging.getLogger("agora.llm.factory")
 
 # Legacy-Cache (env-basierte Provider)
 _cache: dict[str, LLMProvider] = {}

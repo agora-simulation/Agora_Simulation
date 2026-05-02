@@ -9,7 +9,7 @@ import logging
 
 from app.llm.provider import ChatMessage, LLMProvider, Tier, UserBlock
 
-logger = logging.getLogger("simulator.llm.ollama")
+logger = logging.getLogger("agora.llm.ollama")
 
 
 class OllamaProvider(LLMProvider):

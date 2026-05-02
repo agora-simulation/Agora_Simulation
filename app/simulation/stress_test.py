@@ -21,7 +21,7 @@ from app.models import (
     InfluenceEvent,
 )
 
-logger = logging.getLogger("simulator.stress_test")
+logger = logging.getLogger("agora.stress_test")
 
 
 async def inject_contrarian_posts(

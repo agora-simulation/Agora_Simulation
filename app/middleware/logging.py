@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-logger = logging.getLogger("simulator.requests")
+logger = logging.getLogger("agora.requests")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -41,7 +41,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         return response
 
 
-class SimulatorFormatter(logging.Formatter):
+class AgoraFormatter(logging.Formatter):
     """Formats log records in the project's house style:
     2026-04-29 12:00:00 | INFO | request_id=abc123 | GET /simulations/ | 200 | 45ms
     The formatter is generic — individual records carry the structured message.

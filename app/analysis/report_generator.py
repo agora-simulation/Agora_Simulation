@@ -5,7 +5,7 @@ import json
 import logging
 from uuid import UUID
 
-logger = logging.getLogger("simulator.analysis")
+logger = logging.getLogger("agora.analysis")
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from app.llm import get_provider
 from app.llm.resolver import ResolvedProvider
-from app.models import AnalysisReport, Post, Comment, Simulation, InfluenceEvent
+from app.models import AnalysisReport, Post, Comment, Simulation, InfluenceEvent, MarketContext
 
 def _build_analyst_system_prompt(
     sim,
@@ -399,10 +399,26 @@ Interpretation: product_quality/price_fairness/brand_trust/innovation/ethical_co
 Werte: -1.0 (sehr negativ) bis +1.0 (sehr positiv), positive_pct = % der Personas mit positivem Wert (>0.1)
 """
 
+    # MarketContext laden (falls Deep Mode)
+    market_context_section = ""
+    ctx_result = await db.execute(
+        select(MarketContext).where(MarketContext.simulation_id == simulation_id)
+    )
+    market_ctx = ctx_result.scalar_one_or_none()
+    if market_ctx and market_ctx.prompt_summary:
+        market_context_section = f"""
+
+Marktkontext (aus Web-Recherche vor der Simulation):
+{market_ctx.prompt_summary}
+
+Berücksichtige diesen realen Marktkontext bei der Analyse — vergleiche ob die Simulationsergebnisse
+zu den recherchierten Marktbedingungen passen oder davon abweichen.
+"""
+
     prompt = f"""Analysiere diese Simulation:
 
 {simulation_context}
-
+{market_context_section}
 Alle simulierten Beiträge (chronologisch):
 {json.dumps(post_data, ensure_ascii=False, indent=2)}
 {influence_section}

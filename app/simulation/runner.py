@@ -19,7 +19,7 @@ from app.analysis.report_generator import generate_report
 from app.webhooks import dispatch_webhook
 from app.llm.resolver import resolve_for_phase
 
-logger = logging.getLogger("simulator.runner")
+logger = logging.getLogger("agora.runner")
 
 # Globaler Semaphore — max concurrent Anthropic API Calls (aus Settings)
 semaphore = asyncio.Semaphore(settings.default_agent_concurrent_calls)
@@ -278,7 +278,16 @@ async def run_simulation_background(simulation_id: UUID):
                 await db.commit()
                 logger.info(f"[{simulation_id}] Tick {tick_num} abgeschlossen")
 
-            # 3. Abschluss (Report wird manuell über POST /analysis/{id}/generate ausgelöst)
+            # 3. Report automatisch generieren
+            logger.info(f"[{simulation_id}] Starte automatische Report-Generierung")
+            try:
+                report_resolved = await resolve_for_phase(sim, "analysis_reports", db)
+                await generate_report(simulation_id, db, resolved=report_resolved)
+                logger.info(f"[{simulation_id}] Report generiert")
+            except Exception as e:
+                logger.warning(f"[{simulation_id}] Auto-Report fehlgeschlagen (Simulation trotzdem completed): {e}")
+
+            # 4. Abschluss
             await db.execute(
                 update(Simulation)
                 .where(Simulation.id == simulation_id)

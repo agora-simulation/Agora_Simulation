@@ -13,7 +13,7 @@ from app.models import Simulation, MarketContext
 from app.research.web_search import search_web, SearchSession
 from app.research.context_builder import generate_search_queries, synthesize_context
 
-logger = logging.getLogger("simulator.research")
+logger = logging.getLogger("agora.research")
 
 
 async def run_market_research(

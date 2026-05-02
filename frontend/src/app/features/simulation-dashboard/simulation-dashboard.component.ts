@@ -33,14 +33,14 @@ export class SimulationDashboardComponent implements OnInit, OnDestroy {
   loading = signal(true);
 
   // Header-Zustand: kollabiert/expandiert (LocalStorage-persistiert)
-  headerCollapsed = signal<boolean>(localStorage.getItem('mitra_header_collapsed') === '1');
+  headerCollapsed = signal<boolean>(localStorage.getItem('agora_header_collapsed') === '1');
 
   simulationId = '';
 
   toggleHeader() {
     const next = !this.headerCollapsed();
     this.headerCollapsed.set(next);
-    localStorage.setItem('mitra_header_collapsed', next ? '1' : '0');
+    localStorage.setItem('agora_header_collapsed', next ? '1' : '0');
   }
 
   readonly tabs: Tab[] = [

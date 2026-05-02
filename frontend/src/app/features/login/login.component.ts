@@ -25,40 +25,41 @@ import { environment } from '../../../environments/environment';
 
     .login-card {
       width: 100%;
-      max-width: 440px;
+      max-width: 460px;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 40px;
-      box-shadow: var(--shadow-md);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      box-shadow: var(--shadow-lg);
     }
 
     .brand-mark {
-      width: 56px;
-      height: 56px;
-      background: var(--primary);
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-d) 100%);
       color: #fff;
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 800;
       letter-spacing: -0.04em;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: var(--radius-lg);
-      margin-bottom: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 16px rgba(42, 108, 184, 0.25);
     }
 
     .brand-title {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
       color: var(--ink);
       margin-bottom: 4px;
     }
     .brand-sub {
-      font-size: 14px;
-      color: var(--ink-3);
-      margin-bottom: 32px;
+      font-size: 15px;
+      color: var(--ink-2);
+      margin-bottom: 36px;
     }
 
     .input-row {
@@ -106,9 +107,9 @@ import { environment } from '../../../environments/environment';
     <div class="login-shell">
       <div class="login-card animate-fade-in">
 
-        <div class="brand-mark">M</div>
+        <div class="brand-mark">A</div>
 
-        <h1 class="brand-title">Mitra</h1>
+        <h1 class="brand-title">Agora</h1>
         <p class="brand-sub">Soziale Simulations-Engine</p>
 
         <form (ngSubmit)="login()">

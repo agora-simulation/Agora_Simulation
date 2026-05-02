@@ -2,10 +2,8 @@
 
   <!-- Section Header -->
   <div class="mb-6">
-    <h2 style="font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em;">
-      Sentiment &amp; Plattformen
-    </h2>
-    <p style="font-size: 14px; color: var(--ink-3); margin-top: 6px; max-width: 640px;">
+    <h2 class="page-title" style="font-size: 26px; margin-bottom: 6px;">Sentiment &amp; Plattformen</h2>
+    <p style="font-size: 15px; color: var(--ink-2); margin-top: 6px; max-width: 640px;">
       Querschnittsanalyse — Plattform-Verteilung und Beteiligung über die Zeit.
     </p>
   </div>
@@ -21,9 +19,9 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
       <!-- Plattform-Verteilung -->
-      <section class="card" style="padding: 24px;" role="region" aria-label="Plattform-Verteilung">
+      <section class="card" style="padding: 28px; border-radius: var(--radius-xl);" role="region" aria-label="Plattform-Verteilung">
         <header class="flex items-center justify-between mb-4">
-          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">
             Plattform-Verteilung
           </h3>
           <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
@@ -35,9 +33,9 @@
       </section>
 
       <!-- Aktivitäts-Linie -->
-      <section class="card" style="padding: 24px;" role="region" aria-label="Persona-Aktivitaet">
+      <section class="card" style="padding: 28px; border-radius: var(--radius-xl);" role="region" aria-label="Persona-Aktivitaet">
         <header class="flex items-center justify-between mb-4">
-          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">
             Aktive Personas im Verlauf
           </h3>
           <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
@@ -50,15 +48,16 @@
     </div>
 
     @if (hasPolarization()) {
-      <div class="card" style="padding: 24px; margin-top: 20px;">
-        <h3 style="font-size: 15px; font-weight: 700; color: var(--ink); margin: 0 0 4px 0;">
+      <div class="card" style="padding: 28px; margin-top: 20px; border-radius: var(--radius-xl);">
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 6px 0; display: flex; align-items: center; gap: 10px;">
+          <i class="pi pi-exclamation-triangle" style="font-size: 18px; color: var(--threadit);"></i>
           Gesellschaftliche Polarisierung
         </h3>
-        <p style="font-size: 13px; color: var(--ink-3); margin: 0 0 16px 0;">
+        <p style="font-size: 14px; color: var(--ink-2); margin: 0 0 20px 0;">
           Standardabweichung der Meinungsdimensionen aller Personas (letzter Tick)
         </p>
-        <div echarts [options]="polarizationChart()" style="height: 200px;"></div>
-        <p style="font-size: 12px; color: var(--ink-4); text-align: center; margin: 8px 0 0;">
+        <div echarts [options]="polarizationChart()" style="height: 240px;"></div>
+        <p style="font-size: 13px; color: var(--ink-3); text-align: center; margin: 10px 0 0;">
           0% = Einigkeit · 100% = maximale Spaltung
         </p>
       </div>
@@ -67,18 +66,18 @@
     <!-- Reactions Verlauf -->
     @if (hasReactions()) {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" style="margin-top: 20px;">
-        <section class="card" style="padding: 24px;" role="region" aria-label="Reactions-Verlauf">
+        <section class="card" style="padding: 28px; border-radius: var(--radius-xl);" role="region" aria-label="Reactions-Verlauf">
           <header class="flex items-center justify-between mb-4">
-            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Reaktionen im Verlauf</h3>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">Reaktionen im Verlauf</h3>
           </header>
           <div echarts [options]="reactionsChart()" class="h-[320px]"></div>
         </section>
 
         <!-- Engagement Rate -->
         @if (hasEngagement()) {
-          <section class="card" style="padding: 24px;" role="region" aria-label="Engagement-Rate">
+          <section class="card" style="padding: 28px; border-radius: var(--radius-xl);" role="region" aria-label="Engagement-Rate">
             <header class="flex items-center justify-between mb-4">
-              <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Engagement-Rate</h3>
+              <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">Engagement-Rate</h3>
               <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">Kommentare / Beiträge</span>
             </header>
             <div echarts [options]="engagementChart()" class="h-[320px]"></div>
@@ -90,9 +89,9 @@
     <!-- Meinungsdimensionen + Echo-Kammern -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" style="margin-top: 20px;">
       @if (hasOpinionDims()) {
-        <section class="card" style="padding: 24px;" role="region" aria-label="Meinungsdimensionen">
+        <section class="card" style="padding: 28px; border-radius: var(--radius-xl);" role="region" aria-label="Meinungsdimensionen">
           <header class="flex items-center justify-between mb-4">
-            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Meinungsdimensionen</h3>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">Meinungsdimensionen</h3>
             <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">Skeptiker vs. Befürworter</span>
           </header>
           <div echarts [options]="opinionRadarChart()" style="height: 300px;"></div>
@@ -100,9 +99,9 @@
       }
 
       @if (hasClusters()) {
-        <section class="card" style="padding: 24px;" role="region" aria-label="Echo-Kammern">
+        <section class="card" style="padding: 28px; border-radius: var(--radius-xl);" role="region" aria-label="Echo-Kammern">
           <header class="flex items-center justify-between mb-4">
-            <h3 style="font-size: 16px; font-weight: 600; color: var(--ink);">Echo-Kammern</h3>
+            <h3 style="font-size: 18px; font-weight: 700; color: var(--ink);">Echo-Kammern</h3>
             <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">Cluster-Entwicklung</span>
           </header>
           <div echarts [options]="clusterChart()" class="h-[320px]"></div>

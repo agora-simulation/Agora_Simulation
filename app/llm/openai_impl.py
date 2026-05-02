@@ -18,7 +18,7 @@ import logging
 from app.config import settings
 from app.llm.provider import ChatMessage, LLMProvider, Tier, UserBlock
 
-logger = logging.getLogger("simulator.llm.openai")
+logger = logging.getLogger("agora.llm.openai")
 
 
 class OpenAIProvider(LLMProvider):

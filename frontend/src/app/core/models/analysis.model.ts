@@ -11,5 +11,7 @@ export interface AnalysisReport {
   influence_network: string | null;
   platform_dynamics: string | null;
   network_evolution: string | null;
+  confidence_assessment: string | null;
+  methodology_limitations: string | null;
   created_at: string;
 }

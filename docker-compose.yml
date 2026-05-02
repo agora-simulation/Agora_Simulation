@@ -5,28 +5,27 @@ services:
       - "8000:8000"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=postgresql://sim_user:sim_pass@db:5432/simulation
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DATABASE_URL=postgresql://agora_user:agora_pass@db:5432/agora
+      - ADMIN_MASTER_KEY=${ADMIN_MASTER_KEY:-change-me-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./app:/app/app
-      - ./alembic:/app/alembic
     command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     restart: unless-stopped
 
   db:
     image: postgres:16
     environment:
-      - POSTGRES_DB=simulation
-      - POSTGRES_USER=sim_user
-      - POSTGRES_PASSWORD=sim_pass
+      - POSTGRES_DB=agora
+      - POSTGRES_USER=agora_user
+      - POSTGRES_PASSWORD=agora_pass
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sim_user -d simulation"]
+      test: ["CMD-SHELL", "pg_isready -U agora_user -d agora"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -81,18 +81,21 @@
   <!-- Empty State -->
   @if (!loading() && simulations().length === 0) {
     <div class="card animate-fade-in"
-         style="padding: 64px 32px; text-align: center; max-width: 560px; margin: 32px auto;">
-      <div style="width: 64px; height: 64px; background: var(--primary-l); border-radius: var(--radius-lg); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-        <i class="pi pi-chart-line" style="font-size: 26px; color: var(--primary);"></i>
+         style="padding: 72px 40px; text-align: center; max-width: 580px; margin: 40px auto; border-radius: var(--radius-xl);">
+      <!-- Animated icon circle -->
+      <div style="width: 80px; height: 80px; background: var(--primary-l); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px; position: relative;">
+        <i class="pi pi-chart-line" style="font-size: 32px; color: var(--primary);"></i>
+        <div style="position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--primary); opacity: 0.15; animation: pulse 2.5s ease-in-out infinite;"></div>
       </div>
-      <h3 class="h3" style="margin-bottom: 8px;">Noch keine Simulationen</h3>
-      <p style="color: var(--ink-3); font-size: 14.5px; margin-bottom: 28px; line-height: 1.5;">
+      <h3 style="font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 10px;">Noch keine Simulationen</h3>
+      <p style="color: var(--ink-2); font-size: 15px; margin-bottom: 32px; line-height: 1.6; max-width: 380px; margin-left: auto; margin-right: auto;">
         Erstelle deine erste Simulation und beobachte, wie eine virtuelle Gesellschaft auf dein Produkt reagiert.
       </p>
       <a routerLink="/simulations/create"
          aria-label="Erste Simulation erstellen"
-         class="btn btn-primary btn-lg">
-        <i class="pi pi-plus" style="font-size: 12px;"></i>
+         class="btn btn-primary btn-lg"
+         style="font-size: 15px; padding: 14px 28px;">
+        <i class="pi pi-plus" style="font-size: 13px;"></i>
         <span>Erste Simulation erstellen</span>
       </a>
     </div>
@@ -107,138 +110,138 @@
            role="listitem"
            [attr.aria-label]="sim.name + ' — ' + getStatusLabel(sim.status)"
            class="card card-hover sim-card stagger-in" appCardGlow
-           style="padding: 24px; display: block; text-decoration: none; color: inherit; position: relative;"
+           [class.sim-running]="sim.status === 'running' || sim.status === 'researching'"
+           [class.sim-completed]="sim.status === 'completed'"
+           [class.sim-failed]="sim.status === 'failed'"
+           [class.sim-research-done]="sim.status === 'research_complete'"
+           style="display: block; text-decoration: none; color: inherit; position: relative;"
            [style.--i]="i">
 
-          <!-- Top row -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px;">
-            @switch (sim.status) {
-              @case ('researching') {
-                <span class="badge badge-warning">
-                  <span class="dot dot-pulse" style="width: 7px; height: 7px;"></span>
-                  Recherchiert
-                </span>
-              }
-              @case ('research_complete') {
-                <span class="badge badge-info" style="background: var(--primary-light, #dbeafe); color: var(--primary);">
-                  <i class="pi pi-check-circle" style="font-size: 9px;"></i>
-                  Recherche fertig
-                </span>
-              }
-              @case ('running') {
-                <span class="badge badge-warning">
-                  <span class="dot dot-pulse" style="width: 7px; height: 7px;"></span>
-                  Läuft
-                </span>
-              }
-              @case ('completed') {
-                <span class="badge badge-success">
-                  <i class="pi pi-check" style="font-size: 9px;"></i>
-                  Abgeschlossen
-                </span>
-              }
-              @case ('failed') {
-                <span class="badge badge-danger">
-                  <i class="pi pi-times" style="font-size: 9px;"></i>
-                  Fehlgeschlagen
-                </span>
-              }
-              @default {
-                <span class="badge badge-muted">
-                  <span class="dot" style="background: var(--ink-4);"></span>
-                  Ausstehend
-                </span>
-              }
-            }
-            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);">
-              #{{ sim.id.slice(0, 8) }}
-            </span>
+          <!-- Status accent bar at top -->
+          <div class="sim-accent"
+               [class.accent-running]="sim.status === 'running' || sim.status === 'researching'"
+               [class.accent-completed]="sim.status === 'completed'"
+               [class.accent-failed]="sim.status === 'failed'"
+               [class.accent-research]="sim.status === 'research_complete'">
           </div>
 
-          <!-- Title -->
-          <h3 class="h3 sim-title" style="margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-            {{ sim.name }}
-          </h3>
-
-          <!-- Description -->
-          <p style="color: var(--ink-2); font-size: 14px; line-height: 1.55; margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 60px;">
-            {{ sim.product_description }}
-          </p>
-
-          <!-- Meta badges -->
-          @if (sim.target_market || sim.industry) {
-            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;">
-              @if (sim.target_market) {
-                <span class="badge badge-muted">
-                  <i class="pi pi-map-marker" style="font-size: 9px;"></i>
-                  {{ sim.target_market }}
-                </span>
+          <div class="sim-card-body">
+            <!-- Top row: Status + ID -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px;">
+              @switch (sim.status) {
+                @case ('researching') {
+                  <span class="sim-status-pill status-researching">
+                    <i class="pi pi-search pi-spin" style="font-size: 11px;"></i>
+                    Recherchiert
+                  </span>
+                }
+                @case ('research_complete') {
+                  <span class="sim-status-pill status-research-done">
+                    <i class="pi pi-check-circle" style="font-size: 11px;"></i>
+                    Recherche fertig
+                  </span>
+                }
+                @case ('running') {
+                  <span class="sim-status-pill status-running">
+                    <span class="status-pulse"></span>
+                    Läuft
+                  </span>
+                }
+                @case ('completed') {
+                  <span class="sim-status-pill status-completed">
+                    <i class="pi pi-check" style="font-size: 11px;"></i>
+                    Abgeschlossen
+                  </span>
+                }
+                @case ('failed') {
+                  <span class="sim-status-pill status-failed">
+                    <i class="pi pi-times" style="font-size: 11px;"></i>
+                    Fehlgeschlagen
+                  </span>
+                }
+                @default {
+                  <span class="sim-status-pill status-pending">
+                    <i class="pi pi-clock" style="font-size: 11px;"></i>
+                    Ausstehend
+                  </span>
+                }
               }
-              @if (sim.industry) {
-                <span class="badge badge-muted">
-                  <i class="pi pi-briefcase" style="font-size: 9px;"></i>
-                  {{ sim.industry }}
-                </span>
-              }
+              <span class="sim-id">#{{ sim.id.slice(0, 8) }}</span>
             </div>
-          }
 
-          <!-- Footer -->
-          <div style="border-top: 1px solid var(--border); padding-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-            <div style="flex: 1; min-width: 0;">
-              @if (sim.status === 'researching') {
-                <p style="font-size: 12px; color: var(--warning); font-weight: 600;">
-                  <i class="pi pi-search" style="font-size: 11px; margin-right: 4px;"></i>
-                  Web-Recherche läuft...
-                </p>
-              } @else if (sim.status === 'research_complete') {
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <p style="font-size: 12px; color: var(--primary); font-weight: 600; flex: 1;">
-                    <i class="pi pi-check-circle" style="font-size: 11px; margin-right: 4px;"></i>
-                    Recherche abgeschlossen — Ergebnis prüfen
-                  </p>
-                  <button class="btn btn-sm btn-primary" (click)="approveResearch(sim); $event.stopPropagation()"
-                          style="white-space: nowrap; font-size: 11.5px; padding: 5px 12px;">
-                    <i class="pi pi-play" style="font-size: 10px;"></i> Simulation starten
-                  </button>
-                </div>
-              } @else if (sim.status === 'running') {
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: 12.5px; color: var(--ink-2); font-weight: 600;">
-                  <span>Tag {{ sim.current_tick }} / {{ sim.total_ticks }}</span>
-                  <span>{{ getProgress(sim) }}%</span>
-                </div>
-                <div class="progress">
-                  <div class="progress-fill progress-bar-glow"
-                       [style.width.%]="getProgress(sim)"></div>
-                </div>
-                <p style="font-size: 10.5px; color: var(--ink-4); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                  <i class="pi pi-spin pi-cog" style="font-size: 9px;"></i>
-                  @if (sim.current_tick === 0) {
-                    Personas werden generiert...
-                  } @else {
-                    Personas interagieren — Aktionen, Kommentare, Reaktionen
-                  }
-                </p>
-              } @else if (sim.status === 'completed') {
-                <p style="font-size: 12px; color: var(--success); font-weight: 600;">
-                  <i class="pi pi-check-circle" style="font-size: 11px; margin-right: 4px;"></i>
-                  {{ sim.total_ticks }} Tage simuliert
-                </p>
-              } @else if (sim.status === 'failed') {
-                <p style="font-size: 12px; color: var(--danger); font-weight: 600;">
-                  <i class="pi pi-times-circle" style="font-size: 11px; margin-right: 4px;"></i>
-                  Abgebrochen
-                </p>
-              } @else {
-                <p style="font-size: 12px; color: var(--ink-4); font-weight: 600;">
-                  <i class="pi pi-clock" style="font-size: 11px; margin-right: 4px;"></i>
-                  Wartet auf Start
-                </p>
-              }
+            <!-- Title -->
+            <h3 class="sim-title">{{ sim.name }}</h3>
+
+            <!-- Description -->
+            <p class="sim-desc">{{ sim.product_description }}</p>
+
+            <!-- Meta badges -->
+            @if (sim.target_market || sim.industry) {
+              <div class="sim-meta">
+                @if (sim.target_market) {
+                  <span class="sim-meta-tag"><i class="pi pi-map-marker"></i> {{ sim.target_market }}</span>
+                }
+                @if (sim.industry) {
+                  <span class="sim-meta-tag"><i class="pi pi-briefcase"></i> {{ sim.industry }}</span>
+                }
+              </div>
+            }
+
+            <!-- Footer -->
+            <div class="sim-footer">
+              <div style="flex: 1; min-width: 0;">
+                @if (sim.status === 'researching') {
+                  <div class="sim-progress-info">
+                    <i class="pi pi-search" style="color: var(--warning);"></i>
+                    <span style="color: var(--warning);">Web-Recherche läuft...</span>
+                  </div>
+                } @else if (sim.status === 'research_complete') {
+                  <div class="sim-progress-info">
+                    <i class="pi pi-check-circle" style="color: var(--primary);"></i>
+                    <span style="color: var(--primary); flex: 1;">Recherche abgeschlossen</span>
+                    <button class="btn btn-sm btn-primary" (click)="approveResearch(sim); $event.stopPropagation(); $event.preventDefault()"
+                            style="white-space: nowrap; font-size: 12px; padding: 6px 14px;">
+                      <i class="pi pi-play" style="font-size: 10px;"></i> Starten
+                    </button>
+                  </div>
+                } @else if (sim.status === 'running') {
+                  <div class="sim-running-progress">
+                    <div class="sim-running-header">
+                      <span class="sim-running-day">Tag {{ sim.current_tick }} / {{ sim.total_ticks }}</span>
+                      <span class="sim-running-pct">{{ getProgress(sim) }}%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-fill progress-bar-glow"
+                           [style.width.%]="getProgress(sim)"></div>
+                    </div>
+                    <p class="sim-running-sub">
+                      <i class="pi pi-spin pi-cog"></i>
+                      @if (sim.current_tick === 0) {
+                        Personas werden generiert...
+                      } @else {
+                        Personas interagieren
+                      }
+                    </p>
+                  </div>
+                } @else if (sim.status === 'completed') {
+                  <div class="sim-progress-info">
+                    <i class="pi pi-check-circle" style="color: var(--success);"></i>
+                    <span style="color: var(--success);">{{ sim.total_ticks }} Tage simuliert</span>
+                  </div>
+                } @else if (sim.status === 'failed') {
+                  <div class="sim-progress-info">
+                    <i class="pi pi-times-circle" style="color: var(--danger);"></i>
+                    <span style="color: var(--danger);">Abgebrochen</span>
+                  </div>
+                } @else {
+                  <div class="sim-progress-info">
+                    <i class="pi pi-clock" style="color: var(--ink-4);"></i>
+                    <span style="color: var(--ink-4);">Wartet auf Start</span>
+                  </div>
+                }
+              </div>
+              <span class="sim-time">{{ sim.created_at | relativeTime }}</span>
             </div>
-            <span style="font-size: 12.5px; color: var(--ink-3); white-space: nowrap;">
-              {{ sim.created_at | relativeTime }}
-            </span>
           </div>
 
           <!-- Delete (hover) -->
@@ -255,11 +258,12 @@
 </div>
 
 <style>
+  /* ---- Filter Bar ---- */
   .filter-bar {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     flex-wrap: wrap;
   }
   .search-input {
@@ -274,62 +278,255 @@
     top: 50%;
     transform: translateY(-50%);
     color: var(--ink-4);
-    font-size: 13px;
+    font-size: 14px;
     pointer-events: none;
   }
   .status-pills {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     flex-wrap: wrap;
   }
   .pill {
-    padding: 8px 14px;
-    background: transparent;
+    padding: 9px 16px;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
     color: var(--ink-3);
     cursor: pointer;
-    transition: all 140ms ease;
+    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
     font-family: var(--font-sans);
   }
   .pill:hover {
-    background: var(--surface-2);
+    background: var(--surface-3);
     color: var(--ink);
     border-color: var(--border-strong);
+    transform: translateY(-1px);
   }
   .pill-active {
     background: var(--primary) !important;
     color: #fff !important;
-    border-color: rgba(45, 125, 255, 0.5) !important;
-    box-shadow: 0 0 12px rgba(45, 125, 255, 0.35);
+    border-color: var(--primary) !important;
+    box-shadow: 0 2px 8px rgba(42, 108, 184, 0.25);
   }
   .pill-active:hover {
     background: var(--primary-d) !important;
-    border-color: var(--primary-d) !important;
+    transform: translateY(-1px);
   }
 
-  .sim-card .sim-title {
-    transition: color 140ms ease;
+  /* ---- Sim Card ---- */
+  .sim-card {
+    border-radius: var(--radius-xl) !important;
+    overflow: hidden;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 300ms ease,
+                border-color 300ms ease !important;
+  }
+  .sim-card:hover {
+    transform: translateY(-4px) !important;
+  }
+  .sim-card-body {
+    padding: 24px 24px 20px;
+  }
+
+  /* Status accent bar at top of card */
+  .sim-accent {
+    height: 4px;
+    background: var(--border);
+    transition: background 300ms ease;
+  }
+  .accent-running {
+    background: linear-gradient(90deg, var(--warning), var(--threadit), var(--warning));
+    background-size: 200% 100%;
+    animation: accent-flow 2s linear infinite;
+  }
+  .accent-completed { background: var(--success); }
+  .accent-failed { background: var(--danger); }
+  .accent-research {
+    background: linear-gradient(90deg, var(--primary), var(--cyan), var(--primary));
+    background-size: 200% 100%;
+    animation: accent-flow 3s linear infinite;
+  }
+  @keyframes accent-flow {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+  }
+
+  /* Running card gets subtle animated border */
+  .sim-running {
+    border-color: rgba(192, 123, 26, 0.2) !important;
+  }
+  .sim-completed {
+    border-color: rgba(45, 134, 89, 0.15) !important;
+  }
+  .sim-failed {
+    border-color: rgba(184, 58, 42, 0.15) !important;
+  }
+  .sim-research-done {
+    border-color: rgba(42, 108, 184, 0.2) !important;
+  }
+
+  /* ---- Status Pill ---- */
+  .sim-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .status-running     { background: rgba(192,123,26,0.12); color: var(--threadit); }
+  .status-researching { background: rgba(192,123,26,0.12); color: var(--threadit); }
+  .status-completed   { background: rgba(45,134,89,0.12); color: var(--success); }
+  .status-failed      { background: rgba(184,58,42,0.12); color: var(--danger); }
+  .status-pending     { background: var(--surface-3); color: var(--ink-3); }
+  .status-research-done { background: rgba(42,108,184,0.12); color: var(--primary); }
+
+  .status-pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--threadit);
+    animation: pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  .sim-id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-4);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---- Title ---- */
+  .sim-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    letter-spacing: -0.01em;
+    transition: color 200ms ease;
   }
   .sim-card:hover .sim-title {
     color: var(--primary);
   }
 
+  /* ---- Description ---- */
+  .sim-desc {
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 44px;
+  }
+
+  /* ---- Meta tags ---- */
+  .sim-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .sim-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: var(--surface-3);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-3);
+
+    i { font-size: 10px; }
+  }
+
+  /* ---- Footer ---- */
+  .sim-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .sim-progress-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+
+    i { font-size: 14px; }
+  }
+  .sim-time {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Running progress */
+  .sim-running-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sim-running-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .sim-running-day {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .sim-running-pct {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--threadit);
+  }
+  .sim-running-sub {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--ink-3);
+
+    i { font-size: 11px; }
+  }
+
+  /* ---- Delete ---- */
   .delete-btn {
     position: absolute;
-    top: 16px;
+    top: 20px;
     right: 16px;
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
     padding: 0;
     background: var(--surface);
     border: 1px solid var(--border);
-    color: var(--ink-3);
+    border-radius: var(--radius) !important;
+    color: var(--ink-4);
     opacity: 0;
-    transition: all 140ms ease;
+    transition: all 200ms ease;
+    z-index: 2;
   }
   .sim-card:hover .delete-btn {
     opacity: 1;
@@ -338,5 +535,6 @@
     background: var(--danger-l);
     color: var(--danger);
     border-color: var(--danger);
+    transform: scale(1.08);
   }
 </style>

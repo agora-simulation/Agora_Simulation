@@ -17,7 +17,7 @@ import anthropic
 from app.config import settings
 from app.llm.provider import ChatMessage, LLMProvider, Tier, UserBlock
 
-logger = logging.getLogger("simulator.llm.anthropic")
+logger = logging.getLogger("agora.llm.anthropic")
 
 _RETRYABLE = (
     anthropic.RateLimitError,

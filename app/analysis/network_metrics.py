@@ -18,7 +18,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models import Persona, Simulation
 
-logger = logging.getLogger("simulator.network")
+logger = logging.getLogger("agora.network")
 
 try:
     import networkx as nx

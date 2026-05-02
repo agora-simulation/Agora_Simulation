@@ -7,7 +7,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-logger = logging.getLogger("simulator.research.web_search")
+logger = logging.getLogger("agora.research.web_search")
 
 MAX_QUERIES = 10
 RESULTS_PER_QUERY = 5

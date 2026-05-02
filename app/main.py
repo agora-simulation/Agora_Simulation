@@ -1,9 +1,13 @@
 import logging
+import os
 import time as _time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.routers import simulations, personas, posts, analysis
@@ -14,16 +18,16 @@ from app.routers import export
 from app.routers import providers
 from app.auth import verify_api_key
 from app.database import get_db
-from app.middleware.logging import RequestLoggingMiddleware, SimulatorFormatter
+from app.middleware.logging import RequestLoggingMiddleware, AgoraFormatter
 from app.middleware.errors import register_exception_handlers
 
 _APP_START = _time.time()
 
 
 def _configure_logging() -> None:
-    """Set up root logger with the project's SimulatorFormatter."""
+    """Set up root logger with the project's AgoraFormatter."""
     handler = logging.StreamHandler()
-    handler.setFormatter(SimulatorFormatter())
+    handler.setFormatter(AgoraFormatter())
     logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
 
 
@@ -142,7 +146,16 @@ app.include_router(
 
 @app.get("/", tags=["system"])
 async def root():
-    return {"status": "ok", "service": "Soziale Simulations-Engine", "version": "0.1.0"}
+    # Wenn Frontend gebaut ist → index.html liefern
+    index = Path(__file__).resolve().parent.parent / "static" / "index.html"
+    if index.is_file():
+        return FileResponse(index)
+    return {"status": "ok", "service": "Agora Simulations-Engine", "version": "0.1.0"}
+
+
+@app.get("/api/status", tags=["system"])
+async def api_status():
+    return {"status": "ok", "service": "Agora Simulations-Engine", "version": "0.1.0"}
 
 
 @app.get("/health", tags=["system"])
@@ -159,6 +172,23 @@ async def health(db: AsyncSession = Depends(get_db)):
         "db": "ok" if db_ok else "error",
         "uptime_seconds": int(_time.time() - _APP_START),
     }
+
+
+# --- Static Frontend (Angular SPA) ---
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+if _STATIC_DIR.is_dir():
+    # Angular Assets (JS, CSS, Icons etc.) — served unter /static/
+    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets" if (_STATIC_DIR / "assets").is_dir() else _STATIC_DIR), name="assets")
+
+    # SPA Fallback: Alle nicht-API-Routen → index.html (Angular Router übernimmt)
+    @app.get("/{path:path}", tags=["system"], include_in_schema=False)
+    async def spa_fallback(path: str):
+        # API-Pfade nicht abfangen
+        file_path = _STATIC_DIR / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(_STATIC_DIR / "index.html")
 
 
 @app.get("/metrics", tags=["system"], dependencies=[Depends(verify_api_key)])

@@ -39,7 +39,7 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
 
   /* Typewriter */
   typedText = signal('');
-  readonly fullText = 'Marktforschung ohne eine einzige echte Befragung.';
+  readonly fullText = 'Marktforschung — ohne eine einzige echte Befragung.';
   private typeTimer: any;
 
   /* Tilt cards */

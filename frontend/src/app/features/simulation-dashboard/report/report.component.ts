@@ -158,6 +158,8 @@ export class ReportComponent implements OnInit {
     { key: 'influence_network', label: 'Influence-Netzwerk', icon: 'pi-share-alt' },
     { key: 'platform_dynamics', label: 'Plattform-Dynamik', icon: 'pi-desktop' },
     { key: 'network_evolution', label: 'Netzwerk-Evolution', icon: 'pi-sitemap' },
+    { key: 'confidence_assessment', label: 'Konfidenz-Bewertung', icon: 'pi-verified' },
+    { key: 'methodology_limitations', label: 'Methodische Grenzen', icon: 'pi-info-circle' },
   ];
 
   private _parseSections(markdown: string): ReportSubSection[] {

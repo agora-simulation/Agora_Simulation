@@ -17,7 +17,7 @@ import random as _random
 from app.llm import LLMProvider, get_provider
 from app.llm.resolver import ResolvedProvider
 
-logger = logging.getLogger("simulator.persona_generator")
+logger = logging.getLogger("agora.persona_generator")
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ DACH_EDUCATION_DISTRIBUTION = {
 
 MAX_CONCURRENT_ENRICH = 10  # Parallele Enrichment-Calls
 MAX_CONCURRENT_SKELETON = 10  # Parallele Skelett-Calls
-SKELETON_BATCH_SIZE = 5     # Max Personas pro Skelett-Call — GPT-5 schafft nicht mehr
+SKELETON_BATCH_SIZE = 3     # Max Personas pro Skelett-Call — GPT-5 ist extrem verbose
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +149,8 @@ async def _generate_skeletons(
     )
     # ~50 Tokens pro Persona + Buffer
     # ~120 Tokens pro Skelett (GPT-5 ist verbose) + Buffer
-    max_tokens = max(4096, persona_count * 150 + 1500)
+    # GPT-5 braucht ~200-300 Tokens pro Skelett (extrem verbose)
+    max_tokens = max(8192, persona_count * 300 + 2000)
 
     try:
         result = await provider.call_tool(
@@ -215,11 +216,18 @@ ENRICH_TOOL_SCHEMA = {
 }
 
 ENRICH_SYSTEM_PROMPT = """Du bist Psychologe und Gesellschaftsforscher.
-Erstelle eine realistische, EINZIGARTIGE Persönlichkeit für die beschriebene Person.
-Nutze Big-Five-Persönlichkeitsmodell (0.0-1.0). Sei spezifisch und individuell.
-Skeptiker müssen KLAR ablehnend sein — keine halbherzigen Skeptiker.
-WICHTIG: Halte dich KURZ. personality = 2-3 Sätze. communication_style = 1 Satz. initial_opinion = 1 Satz.
-values = max 3-4 Wörter pro Wert. Keine langen Erklärungen."""
+Erstelle eine realistische, EINZIGARTIGE Persönlichkeit. Jede Person muss sich deutlich von anderen unterscheiden.
+
+DIVERSITÄTS-REGELN:
+- personality: 2-3 Sätze, die DIESE Person unverwechselbar machen. Keine generischen Phrasen.
+- communication_style: 1 Satz. Variiere stark: emotional/sachlich/provokant/zurückhaltend/akademisch/umgangssprachlich.
+- initial_opinion: 1 Satz. Skeptiker = KLAR ablehnend mit konkretem Grund. Befürworter = spezifischer Enthusiasmus, nicht "offen für Neues".
+- values: 3-5 SPEZIFISCHE Werte (nicht "Pragmatismus" oder "Innovation" — sondern z.B. "Bodenschutz", "Familienbetrieb erhalten", "Kostenwahrheit").
+- Big Five: Extreme nutzen! Nicht alles bei 0.4-0.6. Introvertierte (E<0.2), Konfrontative (A<0.2), Neurotische (N>0.8) sind realistisch.
+- political_leaning: Volle Bandbreite, nicht nur "mitte".
+- media_consumption: Realistisch zur Person (68-Jährige liest Tageszeitung, nicht TikTok).
+
+HALTE DICH KURZ. Keine langen Erklärungen."""
 
 
 async def _enrich_persona(
@@ -266,7 +274,7 @@ politische Ausrichtung, Medienkonsum und Big-Five-Traits. Nutze das enrich_perso
                 tool_name=ENRICH_TOOL_NAME,
                 tool_description=ENRICH_TOOL_DESC,
                 tool_schema=ENRICH_TOOL_SCHEMA,
-                max_tokens=2048,
+                max_tokens=4096,
                 model=model,
             )
             # Skelett + Enrichment zusammenführen

@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-logger = logging.getLogger("simulator.errors")
+logger = logging.getLogger("agora.errors")
 
 
 def _get_request_id(request: Request) -> str:

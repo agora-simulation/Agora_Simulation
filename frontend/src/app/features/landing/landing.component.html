@@ -37,19 +37,24 @@
     <!-- Badge -->
     <div class="hero-badge" [class.badge-in]="titleReady()">
       <span class="hb-dot"></span>
-      KI-gestützte Sozialforschung
+      Der digitale Marktplatz der Meinungen
     </div>
 
     <!-- Split-letter animated title -->
     <h1 class="hero-title" [class.title-in]="titleReady()">
       <span class="hero-word-wrap">
-        @for (char of 'Virtuelle'; track $index) {
+        @for (char of 'Dein'; track $index) {
           <span class="hero-char" [style.--ci]="$index">{{ char }}</span>
         }
       </span>
       <span class="hero-word-wrap">
-        @for (char of 'Gesellschaften.'; track $index) {
-          <span class="hero-char" [style.--ci]="$index + 10">{{ char }}</span>
+        @for (char of 'virtueller'; track $index) {
+          <span class="hero-char" [style.--ci]="$index + 5">{{ char }}</span>
+        }
+      </span>
+      <span class="hero-word-wrap">
+        @for (char of 'Marktplatz.'; track $index) {
+          <span class="hero-char" [style.--ci]="$index + 15">{{ char }}</span>
         }
       </span>
       <br>
@@ -59,7 +64,7 @@
         }
       </span>
       <span class="hero-word-wrap accent-line">
-        @for (char of 'Erkenntnisse.'; track $index) {
+        @for (char of 'Stimmen.'; track $index) {
           <span class="hero-char char-accent" [style.--ci]="$index + 32">{{ char }}</span>
         }
       </span>
@@ -67,8 +72,8 @@
 
     <!-- Subtitle with typewriter -->
     <p class="hero-sub" [class.sub-in]="titleReady()">
-      Mitra simuliert hunderte KI-Personas, die auf dein Produkt reagieren —
-      mit echten Meinungen, sozialen Netzwerken und messbarem Sentiment.<br>
+      Wie auf der antiken Agora versammeln sich hier hunderte Stimmen —
+      KI-Personas debattieren, urteilen und reagieren auf dein Produkt.<br>
       <span class="typewriter">{{ typedText() }}<span class="cursor" [class.cursor-blink]="typedText().length >= fullText.length">|</span></span>
     </p>
 
@@ -81,7 +86,7 @@
          [style.transform]="'translate(' + ctaMagnetX() + 'px,' + ctaMagnetY() + 'px)'">
         <span class="btn-cta-bg"></span>
         <span class="btn-cta-text">
-          <span>Jetzt starten</span>
+          <span>Agora betreten</span>
           <i class="pi pi-arrow-right"></i>
         </span>
       </a>
@@ -135,6 +140,87 @@
     }
   </div>
 </div>
+
+<!-- ============================================================
+     AGORA CONCEPT — the marketplace metaphor
+     ============================================================ -->
+<section class="section agora-concept" id="concept">
+  <div class="section-inner">
+    <div class="agora-split reveal">
+      <!-- Left: The metaphor -->
+      <div class="agora-text">
+        <span class="agora-greek" aria-hidden="true">ἀγορά</span>
+        <h2 class="agora-headline">
+          Wo sich<br>Stimmen treffen
+        </h2>
+        <p class="agora-desc">
+          Die antike <strong>Agora</strong> war der Ort, an dem eine Gesellschaft zusammenkam —
+          zum Handeln, Debattieren, Urteilen. Händler priesen ihre Waren an,
+          Bürger diskutierten, Meinungen formten sich im öffentlichen Raum.
+        </p>
+        <p class="agora-desc">
+          <strong>Agora</strong> erweckt dieses Konzept digital zum Leben:
+          Hunderte KI-Personas versammeln sich auf einem virtuellen Marktplatz,
+          reagieren auf dein Produkt — mit der ganzen Komplexität echter menschlicher Meinungen.
+        </p>
+        <div class="agora-pillars">
+          <div class="agora-pillar">
+            <span class="ap-icon"><i class="pi pi-comments"></i></span>
+            <span class="ap-label">Debatte</span>
+          </div>
+          <div class="agora-pillar">
+            <span class="ap-icon ap-icon-teal"><i class="pi pi-users"></i></span>
+            <span class="ap-label">Gesellschaft</span>
+          </div>
+          <div class="agora-pillar">
+            <span class="ap-icon ap-icon-amber"><i class="pi pi-chart-line"></i></span>
+            <span class="ap-label">Erkenntnis</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Animated agora visualization -->
+      <div class="agora-visual" aria-hidden="true">
+        <!-- Central "market square" circle -->
+        <div class="agora-circle">
+          <div class="agora-ring agora-ring-1"></div>
+          <div class="agora-ring agora-ring-2"></div>
+          <div class="agora-ring agora-ring-3"></div>
+          <div class="agora-center-mark">A</div>
+
+          <!-- Personas orbiting -->
+          @for (p of [
+            { letter: 'K', color: 'var(--primary)', orbit: 1, angle: 0 },
+            { letter: 'S', color: 'var(--cyan)',    orbit: 1, angle: 72 },
+            { letter: 'M', color: 'var(--purple)',  orbit: 1, angle: 144 },
+            { letter: 'A', color: 'var(--threadit)',orbit: 1, angle: 216 },
+            { letter: 'L', color: 'var(--success)', orbit: 1, angle: 288 },
+            { letter: 'T', color: 'var(--primary)', orbit: 2, angle: 30 },
+            { letter: 'J', color: 'var(--danger)',  orbit: 2, angle: 120 },
+            { letter: 'R', color: 'var(--cyan)',    orbit: 2, angle: 210 },
+            { letter: 'N', color: 'var(--purple)',  orbit: 2, angle: 300 },
+            { letter: 'E', color: 'var(--threadit)',orbit: 3, angle: 60 },
+            { letter: 'P', color: 'var(--success)', orbit: 3, angle: 180 },
+            { letter: 'D', color: 'var(--primary)', orbit: 3, angle: 300 }
+          ]; track p.letter) {
+            <div class="orbit-persona"
+                 [style.--orbit]="p.orbit"
+                 [style.--angle]="p.angle + 'deg'"
+                 [style.background]="p.color">
+              {{ p.letter }}
+            </div>
+          }
+        </div>
+
+        <!-- Floating speech snippets -->
+        <div class="agora-speech as-1">„Preis stimmt!"</div>
+        <div class="agora-speech as-2">„Brauche mehr Info"</div>
+        <div class="agora-speech as-3">„Genial!"</div>
+        <div class="agora-speech as-4">„Skeptisch..."</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ============================================================
      FEATURES — Bento Grid with live mini-demos
@@ -322,7 +408,7 @@
       <div class="hw-body">
         <span class="hw-step-badge hw-step-blue">Schritt 1</span>
         <h3>Beschreibe dein Produkt</h3>
-        <p>Gib eine Produktbeschreibung, Zielmarkt und Branche ein. Mitra recherchiert optional aktuelle Marktdaten per Web-Suche — vollautomatisch.</p>
+        <p>Gib eine Produktbeschreibung, Zielmarkt und Branche ein. Agora recherchiert optional aktuelle Marktdaten per Web-Suche — vollautomatisch.</p>
         <ul class="hw-checklist">
           <li><i class="pi pi-check"></i> Produktname & Beschreibung</li>
           <li><i class="pi pi-check"></i> Zielmarkt & Branche</li>
@@ -518,11 +604,11 @@
         <i class="pi pi-play-circle"></i>
       </div>
       <h2>
-        <span class="finale-line-1">Bereit, deine erste</span><br>
-        <span class="finale-line-2">virtuelle Gesellschaft</span><br>
-        <span class="finale-line-3">zu erschaffen?</span>
+        <span class="finale-line-1">Bereit, deinen eigenen</span><br>
+        <span class="finale-line-2">Marktplatz</span><br>
+        <span class="finale-line-3">zu eröffnen?</span>
       </h2>
-      <p>Keine Umfragen. Keine Wartezeiten. Keine echten Daten nötig.<br>Starte jetzt — die ersten Personas warten.</p>
+      <p>Keine Umfragen. Keine Wartezeiten. Keine echten Daten nötig.<br>Betritt die Agora — hunderte Stimmen warten auf dein Produkt.</p>
 
       <a routerLink="/login"
          class="btn-finale"
@@ -532,7 +618,7 @@
         <span class="btn-finale-ripple"></span>
         <span class="btn-finale-border"></span>
         <span class="btn-finale-text">
-          <span>Gesellschaft erschaffen</span>
+          <span>Agora betreten</span>
           <i class="pi pi-arrow-right"></i>
         </span>
       </a>
@@ -552,12 +638,12 @@
 <footer class="landing-footer">
   <div class="footer-inner">
     <div class="footer-brand">
-      <div class="footer-mark">M</div>
+      <div class="footer-mark">A</div>
       <div>
-        <div class="footer-name">Mitra</div>
+        <div class="footer-name">Agora</div>
         <div class="footer-sub">Simulations-Engine</div>
       </div>
     </div>
-    <p class="footer-copy">&copy; 2026 Mitra · DSGVO-nativ · Europäisch</p>
+    <p class="footer-copy">&copy; 2026 Agora · DSGVO-nativ · Europäisch</p>
   </div>
 </footer>

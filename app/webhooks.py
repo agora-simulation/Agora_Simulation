@@ -7,7 +7,7 @@ from uuid import UUID
 
 import httpx
 
-logger = logging.getLogger("simulator.webhooks")
+logger = logging.getLogger("agora.webhooks")
 
 WEBHOOK_TIMEOUT = 10.0  # Sekunden
 

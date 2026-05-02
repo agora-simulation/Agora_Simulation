@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     openai_model_smart: str = "gpt-5"
     anthropic_model_fast: str = "claude-haiku-4-5-20251001"
     anthropic_model_smart: str = "claude-sonnet-4-6"
-    database_url: str = "postgresql://sim_user:sim_pass@db:5432/simulation"
+    database_url: str = "postgresql://agora_user:agora_pass@db:5432/agora"
     default_tick_duration_days: int = 15
     default_agent_concurrent_calls: int = 10
     max_concurrent_calls: int = 20

@@ -8,7 +8,7 @@ from typing import Callable, TypeVar
 
 import anthropic
 
-logger = logging.getLogger("simulator.retry")
+logger = logging.getLogger("agora.retry")
 
 T = TypeVar("T")
 

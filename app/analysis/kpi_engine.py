@@ -28,7 +28,7 @@ from app.models import (
     SimulationTick,
 )
 
-logger = logging.getLogger("simulator.kpi")
+logger = logging.getLogger("agora.kpi")
 
 
 def _opinion_to_nps_category(opinion_dims: dict) -> str:

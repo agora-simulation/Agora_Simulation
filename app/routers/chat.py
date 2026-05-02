@@ -14,7 +14,7 @@ from app.models.persona import Persona
 from app.models.simulation import Simulation
 from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage
 
-logger = logging.getLogger("simulator.chat")
+logger = logging.getLogger("agora.chat")
 router = APIRouter()
 
 

@@ -18,7 +18,7 @@ from app.llm.factory import get_provider, get_provider_by_registry
 from app.llm.provider import LLMProvider
 from app.models.provider import LLMProviderRegistry
 
-logger = logging.getLogger("simulator.llm.resolver")
+logger = logging.getLogger("agora.llm.resolver")
 
 Phase = Literal["persona_generation", "agent_actions", "state_updates", "analysis_reports"]
 

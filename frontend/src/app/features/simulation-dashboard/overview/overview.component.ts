@@ -125,12 +125,39 @@ export class OverviewComponent implements OnInit, OnDestroy {
         const tick = sim.current_tick;
         const total = sim.total_ticks;
         if (tick === 0) return 'Personas werden generiert...';
-        return `Tag ${tick} von ${total} wird simuliert — Personas interagieren`;
+        const est = this.estimatedRemaining();
+        const suffix = est ? ` — ca. ${est} verbleibend` : '';
+        return `Tag ${tick} von ${total} wird simuliert${suffix}`;
       }
       case 'completed': return '';
       case 'failed': return 'Simulation fehlgeschlagen';
       default: return '';
     }
+  }
+
+  estimatedRemaining(): string {
+    const t = this.ticks();
+    const sim = this.simulation();
+    if (!sim || t.length < 2) return '';
+
+    // Durchschnittliche Dauer pro Tick berechnen
+    const timestamps = t.map(tick => new Date(tick.created_at).getTime()).sort((a, b) => a - b);
+    const diffs: number[] = [];
+    for (let i = 1; i < timestamps.length; i++) {
+      diffs.push(timestamps[i] - timestamps[i - 1]);
+    }
+    if (diffs.length === 0) return '';
+
+    const avgMs = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+    const remainingTicks = sim.total_ticks - sim.current_tick;
+    const remainingMs = avgMs * remainingTicks;
+    const remainingMin = Math.ceil(remainingMs / 60000);
+
+    if (remainingMin < 1) return '< 1 Min';
+    if (remainingMin < 60) return `${remainingMin} Min`;
+    const h = Math.floor(remainingMin / 60);
+    const m = remainingMin % 60;
+    return m === 0 ? `${h} Std` : `${h} Std ${m} Min`;
   }
 
   isSimulationActive(): boolean {
