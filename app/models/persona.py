@@ -18,7 +18,7 @@ class Persona(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     simulation_id = Column(UUID(as_uuid=True), ForeignKey("simulations.id"), nullable=False)
     name = Column(String(255), nullable=False)
-    age = Column(String(10))
+    age = Column(String(50))
     location = Column(String(255))       # z.B. "München", "Berlin", "Wien"
     occupation = Column(String(255))
     personality = Column(Text)           # Ausführliche Persönlichkeitsbeschreibung
@@ -26,8 +26,8 @@ class Persona(Base):
     communication_style = Column(Text)   # Wie schreibt/spricht diese Person?
     initial_opinion = Column(Text)       # Erste Haltung zum Produkt
     is_skeptic = Column(Boolean, default=False)
-    persona_type = Column(String(30), default="individual")  # individual, organization, institution, politician
-    entity_subtype = Column(String(100))  # z.B. "tech_startup", "forschungsinstitut"
+    persona_type = Column(String(50), default="individual")  # individual, organization, institution, politician
+    entity_subtype = Column(String(200))  # z.B. "tech_startup", "forschungsinstitut"
     social_connections = Column(JSON, default=[])  # UUIDs verbundener Personas
 
     # Modul 1: Langzeitgedächtnis
@@ -36,9 +36,9 @@ class Persona(Base):
 
     # Modul 3: Erweiterte Felder — Demografie
     education_level = Column(String(50))    # "Hauptschule", "Ausbildung", "Bachelor", "Master", "Promotion"
-    income_bracket = Column(String(30))     # "niedrig", "mittel", "hoch", "sehr_hoch"
-    family_status = Column(String(30))      # "single", "partnerschaft", "familie_klein", etc.
-    political_leaning = Column(String(30))  # "links", "mitte", "rechts", "unpolitisch", etc.
+    income_bracket = Column(String(50))     # "niedrig", "mittel", "hoch", "sehr_hoch"
+    family_status = Column(String(100))     # "single", "partnerschaft", "familie_klein", etc.
+    political_leaning = Column(String(100)) # "links", "mitte", "rechts", "unpolitisch", etc.
     media_consumption = Column(JSON, default=[])  # ["social_media", "qualitaetspresse", ...]
     tech_affinity = Column(Float, default=0.5)    # 0.0 (technikfern) bis 1.0 (early adopter)
 
