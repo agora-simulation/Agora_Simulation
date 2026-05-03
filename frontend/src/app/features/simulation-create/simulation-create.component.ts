@@ -224,10 +224,10 @@ export class SimulationCreateComponent {
     return this.name().trim().length > 0 && this.productDescription().trim().length > 10;
   }
 
-  /** API-Kosten geschätzt auf Basis von Token-Verbrauch und aktuellen Preisen. */
+  /** API-Kosten geschätzt auf Basis von Token-Verbrauch und aktuellen Preisen.
+   *  Aktualisiert für Hybrid-Persona-Generierung + MarketContext + erweiterte Prompts. */
   estimatedCost(): string {
     const p = this.llmProvider();
-    // Preise pro 1M Tokens: [input, output]
     const prices: Record<string, { fast: [number, number]; smart: [number, number] }> = {
       anthropic: { fast: [1.00, 5.00], smart: [3.00, 15.00] },
       openai:    { fast: [0.75, 4.50], smart: [2.50, 15.00] },
@@ -236,30 +236,51 @@ export class SimulationCreateComponent {
     const pr = prices[p] || prices['openai'];
     const personas = this.personaCount();
     const ticks = this.tickCount();
+    const isDeep = this.researchMode() === 'deep';
 
-    // Persona-Gen: ~800 input + 350 output tokens pro Persona (smart)
-    const genCost = personas * (800 * pr.smart[0] + 350 * pr.smart[1]) / 1_000_000;
-    // Tick-Aktionen: ~600 input + 200 output pro Persona*Tick (fast)
-    const actionCost = personas * ticks * (600 * pr.fast[0] + 200 * pr.fast[1]) / 1_000_000;
-    // State-Updates: ~400 input + 100 output pro Persona*Tick (fast)
-    const stateCost = personas * ticks * (400 * pr.fast[0] + 100 * pr.fast[1]) / 1_000_000;
-    // Report: ~8000 input + 4000 output (smart, einmalig)
-    const reportCost = (8000 * pr.smart[0] + 4000 * pr.smart[1]) / 1_000_000;
+    // Persona-Gen (Hybrid): 2 Smart-Calls pro Persona (Skelett ~800+500 + Enrichment ~1500+800)
+    const genCost = personas * (2500 * pr.smart[0] + 1500 * pr.smart[1]) / 1_000_000;
+    // Tick-Aktionen: ~1200 input + 400 output pro Persona*Tick (fast, mit MarketContext)
+    const actionCost = personas * ticks * (1200 * pr.fast[0] + 400 * pr.fast[1]) / 1_000_000;
+    // State-Updates: ~800 input + 300 output pro Persona*Tick (fast)
+    const stateCost = personas * ticks * (800 * pr.fast[0] + 300 * pr.fast[1]) / 1_000_000;
+    // Report: ~30000 input + 12000 output (smart, mit allen Posts + MarketContext)
+    const reportCost = (30000 * pr.smart[0] + 12000 * pr.smart[1]) / 1_000_000;
+    // Deep Mode: Recherche (~3 Calls Smart, ~5000 input + 3000 output)
+    const researchCost = isDeep ? (5000 * pr.smart[0] + 3000 * pr.smart[1]) / 1_000_000 : 0;
 
-    return (genCost + actionCost + stateCost + reportCost).toFixed(2);
+    return (genCost + actionCost + stateCost + reportCost + researchCost).toFixed(2);
   }
 
   estimatedMinutes(): number {
-    // Parallelisiert: ~180 Persona-Aktionen pro Minute realistisch.
-    const actionMinutes = Math.ceil(this.personaCount() * this.tickCount() / 180);
-    // Persona-Gen: ~25 pro Batch, 4 parallel, ~25s pro Batch.
-    const genMinutes = Math.ceil(this.personaCount() / (25 * 4) * 0.5);
-    return Math.max(2, actionMinutes + genMinutes + 1);
+    const personas = this.personaCount();
+    const ticks = this.tickCount();
+    const isDeep = this.researchMode() === 'deep';
+
+    // Persona-Gen (Hybrid): Skelett-Batches (3er, 10 parallel) + Enrichment (10 parallel)
+    // ~3s pro Skelett-Batch, ~4s pro Enrichment-Call
+    const skeletonBatches = Math.ceil(personas / 3);
+    const skeletonMinutes = Math.ceil(skeletonBatches / 10 * 3 / 60);
+    const enrichMinutes = Math.ceil(personas / 10 * 4 / 60);
+    const genMinutes = skeletonMinutes + enrichMinutes;
+
+    // Tick-Loop: Pro Tick 2 Phasen (Actions + State), je ~5-8s pro Call, 10 parallel
+    // GPT-5 ist langsam (~6s pro Call), Actions + State = 2 Runden pro Persona
+    const secondsPerTick = Math.ceil(personas / 10 * 6 * 2);
+    const tickMinutes = Math.ceil(ticks * secondsPerTick / 60);
+
+    // Deep Mode: Recherche (~5 Min) + Review-Pause (nicht gezählt)
+    const researchMinutes = isDeep ? 5 : 0;
+
+    // Report: ~3-5 Min
+    const reportMinutes = 4;
+
+    return Math.max(3, genMinutes + tickMinutes + researchMinutes + reportMinutes);
   }
 
   /** Warnt ab Sims, die voraussichtlich >60 Min laufen. */
   isLongRun(): boolean {
-    return this.estimatedMinutes() >= 60;
+    return this.estimatedMinutes() >= 30;
   }
 
   durationLabel(): string {

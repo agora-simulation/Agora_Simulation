@@ -284,11 +284,15 @@ _PRICING: dict[str, dict[str, float]] = {
 }
 
 # Durchschnittliche Token-Schätzungen pro Phase
+# Token-Schätzungen: Aktualisiert für Hybrid-Generierung + MarketContext
+# Persona-Gen = 2 Smart-Calls pro Persona (Skelett + Enrichment)
+# Agent/State = Fast-Calls mit erweitertem Prompt (MarketContext ~500 Tokens extra)
+# Report = Smart-Call mit allen Posts + Personas + MarketContext
 _TOKEN_ESTIMATES: dict[str, dict] = {
-    "persona_generation": {"input": 800,  "output": 350, "per": "persona"},
-    "agent_actions":      {"input": 600,  "output": 200, "per": "persona_tick"},
-    "state_updates":      {"input": 400,  "output": 100, "per": "persona_tick"},
-    "analysis_reports":   {"input": 8000, "output": 4000, "per": "simulation"},
+    "persona_generation": {"input": 2500, "output": 1500, "per": "persona"},
+    "agent_actions":      {"input": 1200, "output": 400,  "per": "persona_tick"},
+    "state_updates":      {"input": 800,  "output": 300,  "per": "persona_tick"},
+    "analysis_reports":   {"input": 30000,"output": 12000,"per": "simulation"},
 }
 
 
