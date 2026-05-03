@@ -44,6 +44,51 @@ Market research is expensive, slow, and often inconclusive. Focus groups cost fi
   <img src="docs/images/screenshot-dashboard.png" alt="Agora Dashboard" width="800">
 </p>
 
+### Screenshots
+
+<details>
+<summary><strong>Overview — Live KPIs & Market Context</strong></summary>
+<p>
+  <img src="docs/images/screenshot-overview-1.png" alt="Overview with Market Context" width="800">
+  <img src="docs/images/screenshot-overview-2.png" alt="KPI Cards" width="800">
+  <img src="docs/images/screenshot-overview-4.png" alt="Mood Distribution" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Personas — 200 AI Agents with Individual Profiles</strong></summary>
+<p>
+  <img src="docs/images/screenshot-personas.png" alt="Persona List & Detail" width="800">
+  <img src="docs/images/screenshot-personas-2.png" alt="Persona Radar Chart" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Network — Force-Directed Interaction Graph</strong></summary>
+<p>
+  <img src="docs/images/screenshot-network-2.png" alt="Network Graph" width="800">
+  <img src="docs/images/screenshot-network-3.png" alt="Network Detail" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Sentiment & Influence</strong></summary>
+<p>
+  <img src="docs/images/screenshot-sentiment-1.png" alt="Platform Distribution & Activity" width="800">
+  <img src="docs/images/screenshot-sentiment-2.png" alt="Sentiment Trajectory" width="800">
+  <img src="docs/images/screenshot-influence-1.png" alt="Influence Flow" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Analysis Report</strong></summary>
+<p>
+  <img src="docs/images/screenshot-report.png" alt="Report Overview" width="800">
+  <img src="docs/images/screenshot-report-2.png" alt="Report Details" width="800">
+  <img src="docs/images/screenshot-report-3.png" alt="Report Risks" width="800">
+</p>
+</details>
+
 ---
 
 <h2 id="features">Features</h2>
@@ -81,10 +126,6 @@ Market research is expensive, slow, and often inconclusive. Focus groups cost fi
   </tr>
 </table>
 
-<!-- SCREENSHOT: Persona list or Simulation Create -->
-<p align="center">
-  <img src="docs/images/screenshot-personas.png" alt="Agora Personas" width="800">
-</p>
 
 ---
 
@@ -123,10 +164,6 @@ Create Simulation             Describe product, market, industry
 | State Updates | Opinion & mood evolution | Fast (parallel) |
 | Analysis Report | Structured market research report | Smart |
 
-<!-- SCREENSHOT: Report or Network Graph -->
-<p align="center">
-  <img src="docs/images/screenshot-report.png" alt="Agora Report" width="800">
-</p>
 
 ---
 

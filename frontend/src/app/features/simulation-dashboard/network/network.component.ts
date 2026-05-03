@@ -10,8 +10,8 @@ import { SimulationService } from '../../../core/services/simulation.service';
 import { Persona } from '../../../core/models/persona.model';
 import { getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 
-const COLOR_DIM = 'rgba(14,14,12,0.12)';
-const COLOR_EDGE_DIM = 'rgba(14,14,12,0.04)';
+const COLOR_DIM = 'rgba(230,183,113,0.12)';
+const COLOR_EDGE_DIM = 'rgba(230,183,113,0.04)';
 
 @Component({
   selector: 'app-network',
@@ -161,8 +161,8 @@ export class NetworkComponent implements OnInit, OnDestroy {
         x: Math.random() * 100,
         y: Math.random() * 100,
         size,
-        color: persona.is_skeptic ? '#c8321f' : color,
-        baseColor: persona.is_skeptic ? '#c8321f' : color,
+        color: persona.is_skeptic ? '#e05a4a' : color,
+        baseColor: persona.is_skeptic ? '#e05a4a' : color,
       });
     }
 
@@ -174,8 +174,8 @@ export class NetworkComponent implements OnInit, OnDestroy {
           const strength = strengths[targetId] || 1;
           graph.addEdge(persona.id, targetId, {
             size: Math.max(0.5, Math.min(3, strength * 0.3)),
-            color: `rgba(14, 14, 12, ${Math.min(0.55, 0.12 + strength * 0.08)})`,
-            baseColor: `rgba(14, 14, 12, ${Math.min(0.55, 0.12 + strength * 0.08)})`,
+            color: `rgba(230, 183, 113, ${Math.min(0.45, 0.08 + strength * 0.06)})`,
+            baseColor: `rgba(230, 183, 113, ${Math.min(0.45, 0.08 + strength * 0.06)})`,
           });
         }
       }
@@ -191,7 +191,7 @@ export class NetworkComponent implements OnInit, OnDestroy {
       labelFont: "'Inter', system-ui, sans-serif",
       labelSize: 12,
       labelWeight: '500',
-      labelColor: { color: '#0e0e0c' },
+      labelColor: { color: '#f4e8d4' },
     });
 
     // Dynamic node reducer — applies search/filter dimming
@@ -208,14 +208,14 @@ export class NetworkComponent implements OnInit, OnDestroy {
 
       if (skepticOn) {
         if (persona.is_skeptic) {
-          color = '#c8321f';
+          color = '#e05a4a';
         } else {
           dimmed = true;
         }
       }
       if (influencerOn) {
         if (this.isInfluencer(persona)) {
-          color = '#a16207';
+          color = '#e6a040';
         } else {
           dimmed = true;
         }

@@ -180,7 +180,7 @@ import type { PhaseProviderEntry, ProviderCapabilities, ModelCapabilities, Param
     /* Disabled/Locked Fields */
     .field-disabled { opacity: 0.5; }
     .input-locked {
-      background: var(--surface-2, #f5f5f5) !important;
+      background: var(--surface-2, #241c14) !important;
       color: var(--ink-4) !important;
       cursor: not-allowed;
       text-align: center;
@@ -195,7 +195,7 @@ import type { PhaseProviderEntry, ProviderCapabilities, ModelCapabilities, Param
     .tooltip-wrap:hover .tooltip-icon { color: var(--primary); }
     .tooltip-box {
       display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
-      transform: translateX(-50%); background: var(--ink); color: #fff;
+      transform: translateX(-50%); background: var(--surface); color: var(--ink); border: 1px solid var(--border);
       font-size: 11.5px; line-height: 1.5; padding: 8px 12px; border-radius: 6px;
       width: 220px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       pointer-events: none; font-weight: 400;

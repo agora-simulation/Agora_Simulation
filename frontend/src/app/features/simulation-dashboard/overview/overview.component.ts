@@ -307,8 +307,8 @@ export class OverviewComponent implements OnInit, OnDestroy {
           lineStyle: { color: CHART.feedbook, width: 2 },
           itemStyle: { color: CHART.feedbook },
           areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
-            { offset: 0, color: 'rgba(30, 58, 138, 0.15)' },
-            { offset: 1, color: 'rgba(30, 58, 138, 0.02)' },
+            { offset: 0, color: 'rgba(90, 159, 214, 0.15)' },
+            { offset: 1, color: 'rgba(90, 159, 214, 0.02)' },
           ]}},
         },
       ],

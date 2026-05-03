@@ -11,7 +11,7 @@
      ============================================================ -->
 @if (isSimulationActive() || simulation()?.status === 'research_complete') {
   <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); display: flex; align-items: center; gap: 14px;"
-       [style.background]="simulation()?.status === 'research_complete' ? 'linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%)' : 'linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%)'"
+       [style.background]="simulation()?.status === 'research_complete' ? 'linear-gradient(135deg, rgba(90,159,214,0.12) 0%, rgba(165,116,204,0.10) 100%)' : 'linear-gradient(135deg, rgba(230,183,113,0.12) 0%, rgba(230,160,64,0.10) 100%)'"
        [style.border]="simulation()?.status === 'failed' ? '1px solid var(--danger)' : '1px solid transparent'"
        role="status" aria-live="polite">
 
@@ -19,22 +19,22 @@
     @switch (simulation()?.status) {
       @case ('researching') {
         <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
-          <i class="pi pi-search" style="color: #fff; font-size: 16px;"></i>
+          <i class="pi pi-search" style="color: var(--primary-text); font-size: 16px;"></i>
         </div>
       }
       @case ('research_complete') {
         <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center;">
-          <i class="pi pi-check" style="color: #fff; font-size: 16px;"></i>
+          <i class="pi pi-check" style="color: var(--primary-text); font-size: 16px;"></i>
         </div>
       }
       @case ('running') {
-        <div style="width: 36px; height: 36px; border-radius: 50%; background: #d97706; display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
-          <i class="pi pi-cog pi-spin" style="color: #fff; font-size: 16px;"></i>
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--warning); display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
+          <i class="pi pi-cog pi-spin" style="color: var(--primary-text); font-size: 16px;"></i>
         </div>
       }
       @default {
         <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--ink-3); display: flex; align-items: center; justify-content: center; animation: glow-pulse 2s ease-in-out infinite;">
-          <i class="pi pi-clock" style="color: #fff; font-size: 16px;"></i>
+          <i class="pi pi-clock" style="color: var(--primary-text); font-size: 16px;"></i>
         </div>
       }
     }
@@ -46,8 +46,8 @@
       </div>
       @if (simulation()?.status === 'running' && stats()) {
         <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
-          <div style="flex: 1; height: 6px; background: rgba(0,0,0,0.1); border-radius: 999px; overflow: hidden;">
-            <div style="height: 100%; background: #d97706; border-radius: 999px; transition: width 500ms ease;"
+          <div style="flex: 1; height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden;">
+            <div style="height: 100%; background: var(--warning); border-radius: 999px; transition: width 500ms ease;"
                  [style.width.%]="stats()!.progress_pct">
             </div>
           </div>
@@ -61,13 +61,13 @@
 }
 
 @if (simulation()?.status === 'failed') {
-  <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); background: #fef2f2; border: 1px solid #fecaca; display: flex; align-items: center; gap: 14px;">
+  <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); background: var(--danger-l); border: 1px solid rgba(224, 90, 74, 0.25); display: flex; align-items: center; gap: 14px;">
     <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--danger); display: flex; align-items: center; justify-content: center;">
-      <i class="pi pi-times" style="color: #fff; font-size: 16px;"></i>
+      <i class="pi pi-times" style="color: var(--primary-text); font-size: 16px;"></i>
     </div>
     <div>
-      <div style="font-size: 14px; font-weight: 700; color: #991b1b;">Simulation fehlgeschlagen</div>
-      <div style="font-size: 12px; color: #b91c1c; margin-top: 2px;">Prüfe die Server-Logs für Details.</div>
+      <div style="font-size: 14px; font-weight: 700; color: var(--danger);">Simulation fehlgeschlagen</div>
+      <div style="font-size: 12px; color: var(--danger); margin-top: 2px; opacity: 0.85;">Prüfe die Server-Logs für Details.</div>
     </div>
   </div>
 }
@@ -426,7 +426,7 @@
             style="padding: 16px 24px; display: flex; gap: 14px;"
             [style.border-bottom]="last ? 'none' : '1px solid var(--border)'">
           <!-- Avatar -->
-          <div style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 600;"
+          <div style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--bg); font-size: 14px; font-weight: 600;"
                [style.background]="getMoodColor(undefined)"
                aria-hidden="true">
             {{ (post.author_name || '?')[0]?.toUpperCase() }}

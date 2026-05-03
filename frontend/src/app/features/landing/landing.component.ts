@@ -4,7 +4,12 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-interface Dot { x: number; y: number; vx: number; vy: number; r: number; pulse: number; }
+interface NetNode {
+  x: number; y: number; vx: number; vy: number;
+  radius: number; baseAlpha: number; phase: number;
+}
+interface Pulse { x: number; y: number; radius: number; maxRadius: number; speed: number; life: number; }
+interface Spark { from: NetNode; to: NetNode; t: number; speed: number; }
 
 @Component({
   selector: 'app-landing',
@@ -21,12 +26,34 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
   heroSection = viewChild<ElementRef<HTMLElement>>('heroEl');
 
   private ctx!: CanvasRenderingContext2D;
-  private dots: Dot[] = [];
+  private nodes: NetNode[] = [];
+  private pulses: Pulse[] = [];
+  private sparks: Spark[] = [];
   private raf = 0;
   private resizeObs?: ResizeObserver;
   private io?: IntersectionObserver;
-  private mouseX = 0.5;
-  private mouseY = 0.5;
+  private mouseX = -9999;
+  private mouseY = -9999;
+  private mouseActive = false;
+  private canvasW = 0;
+  private canvasH = 0;
+  private lastTime = 0;
+
+  /* Network config */
+  private readonly net = {
+    linkDistance: 150,
+    nodeSpeed: 0.18,
+    pulseChance: 0.0014,
+    sparkChance: 0.0009,
+    mouseRadius: 140,
+    colors: {
+      core:  'rgba(255, 217, 154, ',
+      glow:  'rgba(230, 183, 113, ',
+      line:  'rgba(184, 118, 58, ',
+      pulse: 'rgba(255, 217, 154, ',
+      spark: 'rgba(255, 240, 200, ',
+    },
+  };
 
   /* Counters */
   counterPersonas = signal(0);
@@ -49,19 +76,30 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
   ctaMagnetX = signal(0);
   ctaMagnetY = signal(0);
 
-  /* ---- Mouse tracking for hero gradient ---- */
+  /* ---- Mouse tracking for hero gradient + canvas ---- */
   @HostListener('mousemove', ['$event'])
   onMouseMove(e: MouseEvent) {
-    const w = window.innerWidth, h = window.innerHeight;
-    this.mouseX = e.clientX / w;
-    this.mouseY = e.clientY / h;
-
     // Update hero gradient via CSS custom property
     const hero = this.heroSection()?.nativeElement;
     if (hero) {
       hero.style.setProperty('--mx', `${e.clientX}px`);
       hero.style.setProperty('--my', `${e.clientY}px`);
     }
+    // Update canvas mouse position
+    const el = this.canvas()?.nativeElement;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      this.mouseX = e.clientX - rect.left;
+      this.mouseY = e.clientY - rect.top;
+      this.mouseActive = true;
+    }
+  }
+
+  @HostListener('mouseleave')
+  onMouseLeave() {
+    this.mouseActive = false;
+    this.mouseX = -9999;
+    this.mouseY = -9999;
   }
 
   /* ---- Lifecycle ---- */
@@ -131,110 +169,182 @@ export class LandingComponent implements AfterViewInit, OnDestroy {
     this.ctaMagnetY.set(0);
   }
 
-  /* ---- Canvas constellation ---- */
+  /* ---- Network Canvas (Agora Netzwerk-Animation) ---- */
 
   private initCanvas() {
     const el = this.canvas()?.nativeElement;
     if (!el) return;
     this.ctx = el.getContext('2d')!;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
 
     const resize = () => {
-      const dpr = devicePixelRatio;
       const rect = el.parentElement!.getBoundingClientRect();
-      el.width = rect.width * dpr;
-      el.height = rect.height * dpr;
-      el.style.width = rect.width + 'px';
-      el.style.height = rect.height + 'px';
-      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      this.seedDots(rect.width, rect.height);
+      this.canvasW = rect.width;
+      this.canvasH = rect.height;
+      el.width = Math.floor(this.canvasW * dpr);
+      el.height = Math.floor(this.canvasH * dpr);
+      el.style.width = this.canvasW + 'px';
+      el.style.height = this.canvasH + 'px';
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.scale(dpr, dpr);
+      this.seedNodes();
     };
     resize();
     this.resizeObs = new ResizeObserver(resize);
     this.resizeObs.observe(el.parentElement!);
+
+    // Click → pulse
+    el.addEventListener('click', (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      this.pulses.push({
+        x: e.clientX - rect.left, y: e.clientY - rect.top,
+        radius: 0, maxRadius: 70 + Math.random() * 60 * 1.4, speed: 1.1, life: 1,
+      });
+    });
+
+    this.lastTime = performance.now();
     this.tick();
   }
 
-  private seedDots(w: number, h: number) {
-    const count = Math.min(120, Math.floor((w * h) / 8000));
-    this.dots = Array.from({ length: count }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-      r: Math.random() * 2.5 + 0.8,
-      pulse: Math.random() * Math.PI * 2,
+  private seedNodes() {
+    const density = 0.00009;
+    const count = Math.max(40, Math.min(130, Math.floor(this.canvasW * this.canvasH * density)));
+    this.nodes = Array.from({ length: count }, () => ({
+      x: Math.random() * this.canvasW,
+      y: Math.random() * this.canvasH,
+      vx: (Math.random() - 0.5) * this.net.nodeSpeed,
+      vy: (Math.random() - 0.5) * this.net.nodeSpeed,
+      radius: 1.1 + Math.random() * 1.6,
+      baseAlpha: 0.45 + Math.random() * 0.45,
+      phase: Math.random() * Math.PI * 2,
     }));
+    this.pulses = [];
+    this.sparks = [];
   }
 
   private tick = () => {
-    const el = this.canvas()?.nativeElement;
-    if (!el) return;
-    const w = el.width / devicePixelRatio;
-    const h = el.height / devicePixelRatio;
-    const ctx = this.ctx;
+    const now = performance.now();
+    const dt = Math.min(60, now - this.lastTime) / 16.67;
+    this.lastTime = now;
+    const { canvasW: w, canvasH: h, ctx, net } = this;
+    if (!ctx) return;
+
     ctx.clearRect(0, 0, w, h);
 
-    const now = performance.now() * 0.001;
-    const mxWorld = this.mouseX * w;
-    const myWorld = this.mouseY * h;
-
-    for (const d of this.dots) {
-      // Subtle attraction toward mouse
-      const dmx = mxWorld - d.x, dmy = myWorld - d.y;
-      const dmDist = Math.sqrt(dmx * dmx + dmy * dmy);
-      if (dmDist < 250 && dmDist > 1) {
-        d.vx += (dmx / dmDist) * 0.008;
-        d.vy += (dmy / dmDist) * 0.008;
+    // 1. Update nodes
+    for (const n of this.nodes) {
+      n.x += n.vx * dt;
+      n.y += n.vy * dt;
+      // Wrap
+      if (n.x < -10)    n.x = w + 10;
+      if (n.x > w + 10) n.x = -10;
+      if (n.y < -10)    n.y = h + 10;
+      if (n.y > h + 10) n.y = -10;
+      // Mouse repulsion
+      if (this.mouseActive) {
+        const dx = n.x - this.mouseX, dy = n.y - this.mouseY;
+        const d2 = dx * dx + dy * dy;
+        const r = net.mouseRadius;
+        if (d2 < r * r && d2 > 0.0001) {
+          const d = Math.sqrt(d2);
+          const f = (r - d) / r * 0.04;
+          n.vx += (dx / d) * f;
+          n.vy += (dy / d) * f;
+        }
       }
-
-      // Damping
-      d.vx *= 0.998;
-      d.vy *= 0.998;
-
-      d.x += d.vx;
-      d.y += d.vy;
-      if (d.x < 0 || d.x > w) d.vx *= -1;
-      if (d.y < 0 || d.y > h) d.vy *= -1;
+      n.vx *= 0.992;
+      n.vy *= 0.992;
+      n.phase += 0.02;
     }
 
-    // Edges
-    const maxDist = 130;
-    for (let i = 0; i < this.dots.length; i++) {
-      for (let j = i + 1; j < this.dots.length; j++) {
-        const a = this.dots[i], b = this.dots[j];
+    // 2. Connections + spark spawning
+    const max = net.linkDistance, max2 = max * max;
+    ctx.lineWidth = 0.6;
+    for (let i = 0; i < this.nodes.length; i++) {
+      const a = this.nodes[i];
+      for (let j = i + 1; j < this.nodes.length; j++) {
+        const b = this.nodes[j];
         const dx = a.x - b.x, dy = a.y - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < maxDist) {
-          const alpha = (1 - dist / maxDist) * 0.15;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < max2) {
+          const d = Math.sqrt(d2);
+          const alpha = (1 - d / max) * 0.32;
+          ctx.strokeStyle = net.colors.line + alpha + ')';
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `rgba(42, 108, 184, ${alpha})`;
-          ctx.lineWidth = 0.7;
           ctx.stroke();
+          if (Math.random() < net.sparkChance) {
+            this.sparks.push({ from: a, to: b, t: 0, speed: 0.011 + Math.random() * 0.012 });
+          }
         }
       }
     }
 
-    // Dots with pulse
-    for (const d of this.dots) {
-      const pulseFactor = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(now * 1.5 + d.pulse));
-      const r = d.r * pulseFactor + d.r * 0.5;
-
-      // Outer glow
-      const grad = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 4);
-      grad.addColorStop(0, `rgba(42, 108, 184, ${0.12 * pulseFactor})`);
-      grad.addColorStop(1, 'rgba(42, 108, 184, 0)');
+    // 3. Sparks
+    for (const s of this.sparks) {
+      s.t += s.speed * dt;
+      if (s.t >= 1) continue;
+      const x = s.from.x + (s.to.x - s.from.x) * s.t;
+      const y = s.from.y + (s.to.y - s.from.y) * s.t;
+      const trail = 0.10;
+      const t2 = Math.max(0, s.t - trail);
+      const x2 = s.from.x + (s.to.x - s.from.x) * t2;
+      const y2 = s.from.y + (s.to.y - s.from.y) * t2;
+      const grad = ctx.createLinearGradient(x2, y2, x, y);
+      grad.addColorStop(0, net.colors.spark + '0)');
+      grad.addColorStop(1, net.colors.spark + '0.95)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.arc(d.x, d.y, r * 4, 0, Math.PI * 2);
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.fillStyle = net.colors.spark + '1)';
+      ctx.beginPath();
+      ctx.arc(x, y, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    this.sparks = this.sparks.filter(s => s.t < 1);
+
+    // 4. Pulses
+    for (const p of this.pulses) {
+      p.radius += p.speed * dt;
+      p.life = 1 - p.radius / p.maxRadius;
+      if (p.life <= 0) continue;
+      ctx.strokeStyle = net.colors.pulse + (p.life * 0.4) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    this.pulses = this.pulses.filter(p => p.life > 0);
+
+    // 5. Draw nodes on top
+    for (const n of this.nodes) {
+      const breath = 0.85 + Math.sin(n.phase) * 0.15;
+      const a = n.baseAlpha * breath;
+      // Glow
+      const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.radius * 7);
+      grad.addColorStop(0,    net.colors.core + (a * 0.55) + ')');
+      grad.addColorStop(0.45, net.colors.glow + (a * 0.12) + ')');
+      grad.addColorStop(1,    'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Core
       ctx.beginPath();
-      ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(42, 108, 184, ${0.35 + 0.25 * pulseFactor})`;
+      ctx.arc(n.x, n.y, n.radius * 7, 0, Math.PI * 2);
       ctx.fill();
+      // Core
+      ctx.fillStyle = net.colors.core + a + ')';
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      ctx.fill();
+      // Random pulse spawn
+      if (Math.random() < net.pulseChance) {
+        this.pulses.push({
+          x: n.x, y: n.y, radius: 0,
+          maxRadius: 70 + Math.random() * 60, speed: 1.1, life: 1,
+        });
+      }
     }
 
     this.raf = requestAnimationFrame(this.tick);

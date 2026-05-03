@@ -158,7 +158,7 @@ export class InfluenceComponent implements OnInit {
         nodeGap: 14,
         data: Array.from(usedNodes).map(name => ({
           name,
-          itemStyle: { color: '#2a6cb8', borderColor: 'rgba(42,108,184,0.4)', borderWidth: 1 },
+          itemStyle: { color: CHART.feedbook, borderColor: 'rgba(90,159,214,0.4)', borderWidth: 1 },
         })),
         links: topLinks,
         lineStyle: { color: 'gradient', opacity: 0.35, curveness: 0.5 },
@@ -166,7 +166,7 @@ export class InfluenceComponent implements OnInit {
           fontFamily: FONT_SANS,
           fontSize: 13,
           fontWeight: 500,
-          color: '#4a3f30',
+          color: CHART.ink,
         },
       }],
     });
@@ -248,11 +248,11 @@ export class InfluenceComponent implements OnInit {
         type: 'pie',
         radius: ['50%', '75%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderColor: '#faf5ec', borderWidth: 3, borderRadius: 4 },
+        itemStyle: { borderColor: CHART.paper, borderWidth: 3, borderRadius: 4 },
         label: {
           show: true,
           formatter: '{b}\n{c} · {d}%',
-          color: '#4a3f30',
+          color: CHART.ink,
           fontFamily: FONT_SANS,
           fontSize: 13,
           fontWeight: 500,

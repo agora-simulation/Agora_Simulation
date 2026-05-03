@@ -80,7 +80,7 @@ export class SentimentComponent implements OnInit {
         type: 'pie',
         radius: ['58%', '80%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderColor: '#ffffff', borderWidth: 3, borderRadius: 4 },
+        itemStyle: { borderColor: CHART.paper, borderWidth: 3, borderRadius: 4 },
         label: {
           show: true,
           formatter: '{b}\n{c} · {d}%',
@@ -142,7 +142,7 @@ export class SentimentComponent implements OnInit {
   private buildPolarizationChart(index: number) {
     // Gauge 0-1 (Standardabweichung der Meinungen)
     const pct = Math.round(Math.min(index / 0.7 * 100, 100)); // 0.7 = max expected stdev
-    const color = pct < 30 ? CHART.moss : pct < 60 ? '#f59e0b' : CHART.rust;
+    const color = pct < 30 ? CHART.moss : pct < 60 ? CHART.threadit : CHART.rust;
 
     this.polarizationChart.set({
       tooltip: { formatter: `Polarisierung: ${(index).toFixed(3)}` },
@@ -156,7 +156,7 @@ export class SentimentComponent implements OnInit {
         pointer: { show: false },
         progress: { show: true, overlap: false, roundCap: true, clip: false,
           itemStyle: { color } },
-        axisLine: { lineStyle: { width: 16, color: [[1, 'rgba(0,0,0,0.06)']] } },
+        axisLine: { lineStyle: { width: 16, color: [[1, 'rgba(230,183,113,0.08)']] } },
         splitLine: { show: false },
         axisTick: { show: false },
         axisLabel: { show: false },
@@ -271,7 +271,7 @@ export class SentimentComponent implements OnInit {
         shape: 'polygon',
         radius: '60%',
         axisName: { color: CHART.inkMute, fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } },
+        splitLine: { lineStyle: { color: 'rgba(230,183,113,0.08)' } },
         splitArea: { show: false },
       },
       series: [{ type: 'radar', data: series }],

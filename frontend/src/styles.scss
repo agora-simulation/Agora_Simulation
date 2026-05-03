@@ -2,60 +2,60 @@
 @import "primeicons/primeicons.css";
 
 /* ============================================================
-   AGORA — Papyrus AI Theme
-   Warm parchment tones · Aged paper texture · Earthy accents
+   AGORA — Dark Amber Theme
+   Deep warm tones · Gold/Amber accents · Network aesthetic
    ============================================================ */
 
 :root {
-  /* === Surfaces — warm parchment tones === */
-  --bg:           #f0e6d3;
-  --bg-2:         #e8dcc6;
-  --surface:      #faf5ec;
-  --surface-2:    #f5eedf;
-  --surface-3:    #ede4d2;
-  --surface-solid: #faf5ec;
-  --border:       rgba(120, 90, 50, 0.15);
-  --border-strong:rgba(120, 90, 50, 0.25);
-  --border-glow:  rgba(160, 110, 50, 0.3);
+  /* === Surfaces — deep warm darks === */
+  --bg:           #0c0a08;
+  --bg-2:         #1a130c;
+  --surface:      #1e1610;
+  --surface-2:    #241c14;
+  --surface-3:    #2e2419;
+  --surface-solid: #1e1610;
+  --border:       rgba(230, 183, 113, 0.12);
+  --border-strong:rgba(230, 183, 113, 0.22);
+  --border-glow:  rgba(230, 183, 113, 0.35);
 
-  /* === Text — warm dark tones === */
-  --ink:          #2c2418;
-  --ink-2:        #4a3f30;
-  --ink-3:        #7a6e5c;
-  --ink-4:        #a49880;
-  --ink-5:        #c8bca6;
+  /* === Text — warm light tones === */
+  --ink:          #f4e8d4;
+  --ink-2:        #e0d0b8;
+  --ink-3:        #a89171;
+  --ink-4:        #7a6850;
+  --ink-5:        #4a3d2e;
 
-  /* === Brand & Signal — Warm earth-tinted blue === */
-  --primary:      #2a6cb8;
-  --primary-d:    #1e5a9e;
-  --primary-l:    rgba(42, 108, 184, 0.1);
-  --primary-glow: 0 4px 14px rgba(42, 108, 184, 0.2), 0 0 0 1px rgba(42, 108, 184, 0.08);
-  --primary-text: #ffffff;
+  /* === Brand & Signal — Warm gold === */
+  --primary:      #e6b771;
+  --primary-d:    #c9a05c;
+  --primary-l:    rgba(230, 183, 113, 0.12);
+  --primary-glow: 0 4px 14px rgba(230, 183, 113, 0.25), 0 0 0 1px rgba(230, 183, 113, 0.10);
+  --primary-text: #0c0a08;
 
-  /* Teal accent */
-  --cyan:         #1a7a6d;
-  --cyan-l:       rgba(26, 122, 109, 0.1);
-  --cyan-glow:    0 4px 14px rgba(26, 122, 109, 0.15);
+  /* Teal accent — brighter for dark bg */
+  --cyan:         #3db8a5;
+  --cyan-l:       rgba(61, 184, 165, 0.12);
+  --cyan-glow:    0 4px 14px rgba(61, 184, 165, 0.2);
 
-  /* Purple accent — warm plum */
-  --purple:       #7b4ea0;
-  --purple-l:     rgba(123, 78, 160, 0.1);
+  /* Purple accent — warm plum, brighter */
+  --purple:       #a574cc;
+  --purple-l:     rgba(165, 116, 204, 0.12);
 
-  /* Platform colors */
-  --feedbook:     #2a6cb8;
-  --feedbook-l:   rgba(42, 108, 184, 0.1);
-  --threadit:     #c07b1a;
-  --threadit-l:   rgba(192, 123, 26, 0.1);
+  /* Platform colors — brighter for dark bg */
+  --feedbook:     #5a9fd6;
+  --feedbook-l:   rgba(90, 159, 214, 0.12);
+  --threadit:     #e6a040;
+  --threadit-l:   rgba(230, 160, 64, 0.12);
 
-  /* Status */
-  --success:      #2d8659;
-  --success-l:    rgba(45, 134, 89, 0.1);
-  --warning:      #c07b1a;
-  --warning-l:    rgba(192, 123, 26, 0.1);
-  --danger:       #b83a2a;
-  --danger-l:     rgba(184, 58, 42, 0.1);
-  --info:         #2a6cb8;
-  --info-l:       rgba(42, 108, 184, 0.1);
+  /* Status — brighter for dark bg */
+  --success:      #4aba7a;
+  --success-l:    rgba(74, 186, 122, 0.12);
+  --warning:      #e6a040;
+  --warning-l:    rgba(230, 160, 64, 0.12);
+  --danger:       #e05a4a;
+  --danger-l:     rgba(224, 90, 74, 0.12);
+  --info:         #5a9fd6;
+  --info-l:       rgba(90, 159, 214, 0.12);
   --muted:        var(--ink-3);
 
   /* Back-compat aliases */
@@ -90,8 +90,8 @@
   --glass-hover:  var(--surface-3);
 
   /* === Typography === */
-  --font-sans:    'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Syne', 'Outfit', sans-serif;
+  --font-sans:    'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Fraunces', 'Syne', serif;
   --font-mono:    'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
 
   /* === Radius === */
@@ -100,11 +100,11 @@
   --radius-lg:    14px;
   --radius-xl:    20px;
 
-  /* === Shadows (warm parchment tones) === */
-  --shadow-sm:    0 1px 2px rgba(80, 60, 30, 0.08), 0 0 0 1px rgba(80,60,30,0.04);
-  --shadow:       0 1px 3px rgba(80, 60, 30, 0.1), 0 1px 2px rgba(80, 60, 30, 0.05);
-  --shadow-md:    0 4px 12px rgba(80, 60, 30, 0.1), 0 1px 3px rgba(80, 60, 30, 0.06);
-  --shadow-lg:    0 8px 24px rgba(80, 60, 30, 0.12), 0 2px 8px rgba(80, 60, 30, 0.06);
+  /* === Shadows (dark warm tones) === */
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(230, 183, 113, 0.04);
+  --shadow:       0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 /* ============================================================
@@ -122,73 +122,22 @@ body {
   background-color: var(--bg);
   min-height: 100vh;
 
-  /* Papyrus fiber texture — multiple fine CSS gradient layers simulating parchment grain */
+  /* Subtle noise texture via radial gradients */
   background-image:
-    /* Horizontal fibers */
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(160, 130, 80, 0.03) 2px,
-      rgba(160, 130, 80, 0.03) 3px
-    ),
-    /* Vertical fibers */
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 3px,
-      rgba(140, 110, 60, 0.025) 3px,
-      rgba(140, 110, 60, 0.025) 4px
-    ),
-    /* Diagonal weave 1 */
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 8px,
-      rgba(150, 120, 70, 0.02) 8px,
-      rgba(150, 120, 70, 0.02) 9px
-    ),
-    /* Diagonal weave 2 */
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 11px,
-      rgba(130, 100, 55, 0.018) 11px,
-      rgba(130, 100, 55, 0.018) 12px
-    ),
-    /* Coarser horizontal paper grain */
-    repeating-linear-gradient(
-      2deg,
-      transparent,
-      transparent 5px,
-      rgba(170, 140, 85, 0.035) 5px,
-      rgba(170, 140, 85, 0.035) 7px,
-      transparent 7px,
-      transparent 19px
-    ),
-    /* Random-looking vertical stipple */
-    repeating-linear-gradient(
-      88deg,
-      transparent,
-      transparent 7px,
-      rgba(145, 115, 65, 0.03) 7px,
-      rgba(145, 115, 65, 0.03) 9px,
-      transparent 9px,
-      transparent 23px
-    );
+    radial-gradient(ellipse at 30% 40%, rgba(217, 118, 68, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 65%, rgba(230, 183, 113, 0.04) 0%, transparent 55%);
 }
 
-/* Aged stain patches — visible coffee/tea marks on parchment */
+/* Warm ambient glow patches on dark background */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 50% 40% at 10% 15%, rgba(150, 115, 55, 0.15) 0%, transparent 70%),
-    radial-gradient(ellipse 30% 35% at 85% 25%, rgba(130, 95, 40, 0.1) 0%, transparent 70%),
-    radial-gradient(ellipse 45% 30% at 70% 75%, rgba(160, 120, 50, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 35% 25% at 25% 80%, rgba(140, 100, 45, 0.08) 0%, transparent 70%),
-    radial-gradient(ellipse 20% 20% at 50% 50%, rgba(170, 135, 70, 0.06) 0%, transparent 60%);
+    radial-gradient(ellipse 50% 40% at 10% 15%, rgba(217, 118, 68, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 35% at 85% 25%, rgba(230, 183, 113, 0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 30% at 70% 75%, rgba(184, 118, 58, 0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 25% at 25% 80%, rgba(230, 183, 113, 0.03) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -230,32 +179,32 @@ body::before {
 .ambient-orb-1 {
   width: 60vw; height: 60vh;
   top: -15%; left: -10%;
-  background: radial-gradient(circle, rgba(185, 145, 70, 0.14) 0%, rgba(160, 120, 50, 0.05) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(217, 118, 68, 0.08) 0%, rgba(184, 118, 58, 0.03) 50%, transparent 70%);
   animation: drift-orb-1 28s ease-in-out infinite;
 }
 .ambient-orb-2 {
   width: 50vw; height: 50vh;
   bottom: -10%; right: -5%;
-  background: radial-gradient(circle, rgba(150, 110, 50, 0.12) 0%, rgba(130, 90, 40, 0.04) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(230, 183, 113, 0.06) 0%, rgba(200, 155, 80, 0.02) 50%, transparent 70%);
   animation: drift-orb-2 35s ease-in-out infinite;
 }
 .ambient-orb-3 {
   width: 40vw; height: 40vh;
   top: 40%; left: 30%;
-  background: radial-gradient(circle, rgba(170, 130, 60, 0.1) 0%, rgba(150, 110, 50, 0.03) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(230, 183, 113, 0.05) 0%, rgba(184, 118, 58, 0.02) 50%, transparent 70%);
   animation: drift-orb-3 22s ease-in-out infinite;
 }
 
-::selection { background: rgba(42, 108, 184, 0.2); color: var(--ink); }
+::selection { background: rgba(230, 183, 113, 0.25); color: var(--ink); }
 
 /* === Scrollbars === */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 90, 50, 0.18);
+  background: rgba(230, 183, 113, 0.18);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(120, 90, 50, 0.28); }
+::-webkit-scrollbar-thumb:hover { background: rgba(230, 183, 113, 0.30); }
 
 /* ============================================================
    TYPOGRAPHY
@@ -368,29 +317,29 @@ h1, h2, h3, h4, h5, h6 {
 /* Primary */
 .btn-primary, .btn-ink {
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-text);
   border-color: var(--primary);
-  box-shadow: 0 1px 3px rgba(42, 108, 184, 0.3);
+  box-shadow: 0 1px 3px rgba(230, 183, 113, 0.25);
 }
 .btn-primary:hover:not(:disabled),
 .btn-ink:hover:not(:disabled) {
   background: var(--primary-d);
-  box-shadow: 0 4px 12px rgba(42, 108, 184, 0.3);
+  box-shadow: 0 4px 12px rgba(230, 183, 113, 0.3);
   transform: translateY(-1px);
 }
 .btn-primary:active:not(:disabled),
-.btn-ink:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(42, 108, 184, 0.2); }
+.btn-ink:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(230, 183, 113, 0.15); }
 
 /* Vermillion — keep as alias → primary */
 .btn-vermillion {
   background: var(--primary);
-  color: #fff;
+  color: var(--primary-text);
   border-color: var(--primary);
-  box-shadow: 0 1px 3px rgba(42, 108, 184, 0.2);
+  box-shadow: 0 1px 3px rgba(230, 183, 113, 0.2);
 }
 .btn-vermillion:hover:not(:disabled) {
   background: var(--primary-d);
-  box-shadow: 0 4px 12px rgba(42, 108, 184, 0.25);
+  box-shadow: 0 4px 12px rgba(230, 183, 113, 0.25);
   transform: translateY(-1px);
 }
 
@@ -404,7 +353,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-ghost:hover:not(:disabled) {
   background: var(--surface-3);
   color: var(--ink);
-  border-color: rgba(0,0,0,0.2);
+  border-color: var(--border-strong);
 }
 
 /* Tertiary */
@@ -426,7 +375,7 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--danger);
 }
 .btn-danger:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 4px 12px rgba(224, 90, 74, 0.3);
   transform: translateY(-1px);
 }
 
@@ -452,11 +401,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 .input::placeholder, .input-paper::placeholder { color: var(--ink-4); }
 .input:hover, .input-paper:hover {
-  border-color: rgba(0,0,0,0.2);
+  border-color: var(--border-strong);
 }
 .input:focus, .input-paper:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(42, 108, 184, 0.12);
+  box-shadow: 0 0 0 3px rgba(230, 183, 113, 0.15);
 }
 
 .input-lg { padding: 13px 16px; font-size: 15px; }
@@ -495,7 +444,7 @@ label, .label {
   gap: 10px;
   padding: 14px 16px;
   background: var(--primary-l);
-  border: 1px solid rgba(45, 125, 255, 0.25);
+  border: 1px solid rgba(230, 183, 113, 0.2);
   border-radius: var(--radius);
   align-items: flex-start;
 }
@@ -521,7 +470,7 @@ label, .label {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.04) 30%, rgba(0,0,0,0.02) 70%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(230, 183, 113, 0.08) 30%, rgba(230, 183, 113, 0.04) 70%, transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -574,22 +523,22 @@ label, .label {
 .badge-success {
   background: var(--success-l);
   color: var(--success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(74, 186, 122, 0.2);
 }
 .badge-info {
   background: var(--info-l);
   color: var(--info);
-  border: 1px solid rgba(59, 138, 255, 0.2);
+  border: 1px solid rgba(90, 159, 214, 0.2);
 }
 .badge-warning {
   background: var(--warning-l);
   color: var(--warning);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(230, 160, 64, 0.2);
 }
 .badge-danger {
   background: var(--danger-l);
   color: var(--danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(224, 90, 74, 0.2);
 }
 .badge-muted {
   background: var(--surface-3);
@@ -599,18 +548,18 @@ label, .label {
 .badge-primary {
   background: var(--primary-l);
   color: var(--primary);
-  border: 1px solid rgba(45, 125, 255, 0.25);
+  border: 1px solid rgba(230, 183, 113, 0.2);
 }
 
 .badge-feedbook {
   background: var(--feedbook-l);
   color: var(--feedbook);
-  border: 1px solid rgba(59, 138, 255, 0.2);
+  border: 1px solid rgba(90, 159, 214, 0.2);
 }
 .badge-threadit {
   background: var(--threadit-l);
   color: var(--threadit);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(230, 160, 64, 0.2);
 }
 
 /* Status Dot */
@@ -783,8 +732,8 @@ label, .label {
   to   { opacity: 1; transform: translateX(0); }
 }
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 1px 4px rgba(80, 60, 30, 0.1); }
-  50%       { box-shadow: 0 2px 12px rgba(80, 60, 30, 0.18); }
+  0%, 100% { box-shadow: 0 1px 4px rgba(230, 183, 113, 0.08); }
+  50%       { box-shadow: 0 2px 12px rgba(230, 183, 113, 0.18); }
 }
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -799,10 +748,10 @@ label, .label {
 /* Subtle breathing shadow */
 @keyframes ambient-breathe {
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(80,60,30,0.06), 0 0 0 1px rgba(120,90,50,0.06);
+    box-shadow: 0 2px 8px rgba(230, 183, 113, 0.06), 0 0 0 1px rgba(230, 183, 113, 0.06);
   }
   50% {
-    box-shadow: 0 4px 16px rgba(80,60,30,0.1), 0 0 0 1px rgba(120,90,50,0.1);
+    box-shadow: 0 4px 16px rgba(230, 183, 113, 0.12), 0 0 0 1px rgba(230, 183, 113, 0.10);
   }
 }
 
@@ -868,9 +817,9 @@ label, .label {
 }
 .skeleton {
   background: linear-gradient(90deg,
-    rgba(120,90,50,0.06) 25%,
-    rgba(120,90,50,0.12) 50%,
-    rgba(120,90,50,0.06) 75%);
+    rgba(230, 183, 113, 0.05) 25%,
+    rgba(230, 183, 113, 0.10) 50%,
+    rgba(230, 183, 113, 0.05) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
   border-radius: var(--radius-sm);
@@ -935,7 +884,7 @@ label, .label {
   padding: 3px 10px;
   background: var(--feedbook-l);
   color: var(--feedbook);
-  border: 1px solid rgba(59, 138, 255, 0.2);
+  border: 1px solid rgba(90, 159, 214, 0.2);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
@@ -947,7 +896,7 @@ label, .label {
   padding: 3px 10px;
   background: var(--threadit-l);
   color: var(--threadit);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(230, 160, 64, 0.2);
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
@@ -978,7 +927,7 @@ label, .label {
   transition: text-shadow 300ms ease;
 }
 .card-hover:hover .kpi-value {
-  text-shadow: 0 0 20px rgba(45,125,255,0.4);
+  text-shadow: 0 0 20px rgba(230, 183, 113, 0.4);
 }
 
 /* === Cyber Card — animated gradient border === */
@@ -995,7 +944,7 @@ label, .label {
   inset: 0;
   border-radius: var(--radius-lg);
   padding: 1px;
-  background: conic-gradient(from var(--angle), rgba(0,196,238,0.4), rgba(45,125,255,0.6), rgba(124,58,237,0.4), rgba(0,196,238,0.15), rgba(45,125,255,0.4));
+  background: conic-gradient(from var(--angle), rgba(230, 183, 113, 0.4), rgba(217, 118, 68, 0.5), rgba(184, 118, 58, 0.4), rgba(230, 183, 113, 0.15), rgba(217, 118, 68, 0.4));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -1021,11 +970,11 @@ label, .label {
   position: absolute;
   left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0,196,238,0.5) 30%, rgba(45,125,255,0.6) 50%, rgba(0,196,238,0.5) 70%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(230, 183, 113, 0.4) 30%, rgba(217, 118, 68, 0.5) 50%, rgba(230, 183, 113, 0.4) 70%, transparent);
   animation: scan-sweep 4s linear infinite;
   pointer-events: none;
   z-index: 2;
-  box-shadow: 0 0 8px rgba(0,196,238,0.4);
+  box-shadow: 0 0 8px rgba(230, 183, 113, 0.3);
 }
 
 /* ============================================================
@@ -1066,20 +1015,20 @@ label, .label {
   width: 20px; height: 20px;
   border-radius: 50%;
   background: var(--primary);
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--bg-2);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 140ms ease;
 }
 .range-slider::-webkit-slider-thumb:hover {
   transform: scale(1.15);
-  box-shadow: 0 2px 8px rgba(42, 108, 184, 0.3);
+  box-shadow: 0 2px 8px rgba(230, 183, 113, 0.3);
 }
 .range-slider::-moz-range-thumb {
   width: 20px; height: 20px;
   border-radius: 50%;
   background: var(--primary);
-  border: 2px solid #fff;
+  border: 2px solid var(--bg-2);
   cursor: pointer;
 }
 
@@ -1087,7 +1036,7 @@ label, .label {
    STICKY DASHBOARD HEADER — needs opaque bg + scan-line
    ============================================================ */
 .dash-header {
-  background: rgba(250, 245, 236, 0.82) !important;
+  background: rgba(12, 10, 8, 0.82) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   position: relative;
@@ -1097,7 +1046,7 @@ label, .label {
    SIMULATION CREATE — stepper glow enhancements
    ============================================================ */
 .step-active .step-circle {
-  box-shadow: 0 0 0 3px rgba(42, 108, 184, 0.15) !important;
+  box-shadow: 0 0 0 3px rgba(230, 183, 113, 0.2) !important;
 }
 .step-connector-done {
   box-shadow: none;
@@ -1131,8 +1080,8 @@ label, .label {
 
 /* Accent border */
 .neon-border {
-  border-color: rgba(37,99,235,0.2) !important;
-  box-shadow: 0 1px 4px rgba(37,99,235,0.08);
+  border-color: rgba(230, 183, 113, 0.2) !important;
+  box-shadow: 0 1px 4px rgba(230, 183, 113, 0.08);
 }
 
 /* Accent border on hover */
@@ -1140,8 +1089,8 @@ label, .label {
   transition: border-color 280ms ease, box-shadow 280ms ease;
 }
 .hover-glow-border:hover {
-  border-color: rgba(37,99,235,0.25);
-  box-shadow: 0 2px 8px rgba(37,99,235,0.1);
+  border-color: rgba(230, 183, 113, 0.25);
+  box-shadow: 0 2px 8px rgba(230, 183, 113, 0.1);
 }
 
 /* Live indicator with animated pulse dot */
@@ -1178,8 +1127,8 @@ label, .label {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(45,125,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(45,125,255,0.02) 1px, transparent 1px);
+    linear-gradient(rgba(230, 183, 113, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(230, 183, 113, 0.03) 1px, transparent 1px);
   background-size: 30px 30px;
   pointer-events: none;
   border-radius: inherit;
@@ -1190,7 +1139,7 @@ label, .label {
 /* Input focus upgrade */
 .input:focus, .input-paper:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(42, 108, 184, 0.12);
+  box-shadow: 0 0 0 3px rgba(230, 183, 113, 0.15);
 }
 
 /* ============================================================
@@ -1210,8 +1159,8 @@ label, .label {
   border-radius: inherit;
   background: radial-gradient(
     350px circle at var(--glow-x) var(--glow-y),
-    rgba(180, 140, 70, 0.08) 0%,
-    rgba(160, 120, 60, 0.03) 30%,
+    rgba(230, 183, 113, 0.10) 0%,
+    rgba(217, 118, 68, 0.04) 30%,
     transparent 70%
   );
   opacity: var(--glow-opacity);

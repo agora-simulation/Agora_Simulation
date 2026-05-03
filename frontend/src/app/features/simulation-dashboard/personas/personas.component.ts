@@ -231,8 +231,8 @@ export class PersonasComponent implements OnInit {
         indicator: indicators,
         shape: 'polygon',
         radius: '65%',
-        axisName: { color: '#6b6b63', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(0,0,0,0.08)' } },
+        axisName: { color: '#a89171', fontSize: 11 },
+        splitLine: { lineStyle: { color: 'rgba(230,183,113,0.08)' } },
         splitArea: { show: false },
       },
       series: [{

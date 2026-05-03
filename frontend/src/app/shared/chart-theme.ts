@@ -4,33 +4,33 @@
  */
 
 export const CHART = {
-  ink:         '#0e0e0c',
-  inkSoft:     '#2a2924',
-  inkMute:     '#6b675c',
-  inkFaint:    '#9c978a',
-  paper:       '#ffffff',
-  paperDeep:   '#faf7f1',
-  paperEdge:   '#e3dccd',
-  vermillion:  '#c8321f',
-  feedbook:    '#1e3a8a',
-  threadit:    '#a16207',
-  moss:        '#15803d',
-  rust:        '#b91c1c',
-  slate:       '#5a6470',
+  ink:         '#f4e8d4',
+  inkSoft:     '#e0d0b8',
+  inkMute:     '#a89171',
+  inkFaint:    '#7a6850',
+  paper:       '#1e1610',
+  paperDeep:   '#0c0a08',
+  paperEdge:   '#2e2419',
+  vermillion:  '#e05a4a',
+  feedbook:    '#5a9fd6',
+  threadit:    '#e6a040',
+  moss:        '#4aba7a',
+  rust:        '#e05a4a',
+  slate:       '#a89171',
 } as const;
 
 export const FONT_SANS = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 export const FONT_MONO = "'IBM Plex Mono', ui-monospace, monospace";
 
-/** Standard-Tooltip — weiß mit dunkler Border, leichter Shadow */
+/** Standard-Tooltip �� dunkler Hintergrund mit warmem Border */
 export const tooltipStyle = {
-  backgroundColor: '#ffffff',
-  borderColor: CHART.ink,
+  backgroundColor: '#1e1610',
+  borderColor: 'rgba(230, 183, 113, 0.2)',
   borderWidth: 1,
   borderRadius: 8,
   padding: [10, 14],
-  textStyle: { color: CHART.ink, fontFamily: FONT_SANS, fontSize: 12.5, fontWeight: 500 as any },
-  extraCssText: 'box-shadow: 0 4px 12px rgba(14,14,12,0.10);',
+  textStyle: { color: '#f4e8d4', fontFamily: FONT_SANS, fontSize: 12.5, fontWeight: 500 as any },
+  extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.35);',
 };
 
 /** Standard-Achsen-Konfiguration */
@@ -38,7 +38,7 @@ export const axisCommon = (overrides: any = {}) => ({
   axisLine:  { lineStyle: { color: CHART.paperEdge, width: 1 } },
   axisTick:  { show: false },
   axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11, ...overrides.axisLabel },
-  splitLine: { lineStyle: { color: CHART.paperEdge, type: 'dashed' as any } },
+  splitLine: { lineStyle: { color: 'rgba(230, 183, 113, 0.08)', type: 'dashed' as any } },
   ...overrides,
 });
 

@@ -44,6 +44,51 @@ Marktforschung ist teuer, langsam und oft nicht aussagekräftig genug. Fokusgrup
   <img src="docs/images/screenshot-dashboard.png" alt="Agora Dashboard" width="800">
 </p>
 
+### Screenshots
+
+<details>
+<summary><strong>Übersicht — Live-KPIs & Marktkontext</strong></summary>
+<p>
+  <img src="docs/images/screenshot-overview-1.png" alt="Übersicht mit Marktkontext" width="800">
+  <img src="docs/images/screenshot-overview-2.png" alt="KPI-Karten" width="800">
+  <img src="docs/images/screenshot-overview-4.png" alt="Stimmungsverteilung" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Personas — 200 KI-Agenten mit individuellen Profilen</strong></summary>
+<p>
+  <img src="docs/images/screenshot-personas.png" alt="Persona-Liste & Detail" width="800">
+  <img src="docs/images/screenshot-personas-2.png" alt="Persona Radar-Chart" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Netzwerk — Force-Directed Interaktionsgraph</strong></summary>
+<p>
+  <img src="docs/images/screenshot-network-2.png" alt="Netzwerk-Graph" width="800">
+  <img src="docs/images/screenshot-network-3.png" alt="Netzwerk Detail" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Sentiment & Einfluss</strong></summary>
+<p>
+  <img src="docs/images/screenshot-sentiment-1.png" alt="Plattform-Verteilung & Aktivität" width="800">
+  <img src="docs/images/screenshot-sentiment-2.png" alt="Sentiment-Verlauf" width="800">
+  <img src="docs/images/screenshot-influence-1.png" alt="Einfluss-Strömung" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Analyse-Report</strong></summary>
+<p>
+  <img src="docs/images/screenshot-report.png" alt="Report Übersicht" width="800">
+  <img src="docs/images/screenshot-report-2.png" alt="Report Details" width="800">
+  <img src="docs/images/screenshot-report-3.png" alt="Report Risiken" width="800">
+</p>
+</details>
+
 ---
 
 <h2 id="features">Features</h2>
