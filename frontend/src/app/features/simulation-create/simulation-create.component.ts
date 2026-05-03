@@ -38,52 +38,101 @@ export class SimulationCreateComponent {
     { id: 'openai',    label: 'OpenAI',             sub: 'GPT-5 + GPT-5-mini',     icon: 'pi-bolt' },
   ];
 
-  // Modell-Wahl pro Rolle (Standard / Premium / Custom)
-  readonly modelModes = [
-    { id: 'standard', label: 'Standard', desc: 'Schnellmodell für Aktionen, Qualitätsmodell für Persona-Gen + Report' },
-    { id: 'premium',  label: 'Premium',  desc: 'Qualitätsmodell für ALLES — teurer aber kohärenter' },
-    { id: 'custom',   label: 'Custom',   desc: 'Modelle pro Rolle frei wählen' },
-  ] as const;
-  modelMode = signal<'standard' | 'premium' | 'custom'>('standard');
+  // Modell-Wahl
   customModelFast = signal<string>('');
   customModelSmart = signal<string>('');
   showAdvanced = signal(false);
 
-  // Modell-Optionen pro Provider — Anzeigeliste für Custom-Dropdowns
-  readonly modelOptions: Record<LlmProvider, { id: string; label: string; tier: 'fast' | 'smart' }[]> = {
+  // Modell-Optionen pro Provider mit Beschreibung
+  readonly modelOptions: Record<LlmProvider, { id: string; label: string; tier: 'fast' | 'smart'; info: string }[]> = {
     anthropic: [
-      { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (schnell, günstig)',     tier: 'fast'  },
-      { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6 (Standard-Qualität)',   tier: 'smart' },
-      { id: 'claude-opus-4-7',           label: 'Claude Opus 4.7 (Top-Qualität, teuer)',   tier: 'smart' },
+      { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',   tier: 'fast',  info: 'Sehr schnell & g\u00FCnstig. Ideal f\u00FCr Massen-Aktionen (Posts, Reaktionen). $1/M Input.' },
+      { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6',  tier: 'smart', info: 'Bestes Preis-Leistungs-Verh\u00E4ltnis. Empfohlen f\u00FCr Persona-Generierung & Reports. $3/M Input.' },
+      { id: 'claude-sonnet-4-5',         label: 'Claude Sonnet 4.5',  tier: 'smart', info: 'Vorg\u00E4nger von 4.6, etwas g\u00FCnstiger. Solide Alternative.' },
+      { id: 'claude-opus-4-6',           label: 'Claude Opus 4.6',    tier: 'smart', info: 'Top-Qualit\u00E4t, teuer. F\u00FCr maximale Persona-Koh\u00E4renz & tiefgehende Reports. $15/M Input.' },
     ],
     openai: [
-      { id: 'gpt-4o-mini',  label: 'GPT-4o-mini (Legacy, sehr günstig)', tier: 'fast'  },
-      { id: 'gpt-5-mini',   label: 'GPT-5-mini (schnell, hohe TPM)',     tier: 'fast'  },
-      { id: 'gpt-4o',       label: 'GPT-4o (Legacy, ausgewogen)',        tier: 'smart' },
-      { id: 'gpt-5',        label: 'GPT-5 (Top-Qualität)',               tier: 'smart' },
+      { id: 'gpt-4.1-mini',  label: 'GPT-4.1-mini',  tier: 'fast',  info: 'Schnell & sehr g\u00FCnstig. Gut f\u00FCr Massen-Aktionen. $0.40/M Input.' },
+      { id: 'gpt-4.1-nano',  label: 'GPT-4.1-nano',  tier: 'fast',  info: 'Schnellstes & g\u00FCnstigstes OpenAI-Modell. F\u00FCr einfache Aktionen. $0.10/M Input.' },
+      { id: 'gpt-5-mini',    label: 'GPT-5-mini',     tier: 'fast',  info: 'Neueste Generation, hohe TPM-Limits. Ideal bei vielen Personas (200+). $0.75/M Input.' },
+      { id: 'gpt-4o',        label: 'GPT-4o',         tier: 'smart', info: 'Ausgewogen, bew\u00E4hrt. Gute Persona-Qualit\u00E4t zu moderatem Preis. $2.50/M Input.' },
+      { id: 'gpt-4.1',       label: 'GPT-4.1',        tier: 'smart', info: 'Stark bei Instruktionstreue & langen Kontexten. Gut f\u00FCr Reports. $2/M Input.' },
+      { id: 'gpt-5',         label: 'GPT-5',           tier: 'smart', info: 'Neueste Generation, Top-Qualit\u00E4t. Maximale Persona-Koh\u00E4renz. $2.50/M Input.' },
+      { id: 'o3-mini',       label: 'o3-mini',         tier: 'smart', info: 'Reasoning-Modell. Langsamer, aber sehr analytisch. Ideal f\u00FCr Analyse-Reports. $1.10/M Input.' },
     ],
     ollama: [
-      { id: 'qwen2.5:7b',   label: 'Qwen 2.5 7B (Lokal)',   tier: 'fast'  },
-      { id: 'llama3.1:8b',  label: 'Llama 3.1 8B (Lokal)',   tier: 'smart' },
+      { id: 'qwen2.5:7b',    label: 'Qwen 2.5 7B',    tier: 'fast',  info: 'Lokales Fast-Modell. Keine API-Kosten, moderate Qualit\u00E4t.' },
+      { id: 'qwen2.5:32b',   label: 'Qwen 2.5 32B',   tier: 'smart', info: 'Lokales Qualit\u00E4tsmodell. Braucht 24 GB VRAM.' },
+      { id: 'llama3.1:8b',   label: 'Llama 3.1 8B',    tier: 'fast',  info: 'Meta Llama, solide Grundqualit\u00E4t. 8 GB VRAM.' },
+      { id: 'llama3.1:70b',  label: 'Llama 3.1 70B',   tier: 'smart', info: 'Sehr gute Qualit\u00E4t, braucht 48 GB VRAM.' },
     ],
   };
 
-  /** Aktuelle Modell-Optionen für Fast-Tier abhängig vom Provider. */
+  /** Aktuelle Modell-Optionen f\u00FCr Fast-Tier abh\u00E4ngig vom Provider. */
   fastModelOptions() {
     return this.modelOptions[this.llmProvider()].filter(m => m.tier === 'fast');
   }
   smartModelOptions() {
     return this.modelOptions[this.llmProvider()].filter(m => m.tier === 'smart');
   }
+  allModelOptions() {
+    return this.modelOptions[this.llmProvider()];
+  }
+
+  // Beispiel-Szenarien als klickbare Templates
+  readonly templates = [
+    {
+      label: 'Produktlaunch',
+      icon: 'pi-car',
+      name: 'E-Auto Launch DACH',
+      desc: 'Ein autonomer E-Transporter mit 50 kWh Batterie, der per App bestellt wird. Preis ab 78.000 \u20AC, Leasing ab 1.290 \u20AC/Monat. Zielgruppen: Flottenbetreiber, Hotels, Parkh\u00E4user.',
+      market: 'DACH, B2B & B2C',
+      industry: 'Automobil / E-Mobilit\u00E4t',
+    },
+    {
+      label: 'Kampagne',
+      icon: 'pi-megaphone',
+      name: 'Gen-Z Finanz-App Kampagne',
+      desc: 'Eine Banking-App f\u00FCr 18-25-J\u00E4hrige mit Spar-Challenges, Social Features und Krypto-Integration. Freemium-Modell, Premium ab 4,99 \u20AC/Monat.',
+      market: 'Deutschland, 18\u201325 Jahre',
+      industry: 'FinTech',
+    },
+    {
+      label: 'Preis\u00E4nderung',
+      icon: 'pi-tag',
+      name: 'SaaS Pricing Relaunch',
+      desc: 'Ein B2B-Projektmanagement-Tool erh\u00F6ht die Preise um 40 %. Neues Tier-Modell: Free, Pro (29 \u20AC), Enterprise (99 \u20AC). Bestehende Kunden bekommen 12 Monate Bestandsschutz.',
+      market: 'Europa, B2B',
+      industry: 'SaaS / Software',
+    },
+  ];
+
+  selectedTemplate = signal<string | null>(null);
+
+  applyTemplate(t: typeof this.templates[0]) {
+    this.selectedTemplate.set(t.label);
+    this.name.set(t.name);
+    this.productDescription.set(t.desc);
+    this.targetMarket.set(t.market);
+    this.industry.set(t.industry);
+  }
+
+  clearTemplate() {
+    this.selectedTemplate.set(null);
+    this.name.set('');
+    this.productDescription.set('');
+    this.targetMarket.set('');
+    this.industry.set('');
+  }
 
   // Presets
   readonly presets = [
-    { label: 'Schnelltest', icon: 'pi-bolt', personas: 10, ticks: 5, desc: '~2 Min, günstig' },
-    { label: 'Standard', icon: 'pi-chart-bar', personas: 30, ticks: 15, desc: '~8 Min, empfohlen' },
-    { label: 'Deep Dive', icon: 'pi-search', personas: 50, ticks: 20, desc: '~20 Min, detailliert' },
-    { label: 'Enterprise', icon: 'pi-building', personas: 100, ticks: 30, desc: '~60 Min, maximal' },
-    { label: 'Großfeld', icon: 'pi-th-large', personas: 200, ticks: 20, desc: '~90 Min, breit' },
-    { label: 'Repräsentativ', icon: 'pi-users', personas: 500, ticks: 30, desc: '~3 Std, Studien-Niveau' },
+    { label: 'Schnelltest', icon: 'pi-bolt', personas: 10, ticks: 5, desc: 'Schnelle Stimmungspr\u00FCfung f\u00FCr erste Hypothesen', stats: '10 Personas \u00B7 5 Tage \u00B7 ~2 Min' },
+    { label: 'Standard', icon: 'pi-chart-bar', personas: 30, ticks: 15, desc: 'Solide Analyse mit breitem Meinungsspektrum', stats: '30 Personas \u00B7 15 Tage \u00B7 ~8 Min' },
+    { label: 'Deep Dive', icon: 'pi-search', personas: 50, ticks: 20, desc: 'Tiefe Meinungsentwicklung mit Narrative-Tracking', stats: '50 Personas \u00B7 20 Tage \u00B7 ~20 Min' },
+    { label: 'Enterprise', icon: 'pi-building', personas: 100, ticks: 30, desc: 'Vollst\u00E4ndige Marktsimulation mit statistischer Belastbarkeit', stats: '100 Personas \u00B7 30 Tage \u00B7 ~1 Std' },
+    { label: 'Gro\u00DFfeld', icon: 'pi-th-large', personas: 200, ticks: 20, desc: 'Breites Meinungsbild, ideal f\u00FCr segmentierte Zielgruppen', stats: '200 Personas \u00B7 20 Tage \u00B7 ~1.5 Std' },
+    { label: 'Repr\u00E4sentativ', icon: 'pi-users', personas: 500, ticks: 30, desc: 'Studien-Niveau mit voller Meinungsvielfalt', stats: '500 Personas \u00B7 30 Tage \u00B7 ~3 Std' },
   ];
 
   selectedPreset = signal('Standard');
@@ -291,22 +340,12 @@ export class SimulationCreateComponent {
     return rest === 0 ? `~${h} Std` : `~${h} Std ${rest} Min`;
   }
 
-  /** Resolved model_fast für den Create-Payload (oder null = Default). */
+  /** Resolved model_fast für den Create-Payload (oder null = Provider-Default). */
   resolveModelFast(): string | null {
-    const mode = this.modelMode();
-    if (mode === 'standard') return null;
-    if (mode === 'premium') {
-      // Premium: Smart-Modell auch für Fast-Slot
-      return this.smartModelOptions()[0]?.id ?? null;
-    }
-    // custom
     return this.customModelFast() || null;
   }
 
   resolveModelSmart(): string | null {
-    const mode = this.modelMode();
-    if (mode === 'standard') return null;
-    if (mode === 'premium') return this.smartModelOptions()[0]?.id ?? null;
     return this.customModelSmart() || null;
   }
 

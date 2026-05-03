@@ -38,46 +38,77 @@
 
   <!-- Step 1: Szenario -->
   @if (currentStep() === 1) {
+
+    <!-- Beispiel-Templates -->
+    <section class="card animate-fade-in" style="padding: 28px 32px; margin-bottom: 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px;">
+        <div>
+          <h2 class="h3" style="margin-bottom: 4px;">Starte mit einem Beispiel</h2>
+          <p style="color: var(--ink-3); font-size: 13.5px;">Klicke ein Szenario an, um die Felder vorzubelegen — du kannst alles anpassen.</p>
+        </div>
+        @if (selectedTemplate()) {
+          <button type="button" (click)="clearTemplate()" class="btn btn-tertiary btn-sm" style="flex-shrink: 0;">
+            Felder leeren
+          </button>
+        }
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        @for (t of templates; track t.label) {
+          <button type="button" (click)="applyTemplate(t)"
+                  class="card card-hover preset-card"
+                  [class.preset-active]="selectedTemplate() === t.label"
+                  style="text-align: left;">
+            <i class="pi" [class]="t.icon" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
+            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px;">{{ t.label }}</p>
+            <p style="font-size: 12px; color: var(--ink-3); line-height: 1.4;">{{ t.name }}</p>
+          </button>
+        }
+      </div>
+    </section>
+
     <section class="card animate-fade-in" style="padding: 32px;">
       <h2 class="h3" style="margin-bottom: 6px;">Was soll vermessen werden?</h2>
       <p style="color: var(--ink-3); font-size: 14px; margin-bottom: 24px;">
-        Beschreibe das Produkt, die Kampagne oder die Idee — je präziser, desto realistischer reagieren die Personas.
+        Beschreibe das Produkt, die Kampagne oder die Idee — je pr&auml;ziser, desto realistischer reagieren die Personas.
       </p>
 
       <div class="field">
-        <label for="sim-name" class="label-required" title="Ein eindeutiger Name fuer diese Simulation — erscheint in der Simulationsliste.">Titel der Simulation</label>
+        <label for="sim-name" class="label-required">Titel der Simulation</label>
         <input id="sim-name" type="text"
                [ngModel]="name()" (ngModelChange)="name.set($event)"
                placeholder='z. B. "E-Auto Launch Q3 2026"'
                aria-required="true"
                class="input input-lg" />
+        <p class="label-hint">Erscheint in deiner Simulationsliste. Sei spezifisch — "E-Auto Launch DACH Q3" ist besser als "Test 1".</p>
       </div>
 
       <div class="field">
-        <label for="sim-desc" class="label-required" title="Je detaillierter die Beschreibung, desto realistischer die Persona-Reaktionen. Nenne konkrete Features, Preispunkte und Zielgruppen.">Produktbeschreibung</label>
+        <label for="sim-desc" class="label-required">Produktbeschreibung</label>
         <textarea id="sim-desc"
                   [ngModel]="productDescription()" (ngModelChange)="productDescription.set($event)"
                   rows="5"
-                  placeholder="Beschreibe das Produkt, die Kampagne oder Idee in zwei bis drei Sätzen …"
+                  placeholder="Was ist es? F&uuml;r wen? Was kostet es? Was macht es besonders?"
                   aria-required="true"
                   class="input"></textarea>
-        <p class="label-hint">Faustregel: Personas reagieren ehrlicher auf konkrete Beschreibungen.</p>
+        <p class="label-hint">Je konkreter du schreibst, desto realistischer reagieren die KI-Personas. Nenne Preise, Features und Zielgruppen.</p>
       </div>
 
       <div class="field-row">
         <div class="field" style="margin-bottom: 0;">
-          <label for="sim-market" title="Definiert den geographischen und demographischen Rahmen der Simulation. Z.B. 'DACH, 25-45 Jahre' oder 'Europa, B2B-Entscheider'. Beeinflusst Persona-Generierung und Recherche.">Zielmarkt <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+          <label for="sim-market">Zielmarkt <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
           <input id="sim-market" type="text"
                  [ngModel]="targetMarket()" (ngModelChange)="targetMarket.set($event)"
                  placeholder="z. B. DACH, 25–45 Jahre"
                  class="input" />
+          <p class="label-hint">Region + Altersgruppe + B2B/B2C bestimmt, welche Personas generiert werden.</p>
         </div>
         <div class="field" style="margin-bottom: 0;">
-          <label for="sim-industry" title="Die Branche bestimmt den Akteur-Mix (B2B vs B2C), welche Institutionen relevant sind und welche Fachbegriffe die Personas verwenden.">Branche <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+          <label for="sim-industry">Branche <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
           <input id="sim-industry" type="text"
                  [ngModel]="industry()" (ngModelChange)="industry.set($event)"
                  placeholder="z. B. Automobil, FinTech"
                  class="input" />
+          <p class="label-hint">Bestimmt Fachsprache, Konkurrenz und Akteur-Typen in der Simulation.</p>
         </div>
       </div>
     </section>
@@ -85,346 +116,286 @@
 
   <!-- Step 2: Parameter -->
   @if (currentStep() === 2) {
-    <section class="card animate-fade-in" style="padding: 32px;">
-      <h2 class="h3" style="margin-bottom: 6px;">Maßstab der Simulation</h2>
-      <p style="color: var(--ink-3); font-size: 14px; margin-bottom: 24px;">
-        Wähle ein Preset oder justiere manuell. Größere Simulationen liefern statistisch belastbarere Ergebnisse, kosten aber mehr.
-      </p>
 
-      <!-- Presets -->
-      <div style="margin-bottom: 28px;">
-        <label style="margin-bottom: 12px;" id="preset-label">Voreinstellungen</label>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3" role="radiogroup" aria-labelledby="preset-label">
-          @for (preset of presets; track preset.label) {
-            <button type="button"
-                    (click)="applyPreset(preset)"
-                    role="radio"
-                    [attr.aria-checked]="selectedPreset() === preset.label"
-                    [attr.aria-label]="preset.label + ': ' + preset.desc"
-                    class="card card-hover preset-card"
-                    [class.preset-active]="selectedPreset() === preset.label">
-              <i class="pi" [class]="preset.icon" style="font-size: 20px; color: var(--primary); margin-bottom: 10px; display: block;"></i>
-              <p style="font-size: 14.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px;">{{ preset.label }}</p>
-              <p style="font-size: 12px; color: var(--ink-3); line-height: 1.4;">{{ preset.desc }}</p>
-            </button>
-          }
-        </div>
+    <!-- 2a: Preset-Auswahl -->
+    <section class="card animate-fade-in" style="padding: 28px 32px; margin-bottom: 16px;">
+      <h2 class="h3" style="margin-bottom: 4px;">Umfang w&auml;hlen</h2>
+      <p style="color: var(--ink-3); font-size: 13.5px; margin-bottom: 20px;">
+        Wie gr&uuml;ndlich soll die Simulation sein? Gr&ouml;&szlig;ere Simulationen liefern belastbarere Ergebnisse.
+      </p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3" role="radiogroup" aria-label="Umfang">
+        @for (preset of presets; track preset.label) {
+          <button type="button"
+                  (click)="applyPreset(preset)"
+                  role="radio"
+                  [attr.aria-checked]="selectedPreset() === preset.label"
+                  class="card card-hover preset-card"
+                  [class.preset-active]="selectedPreset() === preset.label">
+            <i class="pi" [class]="preset.icon" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
+            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ preset.label }}</p>
+            <p style="font-size: 11px; color: var(--ink-4); margin-bottom: 4px; font-variant-numeric: tabular-nums;">{{ preset.stats }}</p>
+            <p style="font-size: 12px; color: var(--ink-3); line-height: 1.4;">{{ preset.desc }}</p>
+          </button>
+        }
       </div>
+    </section>
+
+    <!-- 2b: Research + Provider (side by side) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
 
       <!-- Research Mode -->
-      <div style="margin-bottom: 28px;">
-        <label style="margin-bottom: 12px;" id="research-label">Recherche-Modus</label>
-        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="research-label">
+      <section class="card animate-fade-in-delay-1" style="padding: 24px 28px;">
+        <label style="margin-bottom: 12px; display: block;" id="research-label">Recherche-Modus</label>
+        <div style="display: flex; flex-direction: column; gap: 8px;" role="radiogroup" aria-labelledby="research-label">
           <button type="button"
                   (click)="researchMode.set('quick')"
                   role="radio"
                   [attr.aria-checked]="researchMode() === 'quick'"
                   class="card card-hover preset-card"
-                  [class.preset-active]="researchMode() === 'quick'">
-            <i class="pi pi-bolt" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
-            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">Quick</p>
-            <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.35;">Sofort starten — Personas basierend auf LLM-Wissen</p>
+                  [class.preset-active]="researchMode() === 'quick'"
+                  style="padding: 14px 16px;">
+            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">
+              <i class="pi pi-bolt" style="font-size: 12px; color: var(--primary); margin-right: 6px;"></i>Quick
+            </p>
+            <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.4;">Sofort starten — Personas nutzen allgemeines KI-Wissen. Gut f&uuml;r schnelle Tests.</p>
           </button>
           <button type="button"
                   (click)="researchMode.set('deep')"
                   role="radio"
                   [attr.aria-checked]="researchMode() === 'deep'"
                   class="card card-hover preset-card"
-                  [class.preset-active]="researchMode() === 'deep'">
-            <i class="pi pi-search" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
-            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">Deep</p>
-            <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.35;">Web-Recherche vor Start — aktuelle Marktlage, Branchentrends, Zielgruppen-Kontext</p>
+                  [class.preset-active]="researchMode() === 'deep'"
+                  style="padding: 14px 16px;">
+            <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">
+              <i class="pi pi-search" style="font-size: 12px; color: var(--primary); margin-right: 6px;"></i>Deep
+            </p>
+            <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.4;">Web-Recherche vor Start (~2-5 Min extra) — aktuelle Marktlage, Trends, Wettbewerber. Empfohlen.</p>
           </button>
         </div>
-        @if (researchMode() === 'deep') {
-          <p class="label-hint" style="margin-top: 8px; color: var(--primary);">
-            <i class="pi pi-info-circle" style="font-size: 11px;"></i>
-            Deep Mode: Vor der Simulation wird eine Web-Recherche durchgeführt (~2-5 Min extra). Das Ergebnis kann vor dem Start geprüft und bearbeitet werden.
-          </p>
-        }
-      </div>
+      </section>
 
-      <!-- Provider-Auswahl -->
-      <div style="margin-bottom: 28px;">
-        <label style="margin-bottom: 12px;" id="provider-label">KI-Anbieter</label>
-        <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="provider-label">
+      <!-- Provider -->
+      <section class="card animate-fade-in-delay-1" style="padding: 24px 28px;">
+        <label style="margin-bottom: 12px; display: block;" id="provider-label">KI-Anbieter</label>
+        <div style="display: flex; flex-direction: column; gap: 8px;" role="radiogroup" aria-labelledby="provider-label">
           @for (p of providers; track p.id) {
             <button type="button"
                     (click)="llmProvider.set(p.id)"
                     role="radio"
                     [attr.aria-checked]="llmProvider() === p.id"
-                    [attr.aria-label]="p.label"
                     class="card card-hover preset-card"
-                    [class.preset-active]="llmProvider() === p.id">
-              <i class="pi" [class]="p.icon" style="font-size: 18px; color: var(--primary); margin-bottom: 8px; display: block;"></i>
-              <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ p.label }}</p>
-              <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.35;">{{ p.sub }}</p>
+                    [class.preset-active]="llmProvider() === p.id"
+                    style="padding: 14px 16px;">
+              <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">
+                <i class="pi" [class]="p.icon" style="font-size: 12px; color: var(--primary); margin-right: 6px;"></i>{{ p.label }}
+              </p>
+              <p style="font-size: 11.5px; color: var(--ink-3);">{{ p.sub }}</p>
             </button>
           }
         </div>
-        <p class="label-hint" style="margin-top: 8px;">
-          Der gewählte Anbieter wird für diese Simulation festgehalten — Persona-Generierung, Tick-Loop, Report und Chat nutzen dasselbe Modell.
+        <p class="label-hint" style="margin-top: 10px; font-size: 11.5px;">
+          Wird f&uuml;r alle Phasen verwendet: Persona-Generierung, Tick-Loop, Report.
         </p>
+      </section>
+    </div>
 
-        <!-- Erweitert: Modell pro Rolle -->
-        <button type="button"
-                (click)="showAdvanced.set(!showAdvanced())"
-                style="margin-top: 14px; background: transparent; border: none; color: var(--ink-3); font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px;"
-                [attr.aria-expanded]="showAdvanced()">
-          <i class="pi" [class.pi-chevron-right]="!showAdvanced()" [class.pi-chevron-down]="showAdvanced()" style="font-size: 10px;"></i>
-          Erweitert: Modelle pro Rolle wählen
-        </button>
-
-        @if (showAdvanced()) {
-          <div style="margin-top: 12px; padding: 18px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);">
-            <label style="margin-bottom: 8px; display: block;">Modus</label>
-            <div role="radiogroup" aria-label="Modell-Modus" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
-              @for (mode of modelModes; track mode.id) {
-                <button type="button"
-                        (click)="modelMode.set(mode.id)"
-                        role="radio"
-                        [attr.aria-checked]="modelMode() === mode.id"
-                        style="text-align: left; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer;"
-                        [style.border-color]="modelMode() === mode.id ? 'var(--primary)' : 'var(--border)'"
-                        [style.border-width]="modelMode() === mode.id ? '2px' : '1px'"
-                        [style.padding]="modelMode() === mode.id ? '9px 11px' : '10px 12px'">
-                  <span style="display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ mode.label }}</span>
-                  <span style="display: block; font-size: 12px; color: var(--ink-3); line-height: 1.4;">{{ mode.desc }}</span>
-                </button>
-              }
-            </div>
-
-            @if (modelMode() === 'custom') {
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div>
-                  <label for="model-fast" style="margin-bottom: 6px; font-size: 12.5px;">Schnellmodell (Aktionen / State)</label>
-                  <select id="model-fast"
-                          [ngModel]="customModelFast()"
-                          (ngModelChange)="customModelFast.set($event)"
-                          class="input">
-                    <option value="">— Provider-Default —</option>
-                    @for (m of fastModelOptions(); track m.id) {
-                      <option [value]="m.id">{{ m.label }}</option>
-                    }
-                  </select>
-                </div>
-                <div>
-                  <label for="model-smart" style="margin-bottom: 6px; font-size: 12.5px;">Qualitätsmodell (Persona-Gen / Report / Chat)</label>
-                  <select id="model-smart"
-                          [ngModel]="customModelSmart()"
-                          (ngModelChange)="customModelSmart.set($event)"
-                          class="input">
-                    <option value="">— Provider-Default —</option>
-                    @for (m of smartModelOptions(); track m.id) {
-                      <option [value]="m.id">{{ m.label }}</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            } @else if (modelMode() === 'premium') {
-              <p class="label-hint" style="margin: 0; padding: 10px 12px; background: var(--surface); border-left: 3px solid var(--warning); border-radius: var(--radius-sm);">
-                <strong style="color: var(--ink);">Premium-Modus:</strong> alle Calls (auch Persona-Aktionen) laufen über das Qualitätsmodell.
-                Faustregel: ~6× teurer und ~2× langsamer als Standard, dafür merklich kohärentere Personas. Empfohlen für ≤50 Personas.
-              </p>
-            }
+    <!-- 2c: Feinabstimmung (Slider) + Kalkulation -->
+    <section class="card animate-fade-in-delay-2" style="padding: 28px 32px; margin-bottom: 16px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 24px;">
+        <div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
+            <label for="persona-slider" style="margin-bottom: 0;">Anzahl Personas</label>
+            <span class="slider-value" aria-live="polite">{{ personaCount() }}</span>
           </div>
-        }
+          <input id="persona-slider" type="range"
+                 [ngModel]="personaCount()" (ngModelChange)="setPersonaCount($event)"
+                 min="5" max="500" step="5"
+                 class="range-slider" style="width: 100%;" />
+          <div class="slider-scale">
+            <span>5</span><span>100</span><span>250</span><span>500</span>
+          </div>
+        </div>
+        <div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
+            <label for="tick-slider" style="margin-bottom: 0;">Simulierte Tage</label>
+            <span class="slider-value" aria-live="polite">{{ tickCount() }}</span>
+          </div>
+          <input id="tick-slider" type="range"
+                 [ngModel]="tickCount()" (ngModelChange)="setTickCount($event)"
+                 min="5" max="60" step="1"
+                 class="range-slider" style="width: 100%;" />
+          <div class="slider-scale">
+            <span>5</span><span>20</span><span>40</span><span>60</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Multi-Provider Config -->
-      <div style="margin-bottom: 28px;">
-        <button type="button"
-                (click)="toggleProviderConfig()"
-                style="background: transparent; border: none; color: var(--ink-3); font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px;"
-                [attr.aria-expanded]="useProviderConfig()">
-          <i class="pi" [class.pi-chevron-right]="!useProviderConfig()" [class.pi-chevron-down]="useProviderConfig()" style="font-size: 10px;"></i>
-          Multi-Provider-Konfiguration (pro Phase)
-        </button>
+      @if (personaCount() > 200 && llmProvider() === 'anthropic') {
+        <div style="margin-bottom: 20px; padding: 12px 16px; border-left: 3px solid var(--warning); background: var(--warning-l); border-radius: var(--radius-sm); display: flex; gap: 10px; align-items: center;">
+          <i class="pi pi-exclamation-triangle" style="font-size: 14px; color: var(--warning);"></i>
+          <span style="font-size: 13px; color: var(--ink-2);">
+            <strong style="color: var(--ink);">&uuml;ber 200 Personas:</strong> OpenAI empfohlen f&uuml;r h&ouml;here Rate-Limits.
+            <button type="button" (click)="llmProvider.set('openai')"
+                    style="background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: underline; font-size: 13px;">
+              Wechseln
+            </button>
+          </span>
+        </div>
+      }
 
-        @if (useProviderConfig()) {
-          <div style="margin-top: 12px; padding: 18px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);">
-            <div class="info-box" style="margin-bottom: 16px;">
-              <i class="pi pi-info-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px;"></i>
-              <div style="font-size: 12.5px; color: var(--ink-2); line-height: 1.55;">
-                <strong style="color: var(--ink);">Multi-Provider-Modus:</strong>
-                Konfiguriere pro Simulationsphase, welche Provider und Modelle verwendet werden.
-                Du kannst mehrere Provider pro Phase hinzufuegen — die API-Calls werden dann nach Gewichtung (Anteil %) statistisch verteilt.
-                Das ist nuetzlich um Rate-Limits zu umgehen oder verschiedene KI-Modelle zu vergleichen.
-              </div>
-            </div>
+      <!-- Kalkulation inline -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);">
+        <div style="text-align: center;">
+          <p class="cost-num">~ ${{ estimatedCost() }}</p>
+          <p class="cost-label">API-Kosten</p>
+        </div>
+        <div style="text-align: center;">
+          <p class="cost-num">{{ durationLabel() }}</p>
+          <p class="cost-label">Dauer</p>
+        </div>
+        <div style="text-align: center;">
+          <p class="cost-num">~ {{ personaCount() * tickCount() * 2 }}</p>
+          <p class="cost-label">API-Calls</p>
+        </div>
+      </div>
 
-            @if (providerPresets().length > 0) {
-              <div style="margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-                  <label style="font-size: 12.5px; margin: 0;">Quality-Presets</label>
-                  <span class="tooltip-wrap">
-                    <i class="pi pi-info-circle tooltip-icon"></i>
-                    <span class="tooltip-box">Vorgefertigte Konfigurationen, die Temperature und Modell-Tier (schnell/Qualitaet) pro Phase automatisch setzen. Du kannst danach alles manuell anpassen.</span>
-                  </span>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                  @for (preset of providerPresets(); track preset.id) {
-                    <button type="button" class="btn btn-sm"
-                            [class.btn-primary]="selectedProviderPreset() === preset.id"
-                            [class.btn-secondary]="selectedProviderPreset() !== preset.id"
-                            (click)="applyProviderPreset(preset)"
-                            [title]="preset.description">
-                      {{ preset.label }}
-                    </button>
-                  }
-                </div>
-                @if (selectedProviderPreset(); as presetId) {
-                  @for (preset of providerPresets(); track preset.id) {
-                    @if (preset.id === presetId) {
-                      <p style="font-size: 11.5px; color: var(--ink-3); margin-top: 6px; padding: 6px 10px; background: var(--surface); border-left: 3px solid var(--primary); border-radius: var(--radius-sm);">
-                        {{ preset.description }}
-                      </p>
+      @if (isLongRun()) {
+        <p style="font-size: 12.5px; color: var(--ink-3); margin-top: 10px;">
+          <i class="pi pi-info-circle" style="font-size: 11px;"></i>
+          Lange Laufzeit — die Simulation l&auml;uft im Hintergrund weiter. Du kannst den Browser schlie&szlig;en und sp&auml;ter zur&uuml;ckkehren.
+        </p>
+      }
+    </section>
+
+    <!-- 2d: So läuft es ab -->
+    <section class="animate-fade-in-delay-3" style="padding: 20px 28px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; line-height: 1.6; color: var(--ink-3); margin-bottom: 16px;">
+      <p style="font-weight: 600; color: var(--ink-2); margin-bottom: 8px;">
+        <i class="pi pi-list" style="font-size: 12px; margin-right: 6px;"></i>So l&auml;uft die Simulation ab:
+      </p>
+      <span>1. Persona-Generierung &rarr; 2. Mehrt&auml;gige Debatte &rarr; 3. Automatischer Analyse-Report mit Konfidenz-Bewertung</span>
+    </section>
+
+    <!-- 2e: Erweiterte Optionen (collapsed) -->
+    <section class="card animate-fade-in-delay-3" style="padding: 16px 28px;">
+      <button type="button"
+              (click)="showAdvanced.set(!showAdvanced())"
+              style="background: transparent; border: none; color: var(--ink-3); font-size: 13px; font-weight: 500; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 8px; width: 100%;"
+              [attr.aria-expanded]="showAdvanced()">
+        <i class="pi" [class.pi-chevron-right]="!showAdvanced()" [class.pi-chevron-down]="showAdvanced()" style="font-size: 10px;"></i>
+        Erweiterte Optionen
+        <span style="font-size: 11.5px; color: var(--ink-4); font-weight: 400;">— Modelle pro Rolle, Multi-Provider, Sampling</span>
+      </button>
+
+      @if (showAdvanced()) {
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+
+          <!-- Modell-Auswahl -->
+          <div style="margin-bottom: 20px;">
+            <p style="font-size: 13.5px; color: var(--ink-2); margin-bottom: 16px; line-height: 1.5;">
+              Agora nutzt zwei Modelle: ein <strong style="color: var(--ink);">schnelles</strong> f&uuml;r Massen-Aktionen (Posts, Reaktionen, State-Updates)
+              und ein <strong style="color: var(--ink);">starkes</strong> f&uuml;r Persona-Generierung, Reports und Chat. Leer = Provider-Default.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <label for="model-fast" style="margin-bottom: 6px; font-size: 13px;">Schnellmodell <span style="color: var(--ink-4); font-weight: 400;">(Aktionen / State)</span></label>
+                <select id="model-fast" [ngModel]="customModelFast()" (ngModelChange)="customModelFast.set($event)" class="input">
+                  <option value="">— Provider-Default —</option>
+                  @for (m of fastModelOptions(); track m.id) { <option [value]="m.id">{{ m.label }}</option> }
+                </select>
+                @if (customModelFast(); as sel) {
+                  @for (m of fastModelOptions(); track m.id) {
+                    @if (m.id === sel) {
+                      <p class="label-hint" style="margin-top: 4px;">{{ m.info }}</p>
                     }
                   }
                 }
               </div>
-            }
-
-            <app-phase-config
-              label="Persona-Generierung"
-              hint="Smart-Tier"
-              [initialEntries]="personaGenEntries()"
-              (entriesChange)="onPhaseEntriesChange('persona_generation', $event)" />
-
-            <app-phase-config
-              label="Agenten-Aktionen (Tick)"
-              hint="Fast-Tier"
-              [initialEntries]="agentActionEntries()"
-              (entriesChange)="onPhaseEntriesChange('agent_actions', $event)" />
-
-            <app-phase-config
-              label="State-Updates (Tick)"
-              hint="Fast-Tier"
-              [initialEntries]="stateUpdateEntries()"
-              (entriesChange)="onPhaseEntriesChange('state_updates', $event)" />
-
-            <app-phase-config
-              label="Analyse & Report"
-              hint="Smart-Tier"
-              [initialEntries]="analysisEntries()"
-              (entriesChange)="onPhaseEntriesChange('analysis_reports', $event)" />
-
-            <!-- Live Cost Estimate -->
-            @if (liveCostEstimate()) {
-              <div style="margin-top: 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);">
-                <p class="eyebrow" style="margin-bottom: 8px;">Kostenvorschau (Multi-Provider)</p>
-                <div style="display: flex; gap: 24px; align-items: baseline;">
-                  <div>
-                    <span style="font-size: 20px; font-weight: 700; color: var(--primary);">
-                      ${{ liveCostEstimate()!.total_estimated_usd.toFixed(2) }}
-                    </span>
-                    <span style="font-size: 12px; color: var(--ink-3); margin-left: 4px;">geschaetzt</span>
-                  </div>
-                  @for (phase of ['persona_generation', 'agent_actions', 'state_updates', 'analysis_reports']; track phase) {
-                    @if (liveCostEstimate()!.breakdown[phase]) {
-                      <div style="font-size: 11.5px; color: var(--ink-3);">
-                        {{ phase === 'persona_generation' ? 'Persona-Gen' : phase === 'agent_actions' ? 'Aktionen' : phase === 'state_updates' ? 'State' : 'Analyse' }}:
-                        ${{ liveCostEstimate()!.breakdown[phase].estimated_usd.toFixed(3) }}
-                      </div>
+              <div>
+                <label for="model-smart" style="margin-bottom: 6px; font-size: 13px;">Qualit&auml;tsmodell <span style="color: var(--ink-4); font-weight: 400;">(Persona-Gen / Report / Chat)</span></label>
+                <select id="model-smart" [ngModel]="customModelSmart()" (ngModelChange)="customModelSmart.set($event)" class="input">
+                  <option value="">— Provider-Default —</option>
+                  @for (m of smartModelOptions(); track m.id) { <option [value]="m.id">{{ m.label }}</option> }
+                </select>
+                @if (customModelSmart(); as sel) {
+                  @for (m of smartModelOptions(); track m.id) {
+                    @if (m.id === sel) {
+                      <p class="label-hint" style="margin-top: 4px;">{{ m.info }}</p>
                     }
                   }
-                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Modell-Übersicht -->
+            <details style="margin-top: 14px;">
+              <summary style="font-size: 12.5px; color: var(--ink-3); cursor: pointer; font-weight: 500;">Alle verf&uuml;gbaren Modelle &amp; Empfehlungen</summary>
+              <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+                @for (m of allModelOptions(); track m.id) {
+                  <div style="padding: 8px 12px; background: var(--surface-2); border-radius: var(--radius-sm); display: flex; align-items: baseline; gap: 10px;">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--ink); min-width: 140px;">{{ m.label }}</span>
+                    <span style="font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; letter-spacing: 0.03em;"
+                          [style.background]="m.tier === 'fast' ? 'var(--success-l)' : 'var(--primary-l)'"
+                          [style.color]="m.tier === 'fast' ? 'var(--success)' : 'var(--primary)'">
+                      {{ m.tier === 'fast' ? 'SCHNELL' : 'QUALIT\u00C4T' }}
+                    </span>
+                    <span style="font-size: 12px; color: var(--ink-3); flex: 1;">{{ m.info }}</span>
+                  </div>
+                }
+              </div>
+            </details>
+          </div>
+
+          <!-- Multi-Provider -->
+          <div>
+            <button type="button"
+                    (click)="toggleProviderConfig()"
+                    style="background: transparent; border: none; color: var(--ink-3); font-size: 12.5px; font-weight: 500; cursor: pointer; padding: 4px 0; display: inline-flex; align-items: center; gap: 6px;"
+                    [attr.aria-expanded]="useProviderConfig()">
+              <i class="pi" [class.pi-chevron-right]="!useProviderConfig()" [class.pi-chevron-down]="useProviderConfig()" style="font-size: 10px;"></i>
+              Multi-Provider-Konfiguration (pro Phase)
+            </button>
+
+            @if (useProviderConfig()) {
+              <div style="margin-top: 12px; padding: 18px 20px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);">
+                @if (providerPresets().length > 0) {
+                  <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+                    @for (preset of providerPresets(); track preset.id) {
+                      <button type="button" class="btn btn-sm"
+                              [class.btn-primary]="selectedProviderPreset() === preset.id"
+                              [class.btn-secondary]="selectedProviderPreset() !== preset.id"
+                              (click)="applyProviderPreset(preset)"
+                              [title]="preset.description">
+                        {{ preset.label }}
+                      </button>
+                    }
+                  </div>
+                }
+
+                <app-phase-config label="Persona-Generierung" hint="Smart-Tier"
+                  [initialEntries]="personaGenEntries()" (entriesChange)="onPhaseEntriesChange('persona_generation', $event)" />
+                <app-phase-config label="Agenten-Aktionen (Tick)" hint="Fast-Tier"
+                  [initialEntries]="agentActionEntries()" (entriesChange)="onPhaseEntriesChange('agent_actions', $event)" />
+                <app-phase-config label="State-Updates (Tick)" hint="Fast-Tier"
+                  [initialEntries]="stateUpdateEntries()" (entriesChange)="onPhaseEntriesChange('state_updates', $event)" />
+                <app-phase-config label="Analyse & Report" hint="Smart-Tier"
+                  [initialEntries]="analysisEntries()" (entriesChange)="onPhaseEntriesChange('analysis_reports', $event)" />
+
+                @if (liveCostEstimate()) {
+                  <div style="margin-top: 16px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; gap: 16px; align-items: baseline; font-size: 12.5px;">
+                    <span style="font-size: 16px; font-weight: 700; color: var(--primary);">${{ liveCostEstimate()!.total_estimated_usd.toFixed(2) }}</span>
+                    <span style="color: var(--ink-3);">gesch&auml;tzt (Multi-Provider)</span>
+                  </div>
+                }
+                @if (costLoading()) {
+                  <p style="font-size: 12px; color: var(--ink-4); margin-top: 8px;">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 11px;"></i> Kosten werden berechnet...
+                  </p>
+                }
               </div>
             }
-            @if (costLoading()) {
-              <p style="font-size: 12px; color: var(--ink-4); margin-top: 8px;">
-                <i class="pi pi-spin pi-spinner" style="font-size: 11px;"></i> Kosten werden berechnet...
-              </p>
-            }
-          </div>
-        }
-      </div>
-
-      <!-- Sliders -->
-      <div style="margin-bottom: 28px;">
-        <label style="margin-bottom: 12px;">Feinabstimmung</label>
-        <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px;">
-          <div style="margin-bottom: 24px;">
-            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
-              <label for="persona-slider" style="margin-bottom: 0;" title="Virtuelle Akteure in der Simulation. Mehr Personas = breitere Meinungsvielfalt und statistisch belastbarere Ergebnisse, aber hoehere Kosten und laengere Laufzeit. Empfehlung: 30 fuer Schnelltests, 100+ fuer belastbare Analysen.">Anzahl Personas</label>
-              <span class="slider-value" aria-live="polite">{{ personaCount() }}</span>
-            </div>
-            <input id="persona-slider" type="range"
-                   [ngModel]="personaCount()" (ngModelChange)="setPersonaCount($event)"
-                   min="5" max="500" step="5"
-                   aria-label="Anzahl Personas"
-                   class="range-slider" style="width: 100%;" />
-            <div class="slider-scale">
-              <span>5</span><span>100</span><span>250</span><span>500</span>
-            </div>
-            <p class="label-hint" style="margin-top: 6px;">
-              Bis 100 in 5er-Schritten · darüber 25er-Schritte. Bei 500 Personas in 30 Tagen wird die Simulation zur Studie.
-            </p>
-
-            @if (personaCount() > 200 && llmProvider() === 'anthropic') {
-              <div class="card card-accent card-warning"
-                   style="margin-top: 12px; padding: 14px 16px; display: flex; gap: 10px; align-items: flex-start;">
-                <i class="pi pi-exclamation-triangle" style="font-size: 16px; color: var(--warning); margin-top: 2px;"></i>
-                <div style="flex: 1; font-size: 13px; line-height: 1.5; color: var(--ink-2);">
-                  <strong style="color: var(--ink);">Über 200 Personas: OpenAI empfohlen.</strong>
-                  Anthropic-Tier-Limits werden bei dieser Größe schnell zur Engstelle (Rate-Limit-Risiko, lange Wartezeiten).
-                  OpenAI gpt-5-mini liefert 500 k TPM und schafft 500 Personas zuverlässig in einem Lauf.
-                  <button type="button"
-                          (click)="llmProvider.set('openai')"
-                          style="margin-top: 6px; background: transparent; border: none; color: var(--primary); font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline;">
-                    Auf OpenAI wechseln
-                  </button>
-                </div>
-              </div>
-            }
-          </div>
-
-          <div>
-            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px;">
-              <label for="tick-slider" style="margin-bottom: 0;" title="Anzahl der simulierten Tage. Pro Tag posten, kommentieren und reagieren die Personas aufeinander. Mehr Tage = tiefere Meinungsentwicklung und laengere Narrative, aber hoehere Kosten. Empfehlung: 15 Standard, 30+ fuer komplexe Maerkte.">Simulierte Tage</label>
-              <span class="slider-value" aria-live="polite">{{ tickCount() }}</span>
-            </div>
-            <input id="tick-slider" type="range"
-                   [ngModel]="tickCount()" (ngModelChange)="setTickCount($event)"
-                   min="5" max="60" step="1"
-                   aria-label="Anzahl Tage"
-                   class="range-slider" style="width: 100%;" />
-            <div class="slider-scale">
-              <span>5</span><span>20</span><span>40</span><span>60</span>
-            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Cost estimate -->
-      <div class="card card-accent" [class.card-info]="!isLongRun()" [class.card-warning]="isLongRun()" style="padding: 20px 24px;">
-        <p class="eyebrow" style="margin-bottom: 12px;">Kalkulation</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-          <div>
-            <p class="cost-num">~ ${{ estimatedCost() }}</p>
-            <p class="cost-label">API-Kosten</p>
-          </div>
-          <div>
-            <p class="cost-num">{{ durationLabel() }}</p>
-            <p class="cost-label">Dauer</p>
-          </div>
-          <div>
-            <p class="cost-num">~ {{ personaCount() * tickCount() * 2 }}</p>
-            <p class="cost-label">API-Calls</p>
-          </div>
-        </div>
-
-        @if (isLongRun()) {
-          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-start;">
-            <i class="pi pi-info-circle" style="font-size: 16px; color: var(--warning); margin-top: 2px;"></i>
-            <p style="font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0;">
-              <strong>Lange Laufzeit ({{ durationLabel() }}).</strong>
-              Die Simulation läuft im Hintergrund auf dem Server weiter — du kannst den Browser-Tab schließen
-              und später über die Simulationsliste zurückkehren. Persona-Generierung läuft in Batches parallel.
-            </p>
-          </div>
-        }
-      </div>
+      }
     </section>
   }
 
@@ -584,7 +555,7 @@
   .step-active .step-circle {
     background: var(--primary);
     border-color: var(--primary);
-    color: #fff;
+    color: var(--primary-text);
     box-shadow: 0 0 0 4px var(--primary-l);
   }
   .step-active .step-label {
@@ -594,7 +565,7 @@
   .step-done .step-circle {
     background: var(--success);
     border-color: var(--success);
-    color: #fff;
+    color: var(--bg);
   }
   .step-done .step-label {
     color: var(--ink);
@@ -714,15 +685,16 @@
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
-    background: var(--ink);
-    color: #fff;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border);
     font-size: 11.5px;
     line-height: 1.5;
     padding: 8px 12px;
     border-radius: 6px;
     width: 240px;
     z-index: 100;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
     pointer-events: none;
     font-weight: 400;
   }
@@ -734,7 +706,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 5px solid transparent;
-    border-top-color: var(--ink);
+    border-top-color: var(--surface);
   }
 
   /* === Sticky Footer === */
