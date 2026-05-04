@@ -27,3 +27,14 @@ class PersonaRead(UUIDModel, TimestampMixin):
     media_consumption: list[str] = []
     tech_affinity: float | None = None
     personality_traits: dict = {}
+    # v1.1: Actor System
+    actor_type: str = "private_person"
+    subtype: str | None = None
+    context: str | None = None
+    traegerschaft: str | None = None
+    stance: str | None = None
+    activation_latency: int = 0
+    trigger_condition: dict | None = None
+    function_tags: list[str] = []
+    engagement_decay_rate: float = 0.05
+    profile_data: dict = {}

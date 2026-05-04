@@ -27,6 +27,10 @@ class SimulationCreate(BaseModel):
     llm_model_smart: str | None = Field(None, max_length=64)
     provider_config: SimulationProviderConfig | None = None
     research_mode: ResearchMode = Field("quick", description="'quick' = ohne Web-Recherche, 'deep' = mit Web-Recherche vor Persona-Generierung")
+    # v1.1
+    research_snapshot_id: UUID | None = None
+    stagnation_mode: str = Field("mild", description="off, mild, aggressive")
+    distribution_template: dict | None = None
 
     @field_validator("webhook_url")
     @classmethod
@@ -68,6 +72,10 @@ class SimulationRead(UUIDModel, TimestampMixin):
     run_group_id: UUID | None = None
     run_index: int | None = None
     research_mode: str = "quick"
+    # v1.1
+    research_snapshot_id: UUID | None = None
+    stagnation_mode: str = "mild"
+    distribution_template: dict | None = None
 
 
 class SimulationRunResponse(BaseModel):

@@ -62,6 +62,22 @@
     </div>
   </div>
 
+  <!-- v1.1: Actor Type Filter -->
+  <div class="flex gap-2 flex-wrap mb-4">
+    <button type="button" class="mood-pill"
+            [class.mood-pill-active]="!actorTypeFilter()"
+            (click)="actorTypeFilter.set(''); loadPersonas()">
+      Alle
+    </button>
+    @for (opt of actorTypeOptions; track opt.id) {
+      <button type="button" class="mood-pill"
+              [class.mood-pill-active]="actorTypeFilter() === opt.id"
+              (click)="actorTypeFilter.set(opt.id); loadPersonas()">
+        {{ opt.label }}
+      </button>
+    }
+  </div>
+
   @if (loading()) {
     <div class="card" style="padding: 64px; text-align: center;">
       <p style="color: var(--ink-3);">Personas werden geladen …</p>
@@ -102,6 +118,13 @@
                   {{ p.persona_type === 'organization' ? 'Org' : p.persona_type === 'institution' ? 'Inst' : 'Pol' }}
                 </span>
               }
+              @if (p.actor_type && p.actor_type !== 'private_person') {
+                <span class="badge" style="font-size: 10px; padding: 2px 7px;"
+                      [style.background-color]="actorTypeColors[p.actor_type] + '22'"
+                      [style.color]="actorTypeColors[p.actor_type]">
+                  {{ actorTypes[p.actor_type] }}
+                </span>
+              }
               @if (!p.is_skeptic) {
                 <span class="mood-dot" [style.background]="getMoodColor(p.current_state?.mood)"></span>
               }
@@ -132,6 +155,14 @@
                 }
                 @if (persona.persona_type && persona.persona_type !== 'individual') {
                   <span class="badge badge-muted">{{ persona.entity_subtype || persona.persona_type }}</span>
+                }
+                @if (persona.actor_type) {
+                  <span class="badge" style="font-size: 11.5px;"
+                        [style.background-color]="actorTypeColors[persona.actor_type] + '22'"
+                        [style.color]="actorTypeColors[persona.actor_type]">
+                    <i [class]="actorTypeIcons[persona.actor_type]" style="font-size: 10px; margin-right: 4px;"></i>
+                    {{ actorTypes[persona.actor_type] }}
+                  </span>
                 }
               </div>
               <div class="flex gap-2 flex-wrap">

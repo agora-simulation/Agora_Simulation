@@ -22,6 +22,21 @@ export const routes: Routes = [
     loadComponent: () => import('./features/simulation-create/simulation-create.component').then(c => c.SimulationCreateComponent),
   },
   {
+    path: 'research',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/research/research.component').then(c => c.ResearchComponent),
+  },
+  {
+    path: 'templates',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/templates/templates.component').then(c => c.TemplatesComponent),
+  },
+  {
+    path: 'platforms',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/platforms/platforms.component').then(c => c.PlatformsComponent),
+  },
+  {
     path: 'settings',
     canActivate: [authGuard],
     loadComponent: () => import('./features/settings/settings.component').then(c => c.SettingsComponent),
@@ -39,6 +54,8 @@ export const routes: Routes = [
       { path: 'network',   loadComponent: () => import('./features/simulation-dashboard/network/network.component').then(c => c.NetworkComponent) },
       { path: 'sentiment', loadComponent: () => import('./features/simulation-dashboard/sentiment/sentiment.component').then(c => c.SentimentComponent) },
       { path: 'influence', loadComponent: () => import('./features/simulation-dashboard/influence/influence.component').then(c => c.InfluenceComponent) },
+      { path: 'crowd',     loadComponent: () => import('./features/simulation-dashboard/crowd/crowd.component').then(c => c.CrowdComponent) },
+      { path: 'triggers',  loadComponent: () => import('./features/simulation-dashboard/triggers/triggers.component').then(c => c.TriggersComponent) },
       { path: 'report',    loadComponent: () => import('./features/simulation-dashboard/report/report.component').then(c => c.ReportComponent) },
       { path: 'tools',     loadComponent: () => import('./features/simulation-dashboard/tools/tools.component').then(c => c.ToolsComponent) },
 

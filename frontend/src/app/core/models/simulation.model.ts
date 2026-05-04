@@ -20,6 +20,9 @@ export interface Simulation {
   research_mode: ResearchMode;
   run_group_id: string | null;
   run_index: number | null;
+  research_snapshot_id: string | null;
+  stagnation_mode: 'off' | 'mild' | 'aggressive';
+  distribution_template: Record<string, number> | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +58,9 @@ export interface SimulationCreate {
   llm_model_smart?: string | null;
   provider_config?: SimulationProviderConfig | null;
   research_mode?: ResearchMode;
+  research_snapshot_id?: string;
+  stagnation_mode?: 'off' | 'mild' | 'aggressive';
+  distribution_template?: Record<string, number>;
 }
 
 export interface SimulationStreamEvent {

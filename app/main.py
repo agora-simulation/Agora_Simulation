@@ -16,6 +16,8 @@ from app.routers import chat
 from app.routers import admin
 from app.routers import export
 from app.routers import providers
+# v1.1
+from app.routers import platforms, trigger_events, research_snapshots, templates, crowd
 from app.auth import verify_api_key
 from app.database import get_db
 from app.middleware.logging import RequestLoggingMiddleware, AgoraFormatter
@@ -68,6 +70,12 @@ app = FastAPI(
         {"name": "providers", "description": "LLM-Provider Verwaltung (Registry, Presets, Kosten)"},
         {"name": "admin", "description": "API-Key Verwaltung (Master-Key erforderlich)"},
         {"name": "system", "description": "Health Check und Metriken"},
+        # v1.1
+        {"name": "platforms", "description": "Plattform-Layer Verwaltung"},
+        {"name": "trigger-events", "description": "Trigger Events / News-Injection"},
+        {"name": "research", "description": "Eigenständige Marktrecherchen"},
+        {"name": "templates", "description": "Template-System (Verteilung, Tonalität, Trigger-Library)"},
+        {"name": "crowd", "description": "Crowd-Layer Daten"},
     ],
 )
 
@@ -135,6 +143,12 @@ app.include_router(
 )
 # Admin router — secured by separate master key, no API-key auth
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+# v1.1 Routers
+app.include_router(platforms.router, prefix="/platforms", tags=["platforms"], dependencies=[Depends(verify_api_key)])
+app.include_router(trigger_events.router, prefix="/trigger-events", tags=["trigger-events"], dependencies=[Depends(verify_api_key)])
+app.include_router(research_snapshots.router, prefix="/research", tags=["research"], dependencies=[Depends(verify_api_key)])
+app.include_router(templates.router, prefix="/templates", tags=["templates"], dependencies=[Depends(verify_api_key)])
+app.include_router(crowd.router, prefix="/crowd", tags=["crowd"], dependencies=[Depends(verify_api_key)])
 # Export router — JSON and CSV downloads
 app.include_router(
     export.router,

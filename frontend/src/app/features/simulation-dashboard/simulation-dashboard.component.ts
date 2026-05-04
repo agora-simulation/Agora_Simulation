@@ -49,6 +49,8 @@ export class SimulationDashboardComponent implements OnInit, OnDestroy {
     { route: 'network',   label: 'Netzwerk',   icon: 'pi-share-alt' },
     { route: 'sentiment', label: 'Sentiment',  icon: 'pi-chart-line' },
     { route: 'influence', label: 'Einfluss',   icon: 'pi-arrows-alt' },
+    { route: 'crowd',     label: 'Crowd',      icon: 'pi-globe' },
+    { route: 'triggers',  label: 'Trigger',    icon: 'pi-bolt' },
     { route: 'report',    label: 'Report',     icon: 'pi-file' },
     { route: 'tools',     label: 'Werkzeuge',  icon: 'pi-wrench' },
   ];

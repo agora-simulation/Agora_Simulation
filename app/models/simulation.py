@@ -42,6 +42,10 @@ class Simulation(Base):
     run_group_id = Column(UUID(as_uuid=True), nullable=True, index=True)   # Multi-Run: Gruppen-ID für zusammengehörige Runs
     run_index = Column(Integer, nullable=True)              # Multi-Run: 0-basierter Index innerhalb der Gruppe
     research_mode = Column(String(10), nullable=False, default="quick")  # "quick" | "deep"
+    # v1.1
+    research_snapshot_id = Column(UUID(as_uuid=True), ForeignKey("research_snapshots.id"), nullable=True)
+    stagnation_mode = Column(String(20), default="mild")  # off, mild, aggressive
+    distribution_template = Column(JSON, nullable=True)  # actor type distribution percentages
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
@@ -50,6 +54,7 @@ class Simulation(Base):
     ticks = relationship("SimulationTick", back_populates="simulation", cascade="all, delete-orphan")
     reports = relationship("AnalysisReport", back_populates="simulation", cascade="all, delete-orphan")
     market_context = relationship("MarketContext", back_populates="simulation", uselist=False, cascade="all, delete-orphan")
+    research_snapshot = relationship("ResearchSnapshot", foreign_keys=[research_snapshot_id])
 
 
 class SimulationTick(Base):

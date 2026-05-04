@@ -13,5 +13,13 @@ export interface AnalysisReport {
   network_evolution: string | null;
   confidence_assessment: string | null;
   methodology_limitations: string | null;
+  // v1.1
+  sentiment_by_actor_type?: string;
+  platform_comparison?: string;
+  validator_status?: string;
+  trigger_impact?: string;
+  stagnation_events?: string;
+  function_tag_overview?: string;
+  quota_estimates?: Array<Record<string, any>>;
   created_at: string;
 }

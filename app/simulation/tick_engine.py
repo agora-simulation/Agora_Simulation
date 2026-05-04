@@ -39,6 +39,120 @@ from app.models import (
     InfluenceEvent,
 )
 
+# ---------------------------------------------------------------------------
+# v1.1: Actor-Type Behavior Parameters
+# ---------------------------------------------------------------------------
+
+ACTOR_BEHAVIOR = {
+    "private_person":     {"posts_per_tick": 0.3, "latency_min": 0, "latency_max": 1, "reach_mult": 1.0, "credibility": 0.5, "dropout_rate": 0.3, "decay_rate": 0.1},
+    "company":            {"posts_per_tick": 0.1, "latency_min": 1, "latency_max": 3, "reach_mult": 12.0, "credibility": 0.6, "dropout_rate": 0.1, "decay_rate": 0.05},
+    "research_institute": {"posts_per_tick": 0.05, "latency_min": 5, "latency_max": 10, "reach_mult": 20.0, "credibility": 0.9, "dropout_rate": 0.05, "decay_rate": 0.03},
+    "authority":          {"posts_per_tick": 0.02, "latency_min": 7, "latency_max": 15, "reach_mult": 65.0, "credibility": 0.85, "dropout_rate": 0.05, "decay_rate": 0.02},
+    "media":              {"posts_per_tick": 0.4, "latency_min": 1, "latency_max": 4, "reach_mult": 250.0, "credibility": 0.7, "dropout_rate": 0.05, "decay_rate": 0.08},
+    "influencer":         {"posts_per_tick": 0.6, "latency_min": 0, "latency_max": 2, "reach_mult": 500.0, "credibility": 0.6, "dropout_rate": 0.05, "decay_rate": 0.1},
+    "expert":             {"posts_per_tick": 0.2, "latency_min": 2, "latency_max": 5, "reach_mult": 25.0, "credibility": 0.85, "dropout_rate": 0.1, "decay_rate": 0.05},
+    "collective":         {"posts_per_tick": 0.15, "latency_min": 3, "latency_max": 7, "reach_mult": 100.0, "credibility": 0.6, "dropout_rate": 0.08, "decay_rate": 0.04},
+    "validator":          {"posts_per_tick": 0.01, "latency_min": 10, "latency_max": 20, "reach_mult": 65.0, "credibility": 0.95, "dropout_rate": 0.02, "decay_rate": 0.01},
+}
+
+
+def _should_persona_act(persona, ingame_day: int) -> bool:
+    """v1.1: Determines if a persona should act this tick based on actor type behavior."""
+    actor_type = getattr(persona, 'actor_type', 'private_person') or 'private_person'
+    behavior = ACTOR_BEHAVIOR.get(actor_type, ACTOR_BEHAVIOR["private_person"])
+    latency = getattr(persona, 'activation_latency', 0) or 0
+    if ingame_day < latency:
+        return False
+    post_probability = behavior["posts_per_tick"]
+    days_since_activation = ingame_day - latency
+    if days_since_activation <= 3:
+        post_probability *= 1.5
+    decay_rate = getattr(persona, 'engagement_decay_rate', behavior["decay_rate"]) or behavior["decay_rate"]
+    if days_since_activation > 5:
+        post_probability *= max(0.1, 1.0 - decay_rate * (days_since_activation - 5))
+    if _random.random() < behavior["dropout_rate"] and ingame_day > latency + 3:
+        return False
+    return _random.random() < post_probability
+
+
+def _get_tonality_hint(persona) -> str:
+    """v1.1: Returns a tonality hint based on actor type."""
+    actor_type = getattr(persona, 'actor_type', 'private_person') or 'private_person'
+    hints = {
+        "private_person": "Sprich aus persoenlicher Erfahrung, emotional und direkt.",
+        "company": "Formuliere offiziell, vorsichtig und markenkonform.",
+        "research_institute": "Argumentiere evidenzbasiert und zurueckhaltend.",
+        "authority": "Formuliere formal und regelorientiert.",
+        "media": "Berichte neutral-skeptisch und story-orientiert.",
+        "influencer": "Sprich persoenlich und polarisierend.",
+        "expert": "Argumentiere sachlich und fachterminologisch.",
+        "collective": "Vertritt das Gruppeninteresse. Mobilisiere.",
+        "validator": "Formuliere formal-technisch. Gib Freigabe oder Ablehnung.",
+    }
+    return hints.get(actor_type, hints["private_person"])
+
+
+async def _process_trigger_events(simulation_id: UUID, ingame_day: int, db) -> list[dict]:
+    """v1.1: Processes trigger events scheduled for this day."""
+    from app.models.trigger_event import TriggerEvent
+    result = await db.execute(
+        select(TriggerEvent).where(TriggerEvent.simulation_id == simulation_id, TriggerEvent.tick_day == ingame_day)
+    )
+    return [{"id": str(e.id), "event_type": e.event_type, "title": e.title, "content": e.content,
+             "affected_segments": e.affected_segments or [], "intensity": e.intensity or "minor"}
+            for e in result.scalars().all()]
+
+
+def _detect_stagnation(tick_snapshots: list[dict], window: int = 3) -> bool:
+    """v1.1: Detects stagnation based on rolling averages."""
+    if len(tick_snapshots) < window:
+        return False
+    recent = tick_snapshots[-window:]
+    avg_posts = sum(s.get("new_posts", 0) for s in recent) / window
+    avg_active = sum(s.get("personas_active", 0) for s in recent) / window
+    vals = [s.get("polarization_index", 0) for s in recent]
+    import statistics as _stats
+    sentiment_var = _stats.variance(vals) if len(vals) >= 2 else 0.0
+    is_stagnant = avg_posts < 2 and sentiment_var < 0.05 and avg_active < 3
+    if is_stagnant:
+        logger.warning(f"Stagnation erkannt: posts={avg_posts:.1f}, var={sentiment_var:.4f}, active={avg_active:.1f}")
+    return is_stagnant
+
+
+async def _auto_reactivate(simulation_id, ingame_day, db, personas, mode="mild") -> list[str]:
+    """v1.1: Auto-reactivates dormant personas."""
+    if mode == "off":
+        return []
+    reactivations = []
+    priority_order = ["media", "influencer", "authority", "validator", "expert", "collective", "company"]
+    dormant = []
+    for p in personas:
+        at = getattr(p, 'actor_type', 'private_person') or 'private_person'
+        recent = (p.current_state or {}).get("recent_actions", [])
+        is_dormant = not any(a.get("tick", 0) >= ingame_day - 3 for a in recent)
+        if is_dormant and at in priority_order:
+            dormant.append((priority_order.index(at), p))
+    dormant.sort(key=lambda x: x[0])
+    for _, p in dormant[:2 if mode == "mild" else 5]:
+        state = dict(p.current_state or {})
+        state["mood"] = "aktiviert"
+        p.current_state = state
+        at = getattr(p, 'actor_type', 'private_person') or 'private_person'
+        reactivations.append(f"Auto-Reactivation: {p.name} ({at})")
+    if mode == "aggressive" and reactivations:
+        from app.models.trigger_event import TriggerEvent
+        db.add(TriggerEvent(simulation_id=simulation_id, tick_day=ingame_day, event_type="news_headline",
+                            title=f"Neue Marktentwicklung (Tag {ingame_day})", content="Auto-generiert wegen Stagnation.",
+                            affected_segments=["media", "influencer", "company"], intensity="minor",
+                            source_attribution="System (Stagnations-Detection)", was_auto_generated=True))
+        reactivations.append("Auto-Trigger-Event generiert")
+    return reactivations
+
+
+# ---------------------------------------------------------------------------
+# System Prompts
+# ---------------------------------------------------------------------------
+
 AGENT_SYSTEM_PROMPT_BASE = """Du bist eine virtuelle Person in einer sozialen Simulation.
 Verhalte dich authentisch und konsistent mit deiner Persönlichkeit.
 Reagiere auf deinen Feed wie eine echte Person — nicht immer, nicht immer positiv.
@@ -46,7 +160,10 @@ Reagiere auf deinen Feed wie eine echte Person — nicht immer, nicht immer posi
 WICHTIG: Erfinde KEINE konkreten Zahlen, Prozentsätze oder Statistiken (z.B. "+23% CTR", "-18% CAC", "ROI von 340%").
 Du darfst nur qualitative Aussagen treffen ("deutlich bessere Ergebnisse", "spürbare Verbesserung", "merklicher Rückgang").
 Wenn du Zahlen nennst, müssen sie direkt aus deinem Profil oder deiner Erfahrung stammen.
-Erfundene Metriken verfälschen den Diskurs."""
+Erfundene Metriken verfälschen den Diskurs.
+
+AKTEURS-TYPEN im Diskurs: Privatpersonen, Firmen, Institute, Behörden, Medien, Influencer, Experten, Kollektive, Validierer.
+Reagiere angemessen auf Posts verschiedener Akteurs-Typen. Ein Behörden-Statement hat mehr Gewicht als ein anonymer Post."""
 
 # Legacy-Kompatibilität
 AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_BASE
@@ -55,6 +172,16 @@ AGENT_SYSTEM_PROMPT = AGENT_SYSTEM_PROMPT_BASE
 def _build_agent_system_prompt(market_context_summary: str | None = None) -> str:
     """Baut den Agent-System-Prompt, optional mit MarketContext."""
     prompt = AGENT_SYSTEM_PROMPT_BASE
+
+    # v1.1: Add actor type context
+    prompt += """
+
+AKTEURS-TYPEN im Diskurs:
+- Privatpersonen (emotional, persönlich), Firmen (offiziell, vorsichtig), Institute (evidenzbasiert),
+  Behörden (formal), Medien (neutral-skeptisch), Influencer (persönlich, polarisierend),
+  Experten (sachlich), Kollektive Akteure (mobilisierend), Validierer (formal-technisch, binäre Signale).
+Reagiere angemessen auf Posts verschiedener Akteurs-Typen. Ein Behörden-Statement hat mehr Gewicht als ein anonymer Post."""
+
     if market_context_summary:
         prompt += f"""
 
@@ -433,33 +560,60 @@ def _build_persona_profile_block(persona: Persona, compact: bool = False) -> str
     state = persona.current_state or {}
     mood = state.get("mood", "neutral")
 
-    # Basis-Profil (immer)
+    # v1.1: Actor type system (backwards compatible)
+    actor_type = getattr(persona, 'actor_type', None)
     ptype = getattr(persona, "persona_type", "individual") or "individual"
-    if ptype == "individual":
-        result = (
-            f"Du bist {persona.name}, {persona.age}, {persona.location}, {persona.occupation}.\n"
-        )
+
+    # Use actor_type if available, fallback to legacy persona_type
+    if actor_type and actor_type != "private_person":
+        effective_type = actor_type
     elif ptype == "organization":
-        subtype = getattr(persona, "entity_subtype", "") or "Unternehmen"
-        result = (
-            f"Du bist der offizielle Social-Media-Account von {persona.name} ({subtype}).\n"
-            f"Standort: {persona.location}. Gegründet: {persona.age}.\n"
-        )
+        effective_type = "company"
     elif ptype == "institution":
-        subtype = getattr(persona, "entity_subtype", "") or "Institution"
-        result = (
-            f"Du bist der offizielle Account von {persona.name} ({subtype}).\n"
-            f"Standort: {persona.location}.\n"
-        )
+        effective_type = "collective"
     elif ptype == "politician":
-        subtype = getattr(persona, "entity_subtype", "") or "Politiker"
-        result = (
-            f"Du bist {persona.name}, {subtype}, {persona.location}.\n"
-        )
+        effective_type = "private_person"
     else:
-        result = (
-            f"Du bist {persona.name}, {persona.age}, {persona.location}, {persona.occupation}.\n"
-        )
+        effective_type = actor_type or "private_person"
+
+    stance = getattr(persona, 'stance', '') or ''
+    stance_text = f" | Haltung: {stance}" if stance else ""
+    context = getattr(persona, 'context', '') or ''
+    context_text = f" | Kontext: {context}" if context else ""
+    traegerschaft = getattr(persona, 'traegerschaft', '') or ''
+    traeg_text = f" | Trägerschaft: {traegerschaft}" if traegerschaft else ""
+    function_tags = getattr(persona, 'function_tags', []) or []
+    tags_text = f" | Rollen: {', '.join(function_tags)}" if function_tags else ""
+
+    if effective_type == "private_person":
+        result = f"Du bist {persona.name}, {persona.age}, {persona.location}, {persona.occupation}.{context_text}{stance_text}\n"
+    elif effective_type == "company":
+        subtype = getattr(persona, "entity_subtype", "") or getattr(persona, "subtype", "") or "Unternehmen"
+        result = f"Du bist der offizielle Social-Media-Account von {persona.name} ({subtype}).{traeg_text}{stance_text}\nStandort: {persona.location}.\n"
+    elif effective_type == "research_institute":
+        result = f"Du bist der offizielle Account von {persona.name} (Forschungsinstitut).{traeg_text}{stance_text}\nStandort: {persona.location}.\n"
+    elif effective_type == "authority":
+        result = f"Du bist der offizielle Account von {persona.name} (Behörde/Regulator).{stance_text}\nStandort: {persona.location}.\n"
+    elif effective_type == "media":
+        result = f"Du bist {persona.name} (Medium/Journalist).{traeg_text}{stance_text}\nStandort: {persona.location}.\n"
+    elif effective_type == "influencer":
+        result = f"Du bist {persona.name} (Influencer).{context_text}{stance_text}\n"
+    elif effective_type == "expert":
+        result = f"Du bist {persona.name}, Experte/Fachperson für {persona.occupation}.{stance_text}\nStandort: {persona.location}.\n"
+    elif effective_type == "collective":
+        subtype = getattr(persona, "entity_subtype", "") or getattr(persona, "subtype", "") or "Kollektiver Akteur"
+        result = f"Du bist der offizielle Account von {persona.name} ({subtype}).{traeg_text}{stance_text}\nStandort: {persona.location}.\n"
+    elif effective_type == "validator":
+        subtype = getattr(persona, "entity_subtype", "") or getattr(persona, "subtype", "") or "Prüfstelle"
+        result = f"Du bist der offizielle Account von {persona.name} ({subtype}).{stance_text}\nStandort: {persona.location}.\n"
+    else:
+        result = f"Du bist {persona.name}, {persona.age}, {persona.location}, {persona.occupation}.\n"
+
+    # Add tonality hint
+    result += f"Tonalität: {_get_tonality_hint(persona)}\n"
+
+    if tags_text:
+        result += f"{tags_text}\n"
 
     result += (
         f"Persönlichkeit: {persona.personality}\n"
@@ -1003,6 +1157,28 @@ async def run_tick(
     )
     existing_posts: list[Post] = list(posts_result.scalars().all())
 
+    # --- v1.1: Process Trigger Events for this day ---
+    trigger_events = []
+    try:
+        trigger_events = await _process_trigger_events(simulation_id, ingame_day, db)
+    except Exception as e:
+        logger.warning(f"Trigger-Event-Processing fehlgeschlagen: {e}")
+
+    # Build trigger context for prompts
+    trigger_context = ""
+    if trigger_events:
+        trigger_lines = []
+        for te in trigger_events:
+            trigger_lines.append(f"[{te['event_type'].upper()}] {te['title']}")
+            if te.get('content'):
+                trigger_lines.append(f"  {te['content'][:200]}")
+        trigger_context = "\n=== AKTUELLE EREIGNISSE ===\n" + "\n".join(trigger_lines) + "\n=== ENDE EREIGNISSE ===\n"
+
+    # Combine market context with trigger context
+    effective_context = market_context_summary or ""
+    if trigger_context:
+        effective_context = (effective_context + "\n" + trigger_context).strip()
+
     logger.debug(
         f"Tick {tick_number}: {len(personas)} Personas, "
         f"{len(existing_posts)} Posts (Tage {min_day}-{ingame_day})"
@@ -1076,16 +1252,32 @@ async def run_tick(
             f"Tick {tick_number} Wave {wave_num}: {len(wave_personas)} Personas"
         )
 
+        # v1.1: Filter personas by activation latency and posting probability
+        active_wave_personas = [p for p in wave_personas if _should_persona_act(p, ingame_day)]
+
+        # If trigger events exist, boost activation for affected types
+        if trigger_events:
+            for p in wave_personas:
+                if p not in active_wave_personas:
+                    actor_type = getattr(p, 'actor_type', 'private_person') or 'private_person'
+                    for te in trigger_events:
+                        if actor_type in (te.get('affected_segments') or []):
+                            active_wave_personas.append(p)
+                            break
+
+        if not active_wave_personas:
+            continue
+
         # --- Feeds bauen mit aktuellem Post-Stand ---
         feeds = {
             str(p.id): build_feed(p, all_posts, ingame_day, all_personas=personas, polarization_index=prev_polarization)
-            for p in wave_personas
+            for p in active_wave_personas
         }
 
         # --- Persona-History bauen (eigene Posts + erhaltene Kommentare) ---
         histories = {
             str(p.id): _get_persona_history(p, all_posts)
-            for p in wave_personas
+            for p in active_wave_personas
         }
 
         # --- Persona-Calls parallel (max 10 concurrent via Semaphore) ---
@@ -1102,15 +1294,15 @@ async def run_tick(
                     temperature=action_temperature,
                     top_p=action_top_p,
                     top_k=action_top_k,
-                    market_context_summary=market_context_summary,
+                    market_context_summary=effective_context or None,
                 )
-                for p in wave_personas
+                for p in active_wave_personas
             ],
             return_exceptions=True,
         )
 
         # --- Ergebnisse verarbeiten: Multi-Action + DB-Writes ---
-        for persona, action_result in zip(wave_personas, results):
+        for persona, action_result in zip(active_wave_personas, results):
             if isinstance(action_result, Exception):
                 action_result = {"actions": [{"action": "nothing"}]}
 
@@ -1347,6 +1539,31 @@ async def run_tick(
                 description=description,
             ))
 
+    # --- v1.1: Stagnation Detection ---
+    stagnation_events = []
+    stagnation_mode = "mild"  # Default; will be read from simulation config
+    try:
+        sim_obj = await db.get(Simulation, simulation_id)
+        stagnation_mode = getattr(sim_obj, 'stagnation_mode', 'mild') or 'mild'
+    except Exception:
+        pass
+
+    if stagnation_mode != "off" and tick_number > 5:
+        # Load recent tick snapshots
+        recent_ticks_result = await db.execute(
+            select(SimulationTick)
+            .where(SimulationTick.simulation_id == simulation_id)
+            .order_by(SimulationTick.tick_number.desc())
+            .limit(5)
+        )
+        recent_ticks = recent_ticks_result.scalars().all()
+        recent_snapshots = [t.snapshot for t in recent_ticks if t.snapshot]
+
+        if _detect_stagnation(recent_snapshots):
+            stagnation_events = await _auto_reactivate(
+                simulation_id, ingame_day, db, personas, stagnation_mode
+            )
+
     # --- 6. Tick-Snapshot speichern ---
 
     # Modul 5: Polarisierungs-Index berechnen
@@ -1391,6 +1608,10 @@ async def run_tick(
             "personas_active": total_active,
             "polarization_index": polarization_index,
             "echo_chamber_clusters": echo_clusters,
+            # v1.1 additions
+            "trigger_events": [te["title"] for te in trigger_events] if trigger_events else [],
+            "stagnation_detected": bool(stagnation_events),
+            "stagnation_actions": stagnation_events,
         },
     )
     db.add(tick)

@@ -18,11 +18,14 @@ async def list_personas(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     is_skeptic: bool | None = Query(None),
+    actor_type: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[PersonaRead]:
     query = select(Persona).where(Persona.simulation_id == simulation_id)
     if is_skeptic is not None:
         query = query.where(Persona.is_skeptic == is_skeptic)
+    if actor_type is not None:
+        query = query.where(Persona.actor_type == actor_type)
 
     # Total count
     count_result = await db.execute(select(func.count()).select_from(query.subquery()))

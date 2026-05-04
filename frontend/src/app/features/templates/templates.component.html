@@ -1,0 +1,62 @@
+<div class="max-w-5xl mx-auto p-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold">Templates</h1>
+      <p class="text-gray-400 text-sm">Verteilung, Tonalitaet, Recherche & Trigger-Library</p>
+    </div>
+    <button class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600" (click)="seedDefaults()">
+      Defaults laden
+    </button>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="flex gap-2 mb-6">
+    @for (cat of categories; track cat.id) {
+      <button class="px-4 py-2 rounded-lg text-sm transition-colors"
+              [class]="activeCategory() === cat.id ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'"
+              (click)="switchCategory(cat.id)">
+        <i class="pi {{cat.icon}} mr-1"></i> {{ cat.label }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-8 text-gray-400">Lade...</div>
+  } @else if (templates().length === 0) {
+    <div class="text-center py-12 text-gray-400">
+      <p>Keine Templates in dieser Kategorie.</p>
+      <p class="text-sm mt-1">Klicke "Defaults laden" um System-Templates zu erstellen.</p>
+    </div>
+  } @else {
+    <div class="grid grid-cols-2 gap-4">
+      @for (t of templates(); track t.id) {
+        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-medium">{{ t.name }}</h3>
+              <p class="text-xs text-gray-500">v{{ t.version }} · {{ t.is_default ? 'System' : 'Custom' }}</p>
+            </div>
+            @if (!t.is_default) {
+              <button class="text-xs text-red-400 hover:text-red-300" (click)="deleteTemplate(t.id)">
+                <i class="pi pi-trash"></i>
+              </button>
+            }
+          </div>
+          @if (activeCategory() === 'distribution') {
+            <div class="mt-3 space-y-1">
+              @for (entry of t.content | keyvalue; track entry.key) {
+                <div class="flex justify-between text-xs">
+                  <span class="text-gray-400">{{ entry.key }}</span>
+                  <span class="text-white">{{ entry.value }}%</span>
+                </div>
+              }
+            </div>
+          }
+          @if (activeCategory() === 'tonality') {
+            <p class="mt-2 text-sm text-gray-400 italic">{{ t.content['text'] || '' }}</p>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

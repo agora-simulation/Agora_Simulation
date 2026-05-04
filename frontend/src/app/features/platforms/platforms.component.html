@@ -1,0 +1,49 @@
+<div class="max-w-4xl mx-auto p-6">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold">Plattformen</h1>
+      <p class="text-gray-400 text-sm">Diskussions-Raeume mit eigenen Eigenschaften</p>
+    </div>
+    <button class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600" (click)="seedDefaults()">
+      Defaults laden
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-8 text-gray-400">Lade...</div>
+  } @else if (platforms().length === 0) {
+    <div class="text-center py-12 text-gray-400">
+      <p>Keine Plattformen vorhanden. Klicke "Defaults laden".</p>
+    </div>
+  } @else {
+    <div class="space-y-4">
+      @for (p of platforms(); track p.id) {
+        <div class="bg-gray-800 rounded-lg p-5 border border-gray-700" [class.opacity-50]="!p.is_active">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-lg font-semibold">{{ p.name }}</h3>
+              <span class="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded">{{ characterLabel(p.character) }}</span>
+            </div>
+            <button class="text-sm" [class]="p.is_active ? 'text-green-400' : 'text-gray-500'" (click)="toggleActive(p)">
+              {{ p.is_active ? 'Aktiv' : 'Inaktiv' }}
+            </button>
+          </div>
+          <div class="grid grid-cols-3 gap-4 mt-4 text-sm">
+            <div>
+              <span class="text-gray-400">Reichweite</span>
+              <div class="text-white font-medium">{{ p.reach_multiplier }}x</div>
+            </div>
+            <div>
+              <span class="text-gray-400">Echokammer</span>
+              <div class="text-white font-medium">{{ p.echo_chamber_strength }}</div>
+            </div>
+            <div>
+              <span class="text-gray-400">Engagement</span>
+              <div class="text-white font-medium">{{ p.default_engagement_rate }}</div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

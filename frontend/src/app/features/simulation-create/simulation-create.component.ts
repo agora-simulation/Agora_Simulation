@@ -33,6 +33,26 @@ export class SimulationCreateComponent {
   llmProvider = signal<LlmProvider>('anthropic');
   researchMode = signal<ResearchMode>('quick');
 
+  // v1.1: Distribution & Stagnation
+  stagnationMode = signal<'off' | 'mild' | 'aggressive'>('mild');
+  selectedDistribution = signal<string>('');
+
+  readonly distributionTemplates = [
+    { id: 'b2c_konsum', label: 'B2C Konsum', desc: '75% Privatpersonen, 8% Influencer' },
+    { id: 'b2b_software', label: 'B2B Software', desc: '50% Firmen, 12% Experten' },
+    { id: 'b2b_industriegut', label: 'B2B Industriegut', desc: '40% Firmen, 15% Experten, 7% Validierer' },
+    { id: 'forschungskampagne', label: 'Forschung', desc: '35% Institute, 15% Behoerden' },
+    { id: 'politische_initiative', label: 'Politik', desc: '30% Privatpersonen, 23% Medien' },
+    { id: 'healthcare_pharma', label: 'Healthcare/Pharma', desc: '20% Institute, 13% Behoerden, 5% Validierer' },
+    { id: 'finanz', label: 'Finanz', desc: '28% Privatpersonen, 22% Firmen' },
+  ];
+
+  readonly stagnationModes = [
+    { id: 'off' as const, label: 'Aus', desc: 'Keine automatische Reaktivierung' },
+    { id: 'mild' as const, label: 'Mild', desc: 'Sanfte Reaktivierung bei Stagnation' },
+    { id: 'aggressive' as const, label: 'Aggressiv', desc: 'Starke Stimuli bei Stagnation' },
+  ];
+
   readonly providers: { id: LlmProvider; label: string; sub: string; icon: string }[] = [
     { id: 'anthropic', label: 'Claude (Anthropic)', sub: 'Sonnet 4.6 + Haiku 4.5', icon: 'pi-sparkles' },
     { id: 'openai',    label: 'OpenAI',             sub: 'GPT-5 + GPT-5-mini',     icon: 'pi-bolt' },
@@ -349,6 +369,19 @@ export class SimulationCreateComponent {
     return this.customModelSmart() || null;
   }
 
+  getDistributionContent(templateId: string): Record<string, number> | undefined {
+    const templates: Record<string, Record<string, number>> = {
+      b2c_konsum: { private_person: 75, company: 5, research_institute: 0, authority: 2, media: 5, influencer: 8, expert: 3, collective: 2, validator: 0 },
+      b2b_software: { private_person: 10, company: 50, research_institute: 5, authority: 5, media: 5, influencer: 5, expert: 12, collective: 5, validator: 3 },
+      b2b_industriegut: { private_person: 10, company: 40, research_institute: 5, authority: 8, media: 5, influencer: 3, expert: 15, collective: 7, validator: 7 },
+      forschungskampagne: { private_person: 5, company: 22, research_institute: 35, authority: 15, media: 10, influencer: 0, expert: 8, collective: 3, validator: 2 },
+      politische_initiative: { private_person: 30, company: 5, research_institute: 5, authority: 15, media: 23, influencer: 5, expert: 5, collective: 10, validator: 2 },
+      healthcare_pharma: { private_person: 22, company: 13, research_institute: 20, authority: 13, media: 10, influencer: 5, expert: 8, collective: 4, validator: 5 },
+      finanz: { private_person: 28, company: 22, research_institute: 5, authority: 13, media: 10, influencer: 5, expert: 8, collective: 4, validator: 5 },
+    };
+    return templates[templateId];
+  }
+
   submit() {
     this.submitting.set(true);
     const data: SimulationCreate = {
@@ -361,6 +394,9 @@ export class SimulationCreateComponent {
       llm_model_fast: this.resolveModelFast(),
       llm_model_smart: this.resolveModelSmart(),
       research_mode: this.researchMode(),
+      // v1.1
+      stagnation_mode: this.stagnationMode(),
+      distribution_template: this.selectedDistribution() ? this.getDistributionContent(this.selectedDistribution()) : undefined,
     };
     if (this.useProviderConfig()) {
       data.provider_config = this.buildProviderConfig();

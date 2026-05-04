@@ -9,6 +9,7 @@ class PostRead(UUIDModel, TimestampMixin):
     content: str
     ingame_day: int
     subreddit: str | None
+    platform_id: UUID | None = None  # v1.1
     author_name: str | None = None
     is_skeptic: bool | None = None
 
@@ -38,6 +39,14 @@ class AnalysisReportRead(UUIDModel, TimestampMixin):
     network_evolution: str | None = None
     confidence_assessment: str | None = None
     methodology_limitations: str | None = None
+    # v1.1
+    sentiment_by_actor_type: str | None = None
+    platform_comparison: str | None = None
+    validator_status: str | None = None
+    trigger_impact: str | None = None
+    stagnation_events: str | None = None
+    function_tag_overview: str | None = None
+    quota_estimates: list[dict] | None = None
 
 class InfluenceEventRead(UUIDModel, TimestampMixin):
     simulation_id: UUID

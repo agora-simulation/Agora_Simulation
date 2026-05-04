@@ -28,7 +28,9 @@ def _build_analyst_system_prompt(
     pols = persona_type_counts.get("politician", 0)
     individuals = persona_type_counts.get("individual", 0)
     total = sum(persona_type_counts.values()) or 1
-    org_ratio = (orgs + insts + pols) / total
+    # v1.1: Scenario detection using actor types
+    org_types = sum(persona_type_counts.get(t, 0) for t in ["company", "research_institute", "authority", "collective", "validator", "organization", "institution"])
+    org_ratio = org_types / total
 
     if org_ratio > 0.4:
         scenario_hint = (
@@ -193,6 +195,67 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
                     "- Konkrete Empfehlung, welche Erkenntnisse vor einer Entscheidung real validiert werden sollten"
                 ),
             },
+            "sentiment_by_actor_type": {
+                "type": "string",
+                "description": (
+                    "Markdown: Sentiment differenziert nach Akteurs-Typ (PFLICHT v1.1). "
+                    "### pro Akteurs-Typ (Privatperson, Firma, Institut, Behoerde, Medium, Influencer, Experte, Kollektiv, Validierer): "
+                    "Durchschnittliches Sentiment, Anzahl Akteure, typische Haltung, Schluessel-Zitate. "
+                    "Tabelle mit Typ | Anzahl | Sentiment | Kernhaltung."
+                ),
+            },
+            "platform_comparison": {
+                "type": "string",
+                "description": (
+                    "Markdown: Plattform-Vergleich (v1.1). "
+                    "Threadit vs. Feedbook: Engagement-Level, Tonalitaet, dominante Akteurs-Typen, "
+                    "ob bestimmte Themen plattformspezifisch diskutiert wurden."
+                ),
+            },
+            "validator_status": {
+                "type": "string",
+                "description": (
+                    "Markdown: Validierer/Zertifizierer-Status (v1.1). "
+                    "Falls Validierer-Akteure existieren: Freigabe-Status pro Validierer, "
+                    "Begruendungen, Auswirkungen auf andere Akteure. "
+                    "Falls keine Validierer: 'Keine Validierer in dieser Simulation.'"
+                ),
+            },
+            "trigger_impact": {
+                "type": "string",
+                "description": (
+                    "Markdown: Trigger-Event-Wirkung (v1.1). "
+                    "Falls Trigger-Events eingespeist wurden: Pro Event den Effekt auf Sentiment, "
+                    "welche Akteure reagiert haben, Staerke der Wirkung. "
+                    "Falls keine Events: 'Keine Trigger-Events in dieser Simulation.'"
+                ),
+            },
+            "stagnation_events": {
+                "type": "string",
+                "description": (
+                    "Markdown: Stagnations-Ereignisse (v1.1). "
+                    "Ob die Simulation Stagnation erfahren hat, wann, und welche Auto-Reactivation-Massnahmen "
+                    "ergriffen wurden. Falls keine Stagnation: 'Keine Stagnation erkannt.'"
+                ),
+            },
+            "function_tag_overview": {
+                "type": "string",
+                "description": (
+                    "Markdown: Funktions-Tag-Uebersicht (v1.1). "
+                    "Top-3 Brueckenakteure, Top-5 Multiplikatoren, Meinungs-Gatekeeper. "
+                    "Wer hat welche Rolle im Diskurs gespielt? "
+                    "Falls keine Tags vergeben: 'Keine Funktions-Tags in dieser Simulation.'"
+                ),
+            },
+            "quota_estimates": {
+                "type": "string",
+                "description": (
+                    "Markdown: Quoten-Schaetzungen mit Konfidenzintervall (v1.1). "
+                    "Pro relevantes Segment: Segment, Aussage, Wert [KI], Stichprobe, Konfidenz, Begruendung. "
+                    "Verwende das Format: 'Segment X: 61% [KI 58-65%], n=35, MITTLERE Konfidenz'. "
+                    "Mindestens 3 Quoten-Aussagen."
+                ),
+            },
         },
         "required": [
             "full_report",
@@ -207,6 +270,13 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
             "network_evolution",
             "confidence_assessment",
             "methodology_limitations",
+            "sentiment_by_actor_type",
+            "platform_comparison",
+            "validator_status",
+            "trigger_impact",
+            "stagnation_events",
+            "function_tag_overview",
+            "quota_estimates",
         ],
 }
 
@@ -322,6 +392,9 @@ async def generate_report(
         opinion_dims = state.get("opinion_dimensions", {})
         persona_entry = {
             "name": p.name,
+            "actor_type": getattr(p, "actor_type", "private_person") or "private_person",  # v1.1
+            "stance": getattr(p, "stance", "") or "",  # v1.1
+            "function_tags": getattr(p, "function_tags", []) or [],  # v1.1
             "is_skeptic": p.is_skeptic,
             "final_opinion": state.get("opinion_evolution", p.initial_opinion),
             "final_mood": state.get("mood", "neutral"),
@@ -355,11 +428,15 @@ async def generate_report(
 
     skeptic_count = sum(1 for p in sim.personas if p.is_skeptic)
 
-    # Persona-Typ-Statistiken für dynamischen System-Prompt
+    # v1.1: Count by actor_type (with fallback to persona_type)
     persona_type_counts: dict[str, int] = {}
     for p in sim.personas:
-        ptype = getattr(p, "persona_type", "individual") or "individual"
-        persona_type_counts[ptype] = persona_type_counts.get(ptype, 0) + 1
+        actor_type = getattr(p, "actor_type", None)
+        if actor_type:
+            persona_type_counts[actor_type] = persona_type_counts.get(actor_type, 0) + 1
+        else:
+            ptype = getattr(p, "persona_type", "individual") or "individual"
+            persona_type_counts[ptype] = persona_type_counts.get(ptype, 0) + 1
 
     # Dynamischen System-Prompt bauen
     system_prompt = _build_analyst_system_prompt(
@@ -399,6 +476,58 @@ Interpretation: product_quality/price_fairness/brand_trust/innovation/ethical_co
 Werte: -1.0 (sehr negativ) bis +1.0 (sehr positiv), positive_pct = % der Personas mit positivem Wert (>0.1)
 """
 
+    # v1.1: Trigger Events
+    trigger_section = ""
+    try:
+        from app.models.trigger_event import TriggerEvent
+        trigger_result = await db.execute(
+            select(TriggerEvent).where(TriggerEvent.simulation_id == simulation_id).order_by(TriggerEvent.tick_day)
+        )
+        trigger_events = trigger_result.scalars().all()
+        if trigger_events:
+            trigger_data = [{"day": e.tick_day, "type": e.event_type, "title": e.title, "intensity": e.intensity, "auto": e.was_auto_generated} for e in trigger_events]
+            trigger_section = f"\n\nTrigger-Events:\n{json.dumps(trigger_data, ensure_ascii=False, indent=2)}"
+    except Exception:
+        pass
+
+    # v1.1: Crowd States
+    crowd_section = ""
+    try:
+        from app.models.crowd_state import CrowdState
+        crowd_result = await db.execute(
+            select(CrowdState).where(CrowdState.simulation_id == simulation_id).order_by(CrowdState.tick)
+        )
+        crowd_states = crowd_result.scalars().all()
+        if crowd_states:
+            crowd_data = [{"tick": c.tick, "volume": c.volume, "sentiment": round(c.sentiment, 2), "polarization": round(c.polarization, 2), "voices": c.representative_voices} for c in crowd_states[-10:]]
+            crowd_section = f"\n\nCrowd-Layer (letzte 10 Ticks):\n{json.dumps(crowd_data, ensure_ascii=False, indent=2)}"
+    except Exception:
+        pass
+
+    # v1.1: Actor type breakdown
+    actor_type_section = ""
+    actor_type_counts = {}
+    for p in sim.personas:
+        at = getattr(p, "actor_type", "private_person") or "private_person"
+        actor_type_counts[at] = actor_type_counts.get(at, 0) + 1
+    if len(actor_type_counts) > 1:
+        actor_type_section = f"\n\nAkteurs-Typ-Verteilung: {json.dumps(actor_type_counts, ensure_ascii=False)}"
+
+    # v1.1: Stagnation info from tick snapshots
+    stagnation_section = ""
+    try:
+        from app.models import SimulationTick
+        stag_result = await db.execute(
+            select(SimulationTick).where(SimulationTick.simulation_id == simulation_id).order_by(SimulationTick.tick_number)
+        )
+        all_ticks = stag_result.scalars().all()
+        stag_events = [t for t in all_ticks if (t.snapshot or {}).get("stagnation_detected")]
+        if stag_events:
+            stag_data = [{"tick": t.tick_number, "actions": (t.snapshot or {}).get("stagnation_actions", [])} for t in stag_events]
+            stagnation_section = f"\n\nStagnations-Ereignisse:\n{json.dumps(stag_data, ensure_ascii=False, indent=2)}"
+    except Exception:
+        pass
+
     # MarketContext laden (falls Deep Mode)
     market_context_section = ""
     ctx_result = await db.execute(
@@ -423,7 +552,7 @@ Alle simulierten Beiträge (chronologisch):
 {json.dumps(post_data, ensure_ascii=False, indent=2)}
 {influence_section}
 {persona_states_section}
-{dimension_section}
+{dimension_section}{trigger_section}{crowd_section}{actor_type_section}{stagnation_section}
 Erstelle einen strukturierten Report mit:
 1. Sentiment-Verlauf über die simulierten Tage
 2. Wichtige Wendepunkte (was hat die Stimmung gekippt?)
@@ -439,6 +568,13 @@ Erstelle einen strukturierten Report mit:
     Konkrete Aussagen wie "73% der Skeptiker wurden bei Produktqualität überzeugt, aber Preis bleibt Dealbreaker"
 12. Konfidenz-Bewertung: Welche Erkenntnisse sind belastbar (hohe Konfidenz), welche fragil (niedrig)?
 13. Methodische Grenzen: Was kann diese Simulation NICHT leisten? Was muss real validiert werden?
+14. Sentiment nach Akteurs-Typ: Wie unterscheidet sich die Haltung nach Akteurs-Typ?
+15. Plattform-Vergleich: Threadit vs. Feedbook — welche Unterschiede?
+16. Validierer-Status: Falls vorhanden, welche Freigabe-Entscheidungen?
+17. Trigger-Event-Wirkung: Falls Events eingespeist, welcher Effekt?
+18. Stagnations-Events: Gab es Stagnation? Was wurde dagegen getan?
+19. Funktions-Tags: Wer waren die Schlüssel-Akteure (Brückenakteure, Multiplikatoren)?
+20. Quoten-Schätzungen mit Konfidenzintervall: Mindestens 3 Aussagen im Format "Segment: X% [KI Y-Z%], n=N, KONFIDENZ"
 
 Sei konkret, zitiere Beispiele aus der Simulation.
 Sei EHRLICH über die Grenzen der Methodik — Glaubwürdigkeit entsteht durch Transparenz, nicht durch Überversprechen."""
@@ -482,6 +618,14 @@ Sei EHRLICH über die Grenzen der Methodik — Glaubwürdigkeit entsteht durch T
         network_evolution=data.get("network_evolution", placeholder),
         confidence_assessment=data.get("confidence_assessment", placeholder),
         methodology_limitations=data.get("methodology_limitations", placeholder),
+        # v1.1
+        sentiment_by_actor_type=data.get("sentiment_by_actor_type", placeholder),
+        platform_comparison=data.get("platform_comparison", placeholder),
+        validator_status=data.get("validator_status", placeholder),
+        trigger_impact=data.get("trigger_impact", placeholder),
+        stagnation_events=data.get("stagnation_events", placeholder),
+        function_tag_overview=data.get("function_tag_overview", placeholder),
+        quota_estimates=None,  # Will be structured separately
     )
     db.add(report)
     await db.commit()

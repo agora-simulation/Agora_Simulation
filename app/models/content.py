@@ -6,7 +6,7 @@ def _utcnow():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -34,6 +34,7 @@ class Post(Base):
     content = Column(Text, nullable=False)
     ingame_day = Column(Integer, nullable=False)   # Simulierter Zeitpunkt
     subreddit = Column(String(255))                # Nur für Threadit
+    platform_id = Column(UUID(as_uuid=True), ForeignKey("platforms.id"), nullable=True)  # v1.1
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", back_populates="posts")
@@ -87,6 +88,14 @@ class AnalysisReport(Base):
     network_evolution = Column(Text)     # Netzwerk-Dynamik (Communities, Echokammern)
     confidence_assessment = Column(Text)  # Konfidenz-Bewertung pro Erkenntnis
     methodology_limitations = Column(Text)  # Was die Simulation NICHT leisten kann
+    # v1.1
+    sentiment_by_actor_type = Column(Text, nullable=True)
+    platform_comparison = Column(Text, nullable=True)
+    validator_status = Column(Text, nullable=True)
+    trigger_impact = Column(Text, nullable=True)
+    stagnation_events = Column(Text, nullable=True)
+    function_tag_overview = Column(Text, nullable=True)
+    quota_estimates = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", back_populates="reports")

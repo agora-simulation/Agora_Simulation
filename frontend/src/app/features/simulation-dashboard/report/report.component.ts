@@ -150,6 +150,7 @@ export class ReportComponent implements OnInit {
 
   readonly sections = [
     { key: 'sentiment_over_time', label: 'Sentiment-Verlauf', icon: 'pi-chart-line' },
+    { key: 'sentiment_by_actor_type', label: 'Sentiment nach Akteurs-Typ', icon: 'pi-users' },
     { key: 'key_turning_points', label: 'Wendepunkte', icon: 'pi-bolt' },
     { key: 'criticism_points', label: 'Kritikpunkte', icon: 'pi-exclamation-triangle' },
     { key: 'opportunities', label: 'Chancen', icon: 'pi-star' },
@@ -157,7 +158,13 @@ export class ReportComponent implements OnInit {
     { key: 'unexpected_findings', label: 'Ueberraschungen', icon: 'pi-question-circle' },
     { key: 'influence_network', label: 'Influence-Netzwerk', icon: 'pi-share-alt' },
     { key: 'platform_dynamics', label: 'Plattform-Dynamik', icon: 'pi-desktop' },
+    { key: 'platform_comparison', label: 'Plattform-Vergleich', icon: 'pi-clone' },
     { key: 'network_evolution', label: 'Netzwerk-Evolution', icon: 'pi-sitemap' },
+    { key: 'validator_status', label: 'Validierer-Status', icon: 'pi-check-circle' },
+    { key: 'trigger_impact', label: 'Trigger-Wirkung', icon: 'pi-bolt' },
+    { key: 'stagnation_events', label: 'Stagnation', icon: 'pi-pause-circle' },
+    { key: 'function_tag_overview', label: 'Schluessel-Akteure', icon: 'pi-star-fill' },
+    { key: 'quota_estimates', label: 'Quoten-Schaetzungen', icon: 'pi-percentage' },
     { key: 'confidence_assessment', label: 'Konfidenz-Bewertung', icon: 'pi-verified' },
     { key: 'methodology_limitations', label: 'Methodische Grenzen', icon: 'pi-info-circle' },
   ];

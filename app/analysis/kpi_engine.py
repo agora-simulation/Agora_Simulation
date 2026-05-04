@@ -353,6 +353,32 @@ async def compute_kpis(simulation_id: UUID, db: AsyncSession) -> dict:
     churn = _compute_churn_risk(personas)
     dimensions = _compute_dimension_breakdown(personas)
 
+    # v1.1: Sentiment by actor type
+    sentiment_by_actor_type = {}
+    for p in personas:
+        actor_type = getattr(p, "actor_type", "private_person") or "private_person"
+        state = p.current_state or {}
+        dims = state.get("opinion_dimensions", {})
+        if dims:
+            avg = sum(dims.values()) / len(dims)
+            sentiment_by_actor_type.setdefault(actor_type, []).append(avg)
+
+    actor_type_sentiment = {}
+    for atype, scores in sentiment_by_actor_type.items():
+        n = len(scores)
+        actor_type_sentiment[atype] = {
+            "count": n,
+            "avg_sentiment": round(sum(scores) / n, 3),
+            "positive_pct": round(sum(1 for s in scores if s > 0.1) / n * 100, 1),
+            "negative_pct": round(sum(1 for s in scores if s < -0.1) / n * 100, 1),
+        }
+
+    # v1.1: Actor type distribution
+    actor_type_distribution = {}
+    for p in personas:
+        at = getattr(p, "actor_type", "private_person") or "private_person"
+        actor_type_distribution[at] = actor_type_distribution.get(at, 0) + 1
+
     return {
         "simulation_id": str(simulation_id),
         "total_personas": len(personas),
@@ -368,4 +394,7 @@ async def compute_kpis(simulation_id: UUID, db: AsyncSession) -> dict:
         "sentiment": sentiment,
         "churn_risk": churn,
         "dimension_breakdown": dimensions,
+        # v1.1
+        "sentiment_by_actor_type": actor_type_sentiment,
+        "actor_type_distribution": actor_type_distribution,
     }

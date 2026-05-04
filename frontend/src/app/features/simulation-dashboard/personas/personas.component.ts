@@ -7,7 +7,7 @@ import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { EChartsOption } from 'echarts';
 import * as echarts from 'echarts';
 import { PersonaService } from '../../../core/services/persona.service';
-import { Persona, ChatMessage, Conversation } from '../../../core/models/persona.model';
+import { Persona, ChatMessage, Conversation, ActorType, ACTOR_TYPE_LABELS, ACTOR_TYPE_ICONS, ACTOR_TYPE_COLORS } from '../../../core/models/persona.model';
 import { CHART, tooltipStyle, classifyMood as classifyMoodShared, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 import type { MoodCategory } from '../../../shared/chart-theme';
 
@@ -34,6 +34,14 @@ export class PersonasComponent implements OnInit {
 
   sortKey = signal<SortKey>('name');
   activeMoods = signal<Set<MoodKey>>(new Set());
+
+  // v1.1
+  actorTypeFilter = signal<string>('');
+  actorTypes = ACTOR_TYPE_LABELS;
+  actorTypeIcons = ACTOR_TYPE_ICONS;
+  actorTypeColors = ACTOR_TYPE_COLORS;
+
+  actorTypeOptions = Object.entries(ACTOR_TYPE_LABELS).map(([id, label]) => ({ id, label }));
 
   readonly sortOptions: { key: SortKey; label: string }[] = [
     { key: 'name', label: 'Name (A–Z)' },
@@ -73,7 +81,16 @@ export class PersonasComponent implements OnInit {
 
   ngOnInit() {
     this.simId = this.route.parent!.snapshot.params['id'];
-    this.personaService.list(this.simId, { limit: 200 }).subscribe(res => {
+    this.loadPersonas();
+  }
+
+  loadPersonas() {
+    this.loading.set(true);
+    const params: any = { limit: 200 };
+    if (this.actorTypeFilter()) {
+      params.actor_type = this.actorTypeFilter();
+    }
+    this.personaService.list(this.simId, params).subscribe(res => {
       this.personas.set(res.items);
       this.applyFilter();
       this.loading.set(false);

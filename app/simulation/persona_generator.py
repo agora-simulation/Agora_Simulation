@@ -66,10 +66,15 @@ SKELETON_TOOL_SCHEMA = {
                     "location": {"type": "string"},
                     "occupation": {"type": "string"},
                     "is_skeptic": {"type": "boolean"},
-                    "persona_type": {
+                    "actor_type": {
                         "type": "string",
-                        "enum": ["individual", "organization", "institution", "politician"],
+                        "enum": ["private_person", "company", "research_institute", "authority", "media", "influencer", "expert", "collective", "validator"],
                     },
+                    "subtype": {"type": "string"},
+                    "context": {"type": "string", "enum": ["privat", "beruflich", "oeffentlich", "consumer", "business", "politisch"]},
+                    "traegerschaft": {"type": "string", "enum": ["privat", "oeffentlich", "genossenschaftlich", "gemischt", "kommunal"]},
+                    "stance": {"type": "string"},
+                    "activation_latency": {"type": "integer"},
                     "entity_subtype": {"type": "string"},
                     "preferred_platform": {
                         "type": "string",
@@ -86,7 +91,7 @@ SKELETON_TOOL_SCHEMA = {
                     "tech_affinity": {"type": "number"},
                 },
                 "required": ["name", "age", "location", "occupation", "is_skeptic",
-                             "persona_type", "preferred_platform", "education_level",
+                             "actor_type", "preferred_platform", "education_level",
                              "income_bracket", "tech_affinity"],
             },
         }
@@ -94,13 +99,33 @@ SKELETON_TOOL_SCHEMA = {
     "required": ["personas"],
 }
 
-SKELETON_SYSTEM_PROMPT = """Du bist Experte für europäische Gesellschaftsforschung.
-Erstelle kompakte Persona-Skelette: nur die Basisdaten, KEINE Persönlichkeitsbeschreibungen.
+# Backwards compatibility mapping
+_OLD_TYPE_MAPPING = {
+    "individual": "private_person",
+    "organization": "company",
+    "institution": "collective",
+    "politician": "private_person",
+}
+
+SKELETON_SYSTEM_PROMPT = """Du bist Experte für europäische Gesellschaftsforschung und Marktdynamik.
+Erstelle kompakte Persona-Skelette für die Marktsimulation.
 Halte die Antworten KURZ — nur die geforderten Felder, keine zusätzlichen Texte.
 
-Rogers Diffusion: ~2.5% Innovatoren, ~13.5% Early Adopters, ~34% Early Majority,
-~34% Late Majority (skeptisch), ~16% Laggards (sehr skeptisch).
-DACH-Demographie: Alter 18-80 realistisch verteilt, nicht nur 25-45."""
+Die 9 AKTEURS-TYPEN:
+1. private_person — Einzelperson (context: privat/beruflich/oeffentlich)
+2. company — Organisation mit Marktinteresse (traegerschaft: privat/oeffentlich/genossenschaftlich/gemischt/kommunal)
+3. research_institute — Wissenschaftliche Einrichtung
+4. authority — Behörde/Regulator
+5. media — Medium/Journalist
+6. influencer — Reichweiten-Einzelperson (context: consumer/business/politisch)
+7. expert — Domänen-Autorität
+8. collective — Verband/NGO/Partei/Kammer/Stiftung (subtype angeben)
+9. validator — Prüfstelle/Zertifizierer (subtype: tuev/behoerdliche_pruefstelle/versicherer/norm_setter)
+
+activation_latency (Tage bis aktiv): Privatpersonen 0-1, Firmen 1-3, Institute 5-10,
+Behörden 7-15, Medien 1-4, Influencer 0-2, Experten 2-5, Kollektive 3-7, Validierer 10-20.
+stance passend zum Typ (z.B. Firma: potential_buyer/competitor/supplier/observer).
+DACH-Demographie: Alter 18-80 realistisch verteilt."""
 
 
 def _build_skeleton_prompt(
@@ -111,6 +136,7 @@ def _build_skeleton_prompt(
     batch_index: int = 0,
     batch_total: int = 1,
     market_context_summary: str | None = None,
+    distribution_template: dict | None = None,
 ) -> str:
     market_block = ""
     if market_context_summary:
@@ -120,13 +146,18 @@ def _build_skeleton_prompt(
     if batch_total > 1:
         batch_hint = f"\nDies ist Batch {batch_index + 1}/{batch_total}. Keine Duplikate zu anderen Batches!"
 
+    distribution_block = ""
+    if distribution_template:
+        dist_lines = [f"- {k}: {v}%" for k, v in distribution_template.items() if v > 0]
+        distribution_block = "\n\nAkteurs-Verteilung:\n" + "\n".join(dist_lines)
+
     return f"""Produkt: {product_description}
 Zielmarkt: {target_market}
 Branche: {industry}
-{market_block}
+{market_block}{distribution_block}
 Erstelle {persona_count} KOMPAKTE Persona-Skelette.
 Nur Basisdaten — Persönlichkeit wird separat generiert.
-Min. 20% Skeptiker. Mix aus Einzelpersonen + Organisationen + Institutionen passend zur Branche.
+Min. 20% Skeptiker. Mix der 9 Akteurs-Typen passend zur Branche und Verteilung.
 Vielfältige Namen (DACH-Region), keine generischen Namen.{batch_hint}"""
 
 
@@ -140,12 +171,13 @@ async def _generate_skeletons(
     batch_total: int,
     model: str | None = None,
     market_context_summary: str | None = None,
+    distribution_template: dict | None = None,
 ) -> list[dict]:
     """Phase 1: Generiert kompakte Skelette. ~50 Tokens pro Persona Output."""
     prompt = _build_skeleton_prompt(
         product_description, target_market, industry,
         persona_count, batch_index, batch_total,
-        market_context_summary,
+        market_context_summary, distribution_template,
     )
     # ~50 Tokens pro Persona + Buffer
     # ~120 Tokens pro Skelett (GPT-5 ist verbose) + Buffer
@@ -239,17 +271,38 @@ async def _enrich_persona(
     market_context_summary: str | None = None,
 ) -> dict:
     """Phase 2: Reichert ein einzelnes Skelett mit Persönlichkeit an. ~400 Tokens Output."""
-    ptype = skeleton.get("persona_type", "individual")
+    actor_type = skeleton.get("actor_type", skeleton.get("persona_type", "private_person"))
+    # Backwards compat
+    if actor_type in _OLD_TYPE_MAPPING:
+        actor_type = _OLD_TYPE_MAPPING[actor_type]
     skeptic_hint = "Du bist SKEPTISCH — deine initiale Meinung ist ablehnend/kritisch." if skeleton.get("is_skeptic") else ""
 
-    if ptype == "individual":
-        identity = f"{skeleton['name']}, {skeleton['age']} Jahre, {skeleton['location']}, {skeleton['occupation']}"
-    elif ptype == "organization":
-        identity = f"{skeleton['name']} ({skeleton.get('entity_subtype', 'Organisation')}), {skeleton['location']}"
-    elif ptype == "institution":
-        identity = f"{skeleton['name']} ({skeleton.get('entity_subtype', 'Institution')}), {skeleton['location']}"
+    if actor_type == "private_person":
+        context = skeleton.get("context", "privat")
+        identity = f"{skeleton['name']}, {skeleton['age']} Jahre, {skeleton['location']}, {skeleton['occupation']} (Kontext: {context})"
+    elif actor_type == "company":
+        subtype = skeleton.get("subtype", skeleton.get("entity_subtype", "Unternehmen"))
+        traeg = skeleton.get("traegerschaft", "privat")
+        identity = f"{skeleton['name']} ({subtype}), {skeleton['location']}, Trägerschaft: {traeg}"
+    elif actor_type == "research_institute":
+        identity = f"{skeleton['name']} (Forschungsinstitut), {skeleton['location']}"
+    elif actor_type == "authority":
+        identity = f"{skeleton['name']} (Behörde/Regulator), {skeleton['location']}"
+    elif actor_type == "media":
+        identity = f"{skeleton['name']} (Medium/Journalist), {skeleton['location']}"
+    elif actor_type == "influencer":
+        context = skeleton.get("context", "consumer")
+        identity = f"{skeleton['name']} (Influencer, {context}), Reichweite: {skeleton.get('occupation', 'Social Media')}"
+    elif actor_type == "expert":
+        identity = f"{skeleton['name']} (Experte), {skeleton['location']}, Domäne: {skeleton['occupation']}"
+    elif actor_type == "collective":
+        subtype = skeleton.get("subtype", skeleton.get("entity_subtype", "Verband"))
+        identity = f"{skeleton['name']} ({subtype}), {skeleton['location']}"
+    elif actor_type == "validator":
+        subtype = skeleton.get("subtype", skeleton.get("entity_subtype", "Prüfstelle"))
+        identity = f"{skeleton['name']} ({subtype}), {skeleton['location']}"
     else:
-        identity = f"{skeleton['name']}, {skeleton.get('entity_subtype', 'Politiker')}, {skeleton['location']}"
+        identity = f"{skeleton['name']}, {skeleton['age']} Jahre, {skeleton['location']}, {skeleton['occupation']}"
 
     market_hint = f"\nAktuelle Marktlage: {market_context_summary[:300]}" if market_context_summary else ""
 
@@ -373,6 +426,7 @@ async def generate_personas(
     sim=None,
     db=None,
     market_context_summary: str | None = None,
+    distribution_template: dict | None = None,
 ) -> list[dict]:
     """Generiert N Personas via Hybrid-Architektur (Option C).
 
@@ -414,6 +468,7 @@ async def generate_personas(
                 size, idx, batch_count,
                 model=r.model,
                 market_context_summary=market_context_summary,
+                distribution_template=distribution_template,
             )
 
     # Batches aufteilen
@@ -439,6 +494,14 @@ async def generate_personas(
     all_skeletons = _dedupe_names(all_skeletons)
     if len(all_skeletons) > persona_count:
         all_skeletons = all_skeletons[:persona_count]
+
+    # v1.1: Backwards compat — map old persona_type to actor_type
+    for skeleton in all_skeletons:
+        if "persona_type" in skeleton and "actor_type" not in skeleton:
+            old_type = skeleton.pop("persona_type")
+            skeleton["actor_type"] = _OLD_TYPE_MAPPING.get(old_type, "private_person")
+        elif "actor_type" not in skeleton:
+            skeleton["actor_type"] = "private_person"
 
     logger.info("Phase 1 abgeschlossen: %d/%d Skelette generiert", len(all_skeletons), persona_count)
 

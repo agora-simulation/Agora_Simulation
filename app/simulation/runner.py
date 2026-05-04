@@ -4,6 +4,8 @@ Simulation Runner — Background Task Orchestrator.
 """
 import asyncio
 import logging
+import random as _random
+import statistics as _statistics
 import uuid as _uuid
 from datetime import datetime, timezone
 from uuid import UUID
@@ -18,6 +20,14 @@ from app.simulation.tick_engine import run_tick
 from app.analysis.report_generator import generate_report
 from app.webhooks import dispatch_webhook
 from app.llm.resolver import resolve_for_phase
+
+# v1.1 imports (lazy — models may not exist yet during migrations)
+try:
+    from app.models.crowd_state import CrowdState
+    from app.models.trigger_event import TriggerEvent
+except ImportError:
+    CrowdState = None  # type: ignore[assignment,misc]
+    TriggerEvent = None  # type: ignore[assignment,misc]
 
 logger = logging.getLogger("agora.runner")
 
@@ -113,6 +123,110 @@ async def _assign_social_connections(db, simulation_id: UUID):
     await db.flush()
 
 
+async def _process_crowd_layer(
+    simulation_id: UUID,
+    ingame_day: int,
+    db,
+    personas: list,
+    posts: list,
+):
+    """Processes the crowd layer for this tick.
+
+    The crowd is a statistical aggregate, not individual personas.
+    It reacts to actor posts and influences persona opinions (bandwagon effect).
+    """
+    if CrowdState is None:
+        logger.debug("CrowdState model not available — skipping crowd layer")
+        return
+
+    from app.models.content import Post as PostModel
+
+    # Calculate crowd metrics from today's activity
+    todays_posts = [p for p in posts if p.ingame_day == ingame_day]
+
+    if not todays_posts:
+        # Minimal crowd activity even without posts
+        crowd = CrowdState(
+            simulation_id=simulation_id,
+            tick=ingame_day,
+            volume=_random.randint(5, 20),
+            sentiment=0.0,
+            polarization=0.0,
+            momentum=0.0,
+            representative_voices=["Stille Beobachtung des Marktes."],
+        )
+        db.add(crowd)
+        return
+
+    # Volume: based on post count and actor reach
+    from app.simulation.tick_engine import ACTOR_BEHAVIOR
+    total_reach = 0
+    sentiment_sum = 0.0
+    sentiment_count = 0
+
+    for post in todays_posts:
+        # Find author's actor type for reach multiplier
+        author = next((p for p in personas if str(p.id) == str(post.author_id)), None)
+        if author:
+            actor_type = getattr(author, 'actor_type', 'private_person') or 'private_person'
+            reach = ACTOR_BEHAVIOR.get(actor_type, ACTOR_BEHAVIOR["private_person"])["reach_mult"]
+            total_reach += reach
+
+            # Sentiment from reactions
+            likes = sum(1 for r in (post.reactions or []) if r.reaction_type.value == "like")
+            dislikes = sum(1 for r in (post.reactions or []) if r.reaction_type.value == "dislike")
+            if likes + dislikes > 0:
+                post_sentiment = (likes - dislikes) / (likes + dislikes)
+                sentiment_sum += post_sentiment * reach  # Reach-weighted
+                sentiment_count += reach
+
+    volume = int(total_reach * _random.uniform(0.8, 1.2))
+    sentiment = sentiment_sum / sentiment_count if sentiment_count > 0 else 0.0
+    sentiment = max(-1.0, min(1.0, sentiment))
+
+    # Polarization from persona opinions
+    persona_opinions = []
+    for p in personas:
+        dims = (p.current_state or {}).get("opinion_dimensions", {})
+        if dims:
+            avg = sum(dims.values()) / len(dims)
+            persona_opinions.append(avg)
+
+    polarization = _statistics.stdev(persona_opinions) if len(persona_opinions) >= 2 else 0.0
+
+    # Momentum: change from previous tick
+    prev_crowd_result = await db.execute(
+        select(CrowdState)
+        .where(CrowdState.simulation_id == simulation_id)
+        .where(CrowdState.tick == ingame_day - 1)
+    )
+    prev_crowd = prev_crowd_result.scalar_one_or_none()
+    momentum = sentiment - (prev_crowd.sentiment if prev_crowd else 0.0)
+
+    # Representative voices
+    voices = []
+    if sentiment > 0.3:
+        voices.append("Überwiegend positive Resonanz in der Community.")
+    elif sentiment < -0.3:
+        voices.append("Deutliche Skepsis in der breiten Masse.")
+    else:
+        voices.append("Gemischte Reaktionen, keine klare Tendenz.")
+
+    if volume > 500:
+        voices.append("Hohes Diskussionsvolumen — das Thema trifft einen Nerv.")
+
+    crowd = CrowdState(
+        simulation_id=simulation_id,
+        tick=ingame_day,
+        volume=volume,
+        sentiment=round(sentiment, 3),
+        polarization=round(polarization, 3),
+        momentum=round(momentum, 3),
+        representative_voices=voices,
+    )
+    db.add(crowd)
+
+
 async def run_simulation_background(simulation_id: UUID):
     """
     Haupt-Orchestrator der Simulation.
@@ -196,7 +310,12 @@ async def run_simulation_background(simulation_id: UUID):
 
             if not existing_personas:
                 persona_count = sim.config.get("persona_count", 10) if sim.config else 10
-                raw_personas = await generate_personas(
+
+                # v1.1: distribution_template support
+                distribution_template = getattr(sim, 'distribution_template', None)
+
+                # Build kwargs — only pass distribution_template if the function accepts it
+                gen_kwargs = dict(
                     product_description=sim.product_description,
                     target_market=sim.target_market or "",
                     industry=sim.industry or "",
@@ -205,6 +324,10 @@ async def run_simulation_background(simulation_id: UUID):
                     db=db,
                     market_context_summary=market_context_summary,
                 )
+                if distribution_template is not None:
+                    gen_kwargs["distribution_template"] = distribution_template
+
+                raw_personas = await generate_personas(**gen_kwargs)
                 logger.info(f"[{simulation_id}] {len(raw_personas)} Personas generiert")
                 for p_data in raw_personas:
                     # Nur bekannte Felder übernehmen
@@ -215,10 +338,41 @@ async def run_simulation_background(simulation_id: UUID):
                         "education_level", "income_bracket", "family_status",
                         "political_leaning", "media_consumption", "tech_affinity",
                         "personality_traits",
-                        # Entity-Typen
+                        # Legacy Entity-Typen
                         "persona_type", "entity_subtype",
+                        # v1.1 Actor System
+                        "actor_type", "subtype", "context", "traegerschaft",
+                        "stance", "activation_latency", "function_tags",
+                        "engagement_decay_rate",
                     }
                     clean = {k: v for k, v in p_data.items() if k in allowed}
+
+                    # v1.1: Store type-specific profile data
+                    profile_fields = {k: v for k, v in p_data.items() if k not in allowed and k not in {"preferred_platform"}}
+                    if profile_fields:
+                        clean["profile_data"] = profile_fields
+
+                    # v1.1: Backwards compatibility - map old persona_type to actor_type
+                    if "actor_type" not in clean and "persona_type" in clean:
+                        old_type = clean.get("persona_type", "individual")
+                        type_mapping = {
+                            "individual": "private_person",
+                            "organization": "company",
+                            "institution": "collective",
+                            "politician": "private_person",
+                        }
+                        clean["actor_type"] = type_mapping.get(old_type, "private_person")
+
+                    # v1.1: Set default activation_latency if not provided
+                    if "activation_latency" not in clean:
+                        try:
+                            from app.simulation.tick_engine import ACTOR_BEHAVIOR
+                            actor_type = clean.get("actor_type", "private_person")
+                            behavior = ACTOR_BEHAVIOR.get(actor_type, ACTOR_BEHAVIOR["private_person"])
+                            import random
+                            clean["activation_latency"] = random.randint(behavior["latency_min"], behavior["latency_max"])
+                        except (ImportError, KeyError):
+                            clean["activation_latency"] = 0
 
                     # Initiale Plattform-Affinität aus preferred_platform ableiten
                     preferred = p_data.get("preferred_platform", "feedbook")
@@ -226,6 +380,14 @@ async def run_simulation_background(simulation_id: UUID):
                         initial_affinity = {"feedbook": 0.3, "threadit": 0.7}
                     else:
                         initial_affinity = {"feedbook": 0.7, "threadit": 0.3}
+
+                    # v1.1: Platform affinity based on actor type
+                    actor_type = clean.get("actor_type", "private_person")
+                    if actor_type in ("authority", "collective", "validator", "research_institute"):
+                        initial_affinity = {"feedbook": 0.7, "threadit": 0.3}
+                    elif actor_type in ("influencer", "media"):
+                        initial_affinity = {"feedbook": 0.4, "threadit": 0.6}
+                    # else keep the preferred_platform-based affinity from above
 
                     # Modul 2: Initiale Opinion-Dimensions
                     from app.simulation.tick_engine import _init_opinion_dimensions
@@ -269,6 +431,27 @@ async def run_simulation_background(simulation_id: UUID):
                     state_resolved=state_resolved,
                     market_context_summary=market_context_summary,
                 )
+
+                # v1.1: Crowd Layer
+                try:
+                    from app.models.content import Post as PostModel
+                    from sqlalchemy.orm import selectinload
+                    posts_for_crowd = await db.execute(
+                        select(PostModel)
+                        .options(selectinload(PostModel.reactions))
+                        .where(PostModel.simulation_id == simulation_id)
+                        .where(PostModel.ingame_day == tick_num)
+                    )
+                    crowd_posts = posts_for_crowd.scalars().all()
+
+                    personas_result = await db.execute(
+                        select(Persona).where(Persona.simulation_id == simulation_id)
+                    )
+                    all_personas = personas_result.scalars().all()
+
+                    await _process_crowd_layer(simulation_id, tick_num, db, all_personas, crowd_posts)
+                except Exception as e:
+                    logger.warning(f"[{simulation_id}] Crowd-Layer-Processing fehlgeschlagen: {e}")
 
                 await db.execute(
                     update(Simulation)
@@ -365,6 +548,10 @@ async def create_multi_run_simulations(
                 current_tick=0,
                 run_group_id=run_group_id,
                 run_index=i,
+                # v1.1 fields
+                research_snapshot_id=getattr(original, "research_snapshot_id", None),
+                stagnation_mode=getattr(original, "stagnation_mode", "mild"),
+                distribution_template=getattr(original, "distribution_template", None),
             )
             db.add(clone)
             await db.flush()
