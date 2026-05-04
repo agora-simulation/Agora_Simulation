@@ -327,5 +327,5 @@ Transparency is part of the product:
 ---
 
 <p align="center">
-  <sub>Built with Claude, GPT, and mass amounts of coffee. GDPR-native. European.</sub>
+  <sub>Built with Claude and mass amounts of Coffee and Energy. GDPR-native. European.</sub>
 </p>
