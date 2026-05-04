@@ -36,10 +36,10 @@ export class CrowdComponent implements OnInit {
     });
   }
 
-  sentimentColor(sentiment: number): string {
-    if (sentiment > 0.3) return 'text-green-400';
-    if (sentiment < -0.3) return 'text-red-400';
-    return 'text-yellow-400';
+  sentimentCssColor(sentiment: number): string {
+    if (sentiment > 0.3) return 'var(--success)';
+    if (sentiment < -0.3) return 'var(--danger)';
+    return 'var(--warning)';
   }
 
   sentimentLabel(sentiment: number): string {
@@ -51,8 +51,8 @@ export class CrowdComponent implements OnInit {
   }
 
   momentumIcon(momentum: number): string {
-    if (momentum > 0.1) return 'pi pi-arrow-up text-green-400';
-    if (momentum < -0.1) return 'pi pi-arrow-down text-red-400';
-    return 'pi pi-minus text-gray-400';
+    if (momentum > 0.1) return 'pi pi-arrow-up';
+    if (momentum < -0.1) return 'pi pi-arrow-down';
+    return 'pi pi-minus';
   }
 }

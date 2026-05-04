@@ -1,62 +1,312 @@
-<div class="max-w-5xl mx-auto p-6">
-  <div class="flex justify-between items-center mb-6">
+<div class="page-container">
+  <div class="page-header animate-fade-in">
     <div>
-      <h1 class="text-2xl font-bold">Templates</h1>
-      <p class="text-gray-400 text-sm">Verteilung, Tonalitaet, Recherche & Trigger-Library</p>
+      <h1 class="page-title">Templates</h1>
+      <p class="page-subtitle">Akteurs-Verteilung, Tonalitaet und Trigger-Library verwalten.</p>
     </div>
-    <button class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600" (click)="seedDefaults()">
-      Defaults laden
-    </button>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn btn-secondary" (click)="seedDefaults()">
+        <i class="pi pi-download"></i> Defaults laden
+      </button>
+      <button class="btn btn-primary" (click)="openCreateDialog()">
+        <i class="pi pi-plus"></i> Template erstellen
+      </button>
+    </div>
   </div>
 
   <!-- Category Tabs -->
-  <div class="flex gap-2 mb-6">
+  <div class="tab-pills animate-fade-in-delay-1" style="margin-bottom: 24px;">
     @for (cat of categories; track cat.id) {
-      <button class="px-4 py-2 rounded-lg text-sm transition-colors"
-              [class]="activeCategory() === cat.id ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'"
+      <button class="tab-pill"
+              [class.tab-pill-active]="activeCategory() === cat.id"
               (click)="switchCategory(cat.id)">
-        <i class="pi {{cat.icon}} mr-1"></i> {{ cat.label }}
+        <i class="pi {{cat.icon}}"></i> {{ cat.label }}
       </button>
     }
   </div>
 
+  <!-- Category hint -->
+  <div class="info-box animate-fade-in-delay-1" style="margin-bottom: 20px;">
+    <i class="pi pi-info-circle" style="color: var(--primary); flex-shrink: 0; margin-top: 2px;"></i>
+    <p style="margin: 0; font-size: 13px; color: var(--ink-2);">
+      @for (cat of categories; track cat.id) {
+        @if (cat.id === activeCategory()) { {{ cat.hint }} }
+      }
+    </p>
+  </div>
+
   @if (loading()) {
-    <div class="text-center py-8 text-gray-400">Lade...</div>
+    <div class="loading-state"><i class="pi pi-spin pi-spinner"></i> Lade Templates...</div>
   } @else if (templates().length === 0) {
-    <div class="text-center py-12 text-gray-400">
+    <div class="empty-state animate-fade-in">
+      <i class="pi pi-copy"></i>
       <p>Keine Templates in dieser Kategorie.</p>
-      <p class="text-sm mt-1">Klicke "Defaults laden" um System-Templates zu erstellen.</p>
+      <p style="font-size: 13px; color: var(--ink-4); margin-top: 4px;">
+        Klicke "Defaults laden" um System-Templates zu erstellen oder erstelle eigene.
+      </p>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button class="btn btn-secondary" (click)="seedDefaults()"><i class="pi pi-download"></i> Defaults laden</button>
+        <button class="btn btn-primary" (click)="openCreateDialog()"><i class="pi pi-plus"></i> Eigenes erstellen</button>
+      </div>
     </div>
   } @else {
-    <div class="grid grid-cols-2 gap-4">
-      @for (t of templates(); track t.id) {
-        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="font-medium">{{ t.name }}</h3>
-              <p class="text-xs text-gray-500">v{{ t.version }} · {{ t.is_default ? 'System' : 'Custom' }}</p>
+    <div class="item-grid-2col">
+      @for (t of templates(); track t.id; let i = $index) {
+        <div class="card card-hover item-card stagger-in" [style.--i]="i" appCardGlow>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1; min-width: 0;">
+              <div class="item-name">{{ t.name }}</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <span class="badge badge-muted" style="font-size: 11px;">v{{ t.version }}</span>
+                <span class="badge" [class]="t.is_default ? 'badge-primary' : 'badge-info'" style="font-size: 11px;">
+                  {{ t.is_default ? 'System' : 'Custom' }}
+                </span>
+              </div>
             </div>
-            @if (!t.is_default) {
-              <button class="text-xs text-red-400 hover:text-red-300" (click)="deleteTemplate(t.id)">
-                <i class="pi pi-trash"></i>
-              </button>
-            }
+            <div style="display: flex; gap: 4px;">
+              <button class="btn btn-sm btn-secondary" (click)="openEditDialog(t)" title="Bearbeiten"><i class="pi pi-pencil"></i></button>
+              @if (!t.is_default) {
+                <button class="btn btn-sm btn-danger-outline" (click)="deleteTemplate(t.id)" title="Loeschen"><i class="pi pi-trash"></i></button>
+              }
+            </div>
           </div>
+
+          <!-- Distribution: bar chart -->
           @if (activeCategory() === 'distribution') {
-            <div class="mt-3 space-y-1">
+            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
               @for (entry of t.content | keyvalue; track entry.key) {
-                <div class="flex justify-between text-xs">
-                  <span class="text-gray-400">{{ entry.key }}</span>
-                  <span class="text-white">{{ entry.value }}%</span>
+                <div class="dist-row">
+                  <span class="dist-label">{{ entry.key }}</span>
+                  <div class="dist-bar"><div class="dist-fill" [style.width.%]="entry.value"></div></div>
+                  <span class="dist-value">{{ entry.value }}%</span>
                 </div>
               }
             </div>
           }
+
+          <!-- Tonality: text -->
           @if (activeCategory() === 'tonality') {
-            <p class="mt-2 text-sm text-gray-400 italic">{{ t.content['text'] || '' }}</p>
+            <p style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 13px; color: var(--ink-3); font-style: italic; line-height: 1.55;">
+              {{ t.content['text'] || '' }}
+            </p>
+          }
+
+          <!-- Trigger Library: event details -->
+          @if (activeCategory() === 'trigger_library') {
+            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                @if (t.content['event_type']) { <span class="badge badge-muted" style="font-size: 11px;">{{ t.content['event_type'] }}</span> }
+                @if (t.content['intensity']) {
+                  <span class="badge" style="font-size: 11px;"
+                        [class]="t.content['intensity'] === 'critical' ? 'badge-danger' : t.content['intensity'] === 'major' ? 'badge-warning' : 'badge-info'">
+                    {{ t.content['intensity'] }}
+                  </span>
+                }
+              </div>
+              @if (t.content['content']) { <p style="font-size: 13px; color: var(--ink-3); line-height: 1.55;">{{ t.content['content'] }}</p> }
+              @if (t.content['affected_segments']?.length) {
+                <div style="display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;">
+                  @for (seg of t.content['affected_segments']; track seg) { <span class="badge badge-muted" style="font-size: 10px;">{{ seg }}</span> }
+                </div>
+              }
+            </div>
           }
         </div>
       }
     </div>
   }
+
 </div>
+
+<!-- Modals OUTSIDE page-container to avoid z-index stacking context -->
+
+<!-- ============================================================
+     CREATE DIALOG — category-specific
+     ============================================================ -->
+@if (showCreateDialog()) {
+    <div class="modal-overlay" style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);"
+         (click)="showCreateDialog.set(false)" (keydown.escape)="showCreateDialog.set(false)">
+      <div class="modal animate-fade-in" (click)="$event.stopPropagation()" style="max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 36px 40px 28px;">
+        <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+          <i class="pi pi-plus-circle"></i>
+        </div>
+        <h3 class="modal-title">
+          @if (activeCategory() === 'distribution') { Neue Akteurs-Verteilung }
+          @else if (activeCategory() === 'tonality') { Neues Tonalitaet-Template }
+          @else { Neues Trigger-Event-Template }
+        </h3>
+
+        <div class="field">
+          <label for="c-name">Name</label>
+          <input id="c-name" type="text" class="input" [ngModel]="newName()" (ngModelChange)="newName.set($event)"
+                 placeholder="z.B. Mein Custom-Template">
+        </div>
+
+        <!-- DISTRIBUTION: Slider per actor type -->
+        @if (activeCategory() === 'distribution') {
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <label style="margin-bottom: 0;">Verteilung</label>
+              <span style="font-size: 13px; font-family: var(--font-mono); font-weight: 600;"
+                    [style.color]="distSum(newDist()) === 100 ? 'var(--success)' : 'var(--danger)'">
+                {{ distSum(newDist()) }}%
+              </span>
+            </div>
+            @for (actor of actorTypes; track actor.key) {
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <span style="font-size: 12.5px; color: var(--ink-3); min-width: 120px;">{{ actor.label }}</span>
+                <input type="range" min="0" max="100" step="1" class="range-slider" style="flex: 1; height: 4px;"
+                       [ngModel]="newDist()[actor.key]" (ngModelChange)="setNewDist(actor.key, $event)">
+                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--ink); min-width: 32px; text-align: right;">
+                  {{ newDist()[actor.key] }}%
+                </span>
+              </div>
+            }
+            @if (distSum(newDist()) !== 100) {
+              <p style="font-size: 12px; color: var(--danger); margin-top: 4px;">Summe muss 100% ergeben.</p>
+            }
+          </div>
+        }
+
+        <!-- TONALITY: Textarea -->
+        @if (activeCategory() === 'tonality') {
+          <div class="field">
+            <label for="c-tonality">Sprachstil-Beschreibung</label>
+            <textarea id="c-tonality" class="input" rows="4" style="resize: vertical;"
+                      [ngModel]="newTonalityText()" (ngModelChange)="newTonalityText.set($event)"
+                      placeholder="z.B. Spricht sachlich, verwendet Fachbegriffe, argumentiert evidenzbasiert..."></textarea>
+            <p class="label-hint">Beschreibe den Sprachstil, den dieser Akteur-Typ in der Simulation verwenden soll.</p>
+          </div>
+        }
+
+        <!-- TRIGGER: Structured form -->
+        @if (activeCategory() === 'trigger_library') {
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="field">
+              <label for="c-evtype">Event-Typ</label>
+              <select id="c-evtype" class="input" [ngModel]="newTriggerEventType()" (ngModelChange)="newTriggerEventType.set($event)">
+                @for (t of eventTypes; track t.id) { <option [value]="t.id">{{ t.label }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-intensity">Intensitaet</label>
+              <select id="c-intensity" class="input" [ngModel]="newTriggerIntensity()" (ngModelChange)="newTriggerIntensity.set($event)">
+                @for (i of intensities; track i.id) { <option [value]="i.id">{{ i.label }}</option> }
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="c-trigsummary">Inhalt / Beschreibung</label>
+            <textarea id="c-trigsummary" class="input" rows="3" style="resize: vertical;"
+                      [ngModel]="newTriggerContent()" (ngModelChange)="newTriggerContent.set($event)"
+                      placeholder="Detaillierte Beschreibung des Events..."></textarea>
+          </div>
+          <div class="field">
+            <label for="c-segments">Betroffene Segmente <span style="color: var(--ink-4); font-weight: 400;">(kommagetrennt)</span></label>
+            <input id="c-segments" type="text" class="input"
+                   [ngModel]="newTriggerSegments()" (ngModelChange)="newTriggerSegments.set($event)"
+                   placeholder="z.B. media, company, authority">
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showCreateDialog.set(false)">Abbrechen</button>
+          <button class="btn btn-primary" [disabled]="!canCreate() || saving()" (click)="createTemplate()">
+            @if (saving()) { <i class="pi pi-spin pi-spinner"></i> }
+            Erstellen
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================
+       EDIT DIALOG — category-specific
+       ============================================================ -->
+  @if (showEditDialog()) {
+    <div class="modal-overlay" style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);"
+         (click)="showEditDialog.set(false)" (keydown.escape)="showEditDialog.set(false)">
+      <div class="modal animate-fade-in" (click)="$event.stopPropagation()" style="max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 36px 40px 28px;">
+        <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+          <i class="pi pi-pencil"></i>
+        </div>
+        <h3 class="modal-title">Template bearbeiten</h3>
+
+        <div class="field">
+          <label for="e-name">Name</label>
+          <input id="e-name" type="text" class="input" [ngModel]="editName()" (ngModelChange)="editName.set($event)">
+        </div>
+
+        <!-- DISTRIBUTION -->
+        @if (activeCategory() === 'distribution') {
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <label style="margin-bottom: 0;">Verteilung</label>
+              <span style="font-size: 13px; font-family: var(--font-mono); font-weight: 600;"
+                    [style.color]="distSum(editDist()) === 100 ? 'var(--success)' : 'var(--danger)'">
+                {{ distSum(editDist()) }}%
+              </span>
+            </div>
+            @for (actor of actorTypes; track actor.key) {
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <span style="font-size: 12.5px; color: var(--ink-3); min-width: 120px;">{{ actor.label }}</span>
+                <input type="range" min="0" max="100" step="1" class="range-slider" style="flex: 1; height: 4px;"
+                       [ngModel]="editDist()[actor.key]" (ngModelChange)="setEditDist(actor.key, $event)">
+                <span style="font-size: 12px; font-family: var(--font-mono); color: var(--ink); min-width: 32px; text-align: right;">
+                  {{ editDist()[actor.key] }}%
+                </span>
+              </div>
+            }
+            @if (distSum(editDist()) !== 100) {
+              <p style="font-size: 12px; color: var(--danger); margin-top: 4px;">Summe muss 100% ergeben.</p>
+            }
+          </div>
+        }
+
+        <!-- TONALITY -->
+        @if (activeCategory() === 'tonality') {
+          <div class="field">
+            <label for="e-tonality">Sprachstil-Beschreibung</label>
+            <textarea id="e-tonality" class="input" rows="4" style="resize: vertical;"
+                      [ngModel]="editTonalityText()" (ngModelChange)="editTonalityText.set($event)"></textarea>
+          </div>
+        }
+
+        <!-- TRIGGER -->
+        @if (activeCategory() === 'trigger_library') {
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="field">
+              <label for="e-evtype">Event-Typ</label>
+              <select id="e-evtype" class="input" [ngModel]="editTriggerEventType()" (ngModelChange)="editTriggerEventType.set($event)">
+                @for (t of eventTypes; track t.id) { <option [value]="t.id">{{ t.label }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label for="e-intensity">Intensitaet</label>
+              <select id="e-intensity" class="input" [ngModel]="editTriggerIntensity()" (ngModelChange)="editTriggerIntensity.set($event)">
+                @for (i of intensities; track i.id) { <option [value]="i.id">{{ i.label }}</option> }
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="e-trigsummary">Inhalt / Beschreibung</label>
+            <textarea id="e-trigsummary" class="input" rows="3" style="resize: vertical;"
+                      [ngModel]="editTriggerContent()" (ngModelChange)="editTriggerContent.set($event)"></textarea>
+          </div>
+          <div class="field">
+            <label for="e-segments">Betroffene Segmente <span style="color: var(--ink-4); font-weight: 400;">(kommagetrennt)</span></label>
+            <input id="e-segments" type="text" class="input"
+                   [ngModel]="editTriggerSegments()" (ngModelChange)="editTriggerSegments.set($event)">
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showEditDialog.set(false)">Abbrechen</button>
+          <button class="btn btn-primary" [disabled]="!editName() || saving()" (click)="updateTemplate()">
+            @if (saving()) { <i class="pi pi-spin pi-spinner"></i> }
+            Speichern
+          </button>
+        </div>
+      </div>
+    </div>
+  }

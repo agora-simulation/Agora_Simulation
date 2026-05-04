@@ -23,7 +23,7 @@ class CrowdState(Base):
     sentiment = Column(Float, default=0.0)  # -1 to +1
     polarization = Column(Float, default=0.0)  # 0 to 1
     momentum = Column(Float, default=0.0)
-    representative_voices = Column(JSON, default=[])
+    representative_voices = Column(JSON, default=list)
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", backref="crowd_states")

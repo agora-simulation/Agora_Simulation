@@ -3,6 +3,8 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TriggerEventService } from '../../../core/services/trigger-event.service';
 import { TriggerEvent, TriggerEventCreate, TriggerEventType, TriggerIntensity } from '../../../core/models/trigger-event.model';
+import { TemplateService } from '../../../core/services/template.service';
+import { Template } from '../../../core/models/template.model';
 
 @Component({
   selector: 'app-triggers',
@@ -13,11 +15,13 @@ import { TriggerEvent, TriggerEventCreate, TriggerEventType, TriggerIntensity } 
 export class TriggersComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private triggerService = inject(TriggerEventService);
+  private templateService = inject(TemplateService);
 
   simulationId = '';
   events = signal<TriggerEvent[]>([]);
   loading = signal(true);
   showDialog = signal(false);
+  triggerTemplates = signal<Template[]>([]);
 
   // Form
   newTitle = signal('');
@@ -35,15 +39,18 @@ export class TriggersComponent implements OnInit {
     { id: 'social_incident', label: 'Sozialer Vorfall' },
   ];
 
-  intensities: { id: TriggerIntensity; label: string; color: string }[] = [
-    { id: 'minor', label: 'Gering', color: 'bg-blue-100 text-blue-800' },
-    { id: 'major', label: 'Mittel', color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'critical', label: 'Kritisch', color: 'bg-red-100 text-red-800' },
+  intensities: { id: TriggerIntensity; label: string }[] = [
+    { id: 'minor', label: 'Gering' },
+    { id: 'major', label: 'Mittel' },
+    { id: 'critical', label: 'Kritisch' },
   ];
 
   ngOnInit() {
     this.simulationId = this.route.parent?.snapshot.paramMap.get('id') || '';
     this.loadEvents();
+    this.templateService.list({ category: 'trigger_library' }).subscribe({
+      next: res => this.triggerTemplates.set(res.items),
+    });
   }
 
   loadEvents() {
@@ -66,6 +73,14 @@ export class TriggersComponent implements OnInit {
     this.newAffectedSegments.set('');
   }
 
+  applyTemplate(tmpl: Template) {
+    this.newTitle.set(tmpl.name);
+    this.newContent.set(tmpl.content['content'] || '');
+    this.newEventType.set((tmpl.content['event_type'] as TriggerEventType) || 'news_headline');
+    this.newIntensity.set((tmpl.content['intensity'] as TriggerIntensity) || 'minor');
+    this.newAffectedSegments.set((tmpl.content['affected_segments'] || []).join(', '));
+  }
+
   createEvent() {
     const segments = this.newAffectedSegments().split(',').map(s => s.trim()).filter(Boolean);
     const data: TriggerEventCreate = {
@@ -86,8 +101,12 @@ export class TriggersComponent implements OnInit {
     this.triggerService.delete(id).subscribe(() => this.loadEvents());
   }
 
-  getIntensityClass(intensity: string): string {
-    return this.intensities.find(i => i.id === intensity)?.color || '';
+  getIntensityBadge(intensity: string): string {
+    switch (intensity) {
+      case 'critical': return 'badge-danger';
+      case 'major': return 'badge-warning';
+      default: return 'badge-info';
+    }
   }
 
   getEventTypeLabel(type: string): string {

@@ -3,7 +3,6 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import * as echarts from 'echarts';
-import { ApiService } from '../../../core/services/api.service';
 import { PersonaService } from '../../../core/services/persona.service';
 import { PostService } from '../../../core/services/post.service';
 import { SimulationService } from '../../../core/services/simulation.service';
@@ -21,7 +20,6 @@ import { CHART, FONT_MONO, FONT_SANS, tooltipStyle } from '../../../shared/chart
 })
 export class InfluenceComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private api = inject(ApiService);
   private personaService = inject(PersonaService);
   private postService = inject(PostService);
   private simService = inject(SimulationService);
@@ -81,9 +79,8 @@ export class InfluenceComponent implements OnInit {
     this.personaService.list(this.simId, { limit: 200 }).subscribe(res => {
       this.personas.set(res.items);
 
-      this.api.get<any>(`/simulations/${this.simId}/export/json`).subscribe({
-        next: (data) => {
-          const influenceEvents: InfluenceEvent[] = data.influence_events || [];
+      this.simService.getInfluenceEvents(this.simId).subscribe({
+        next: (influenceEvents) => {
           this.events.set(influenceEvents);
           this.buildSankeyChart(influenceEvents, res.items);
           this.buildTopInfluencers(influenceEvents, res.items);

@@ -20,7 +20,7 @@ class Template(Base):
     name = Column(String(255), nullable=False)
     owner_id = Column(String(255), nullable=True)  # NULL = system default
     is_default = Column(Boolean, default=False)
-    content = Column(JSON, default={})
+    content = Column(JSON, default=dict)
     version = Column(Integer, default=1)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("templates.id"), nullable=True)
     created_at = Column(DateTime, default=_utcnow)

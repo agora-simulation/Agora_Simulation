@@ -1,4 +1,4 @@
-export type TemplateCategory = 'research' | 'distribution' | 'tonality' | 'trigger_library';
+export type TemplateCategory = 'distribution' | 'tonality' | 'trigger_library' | 'research';
 
 export interface Template {
   id: string;

@@ -1,4 +1,6 @@
-"""v1.1: Research Snapshots CRUD Router."""
+"""v1.2: Research Snapshots CRUD + Execute Router."""
+import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,10 +9,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.research_snapshot import ResearchSnapshot
-from app.schemas.research_snapshot import ResearchSnapshotCreate, ResearchSnapshotUpdate, ResearchSnapshotRead
+from app.models.provider import LLMProviderRegistry
+from app.schemas.research_snapshot import (
+    ResearchSnapshotCreate,
+    ResearchSnapshotUpdate,
+    ResearchSnapshotRead,
+    ResearchExecuteRequest,
+)
 from app.schemas.common import PaginatedResponse
 
 router = APIRouter()
+logger = logging.getLogger("agora.research")
+
+DEFAULT_SYSTEM_PROMPT = (
+    "Du bist ein erfahrener Marktforschungs-Analyst. "
+    "Liefere eine detaillierte, strukturierte Analyse auf Deutsch. "
+    "Nutze Ueberschriften, Aufzaehlungen und konkrete Erkenntnisse. "
+    "Kennzeichne Annahmen und bewerte die Zuverlaessigkeit deiner Aussagen."
+)
+
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @router.get("/", response_model=PaginatedResponse[ResearchSnapshotRead])
@@ -97,6 +117,82 @@ async def approve_snapshot(
     if not snapshot:
         raise HTTPException(status_code=404, detail="Research Snapshot nicht gefunden")
     snapshot.status = "approved"
+    await db.flush()
+    await db.refresh(snapshot)
+    return snapshot
+
+
+@router.post("/{snapshot_id}/execute", response_model=ResearchSnapshotRead)
+async def execute_snapshot(
+    snapshot_id: UUID,
+    body: ResearchExecuteRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> ResearchSnapshotRead:
+    """Execute a research snapshot — calls the configured LLM and stores the result."""
+    from app.llm.factory import get_provider_by_registry
+
+    # 1. Load snapshot
+    result = await db.execute(select(ResearchSnapshot).where(ResearchSnapshot.id == snapshot_id))
+    snapshot = result.scalar_one_or_none()
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Research Snapshot nicht gefunden")
+
+    if snapshot.status == "running":
+        raise HTTPException(status_code=409, detail="Recherche laeuft bereits")
+
+    # 2. Apply overrides from request body
+    if body:
+        overrides = body.model_dump(exclude_unset=True)
+        for key, value in overrides.items():
+            setattr(snapshot, key, value)
+
+    # 3. Validate required fields
+    if not snapshot.provider_id:
+        raise HTTPException(status_code=422, detail="Kein Provider ausgewaehlt")
+    if not snapshot.prompt:
+        raise HTTPException(status_code=422, detail="Kein Prompt angegeben")
+
+    # 4. Load provider from registry
+    provider_result = await db.execute(
+        select(LLMProviderRegistry).where(LLMProviderRegistry.id == snapshot.provider_id)
+    )
+    registry_entry = provider_result.scalar_one_or_none()
+    if not registry_entry:
+        raise HTTPException(status_code=422, detail="Provider nicht gefunden")
+
+    provider = get_provider_by_registry(registry_entry)
+
+    # 5. Set running state
+    snapshot.status = "running"
+    snapshot.error = None
+    snapshot.result = None
+    snapshot.execution_started_at = _utcnow()
+    snapshot.execution_finished_at = None
+    await db.flush()
+
+    # 6. Execute LLM call
+    system = snapshot.system_prompt or DEFAULT_SYSTEM_PROMPT
+    try:
+        llm_result = await provider.chat(
+            tier="smart",
+            system=system,
+            messages=[{"role": "user", "content": snapshot.prompt}],
+            max_tokens=snapshot.max_tokens or 4096,
+            model=snapshot.model or None,
+            temperature=snapshot.temperature,
+        )
+        snapshot.result = llm_result
+        snapshot.status = "completed"
+        snapshot.llm_used = snapshot.model or registry_entry.provider_type
+        snapshot.execution_finished_at = _utcnow()
+        logger.info("Research %s completed (%s)", snapshot_id, snapshot.llm_used)
+
+    except Exception as exc:
+        snapshot.status = "failed"
+        snapshot.error = str(exc)
+        snapshot.execution_finished_at = _utcnow()
+        logger.error("Research %s failed: %s", snapshot_id, exc)
+
     await db.flush()
     await db.refresh(snapshot)
     return snapshot

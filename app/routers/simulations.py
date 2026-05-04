@@ -21,6 +21,7 @@ from app.models import (
 )
 from app.schemas import SimulationCreate, SimulationRead, SimulationRunResponse, TickRead
 from app.schemas.common import PaginatedResponse
+from app.schemas.content import InfluenceEventRead
 from app.schemas.simulation import SimulationResetResponse, SimulationStats, MultiRunRequest, MultiRunResponse, MultiRunComparisonResponse, MarketContextRead, MarketContextUpdate
 from app.config import settings
 from app.simulation.runner import run_simulation_background, create_multi_run_simulations, run_multi_simulation_background
@@ -717,3 +718,19 @@ async def get_sentiment_stats(
             "non_skeptic": avg_dims(dims_non_skeptic),
         },
     }
+
+
+@router.get("/{simulation_id}/influence-events", response_model=list[InfluenceEventRead])
+async def list_influence_events(
+    simulation_id: UUID,
+    ingame_day: int | None = Query(None),
+    limit: int = Query(500, ge=1, le=2000),
+    db: AsyncSession = Depends(get_db),
+) -> list[InfluenceEventRead]:
+    """List influence events for a simulation (lightweight alternative to full JSON export)."""
+    query = select(InfluenceEvent).where(InfluenceEvent.simulation_id == simulation_id)
+    if ingame_day is not None:
+        query = query.where(InfluenceEvent.ingame_day == ingame_day)
+    query = query.order_by(InfluenceEvent.ingame_day).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()

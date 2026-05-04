@@ -1,37 +1,71 @@
-<div class="max-w-5xl mx-auto p-6">
-  <div class="flex justify-between items-center mb-6">
+<div class="page-container">
+  <div class="page-header animate-fade-in">
     <div>
-      <h1 class="text-2xl font-bold">Marktrecherchen</h1>
-      <p class="text-gray-400 text-sm">Eigenstaendige Recherche-Snapshots fuer Simulationen</p>
+      <h1 class="page-title">Marktrecherchen</h1>
+      <p class="page-subtitle">Eigenstaendige Recherche-Snapshots — konfiguriere Provider, Prompt und fuehre KI-gestuetzte Recherchen durch.</p>
     </div>
-    <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" (click)="showCreateDialog.set(true)">
-      + Neue Recherche
+    <button class="btn btn-primary" (click)="showCreateDialog.set(true)">
+      <i class="pi pi-plus"></i> Neue Recherche
     </button>
   </div>
 
   @if (loading()) {
-    <div class="text-center py-8 text-gray-400">Lade...</div>
+    <div class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i> Lade Recherchen...
+    </div>
   } @else if (snapshots().length === 0) {
-    <div class="text-center py-12 text-gray-400">
-      <i class="pi pi-search text-4xl mb-3 block"></i>
+    <div class="empty-state animate-fade-in">
+      <i class="pi pi-search"></i>
       <p>Noch keine Recherchen vorhanden.</p>
+      <p style="font-size: 13px; color: var(--ink-4); margin-top: 4px;">
+        Erstelle eine neue Recherche um KI-gestuetzte Marktanalysen durchzufuehren.
+      </p>
+      <button class="btn btn-primary" style="margin-top: 12px;" (click)="showCreateDialog.set(true)">
+        Erste Recherche starten
+      </button>
     </div>
   } @else {
-    <div class="space-y-3">
-      @for (s of snapshots(); track s.id) {
-        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 flex justify-between items-center">
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="font-medium">{{ s.name }}</h3>
-              <span class="text-xs px-2 py-0.5 rounded" [class]="statusColor(s.status)">{{ s.status }}</span>
+    <div class="item-list">
+      @for (s of snapshots(); track s.id; let i = $index) {
+        <div class="card card-hover item-card stagger-in" [style.--i]="i" appCardGlow
+             style="cursor: pointer;" (click)="openSnapshot(s.id)">
+          <div class="item-card-header">
+            <div class="item-icon">
+              @if (s.status === 'running') {
+                <i class="pi pi-spin pi-spinner"></i>
+              } @else if (s.status === 'completed' || s.status === 'approved') {
+                <i class="pi pi-check-circle"></i>
+              } @else if (s.status === 'failed') {
+                <i class="pi pi-times-circle" style="color: var(--danger);"></i>
+              } @else {
+                <i class="pi pi-search"></i>
+              }
             </div>
-            <p class="text-xs text-gray-500 mt-1">{{ s.created_at | date:'dd.MM.yyyy HH:mm' }} · {{ s.llm_used || 'Kein Modell' }}</p>
-          </div>
-          <div class="flex gap-2">
-            @if (s.status === 'draft') {
-              <button class="text-sm text-green-400 hover:text-green-300" (click)="approve(s.id)">Freigeben</button>
-            }
-            <button class="text-sm text-red-400 hover:text-red-300" (click)="deleteSnapshot(s.id)">Loeschen</button>
+            <div class="item-info">
+              <div class="item-name">{{ s.name }}</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+                <span class="badge" [class]="statusBadge(s.status)">
+                  @if (s.status === 'running') { <i class="pi pi-spin pi-spinner" style="font-size: 10px;"></i> }
+                  {{ statusLabel(s.status) }}
+                </span>
+                @if (s.llm_used) {
+                  <span style="font-size: 11px; color: var(--ink-4); font-family: var(--font-mono);">{{ s.llm_used }}</span>
+                }
+                <span style="font-size: 11px; color: var(--ink-4);">
+                  {{ s.created_at | date:'dd.MM.yyyy HH:mm' }}
+                </span>
+              </div>
+              @if (resultPreview(s)) {
+                <p style="margin-top: 8px; font-size: 13px; color: var(--ink-3); line-height: 1.5;">
+                  {{ resultPreview(s) }}
+                </p>
+              }
+            </div>
+            <div style="display: flex; gap: 6px; flex-shrink: 0;">
+              <button class="btn btn-sm btn-danger-outline" (click)="deleteSnapshot(s.id, $event)" title="Loeschen">
+                <i class="pi pi-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -39,14 +73,30 @@
   }
 
   @if (showCreateDialog()) {
-    <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" (click)="showCreateDialog.set(false)">
-      <div class="bg-gray-800 rounded-xl p-6 w-full max-w-md border border-gray-700" (click)="$event.stopPropagation()">
-        <h3 class="text-lg font-semibold mb-4">Neue Recherche</h3>
-        <input type="text" [ngModel]="newName()" (ngModelChange)="newName.set($event)"
-               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white mb-4" placeholder="Name der Recherche">
-        <div class="flex justify-end gap-3">
-          <button class="px-4 py-2 text-gray-400" (click)="showCreateDialog.set(false)">Abbrechen</button>
-          <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50" [disabled]="!newName()" (click)="create()">Erstellen</button>
+    <div class="modal-overlay" (click)="showCreateDialog.set(false)" (keydown.escape)="showCreateDialog.set(false)">
+      <div class="modal animate-fade-in" (click)="$event.stopPropagation()">
+        <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+          <i class="pi pi-search"></i>
+        </div>
+        <h3 class="modal-title">Neue Recherche</h3>
+        <p style="font-size: 13px; color: var(--ink-3); margin-bottom: 20px;">
+          Gib einen Titel ein — auf der naechsten Seite konfigurierst du Provider, Modell und Prompt.
+        </p>
+
+        <div class="field">
+          <label for="research-name">Titel</label>
+          <input id="research-name" type="text" class="input"
+                 [ngModel]="newName()" (ngModelChange)="newName.set($event)"
+                 placeholder="z.B. Marktanalyse E-Mobilitaet 2026"
+                 (keydown.enter)="create()">
+          <p class="label-hint">Waehle einen aussagekraeftigen Titel fuer die Recherche.</p>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showCreateDialog.set(false)">Abbrechen</button>
+          <button class="btn btn-primary" [disabled]="!newName() || newName().length < 3" (click)="create()">
+            Weiter zur Konfiguration <i class="pi pi-arrow-right"></i>
+          </button>
         </div>
       </div>
     </div>

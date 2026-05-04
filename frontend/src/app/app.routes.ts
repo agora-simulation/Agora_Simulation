@@ -27,6 +27,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/research/research.component').then(c => c.ResearchComponent),
   },
   {
+    path: 'research/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/research/research-detail.component').then(c => c.ResearchDetailComponent),
+  },
+  {
     path: 'templates',
     canActivate: [authGuard],
     loadComponent: () => import('./features/templates/templates.component').then(c => c.TemplatesComponent),

@@ -21,7 +21,7 @@ class SimPlatform(Base):
     character = Column(String(50), nullable=False)  # operativ, institutionell, boulevard, fachlich, oeffentlich
     tonality_modifier = Column(Text, nullable=True)
     reach_multiplier = Column(Float, default=1.0)
-    preferred_actor_types = Column(JSON, default=[])
+    preferred_actor_types = Column(JSON, default=list)
     echo_chamber_strength = Column(Float, default=0.5)
     default_engagement_rate = Column(Float, default=0.3)
     is_active = Column(Boolean, default=True)

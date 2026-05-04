@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/categories")
 async def list_categories() -> list[str]:
-    return ["research", "distribution", "tonality", "trigger_library"]
+    return ["distribution", "tonality", "trigger_library", "research"]
 
 
 @router.get("/", response_model=PaginatedResponse[TemplateRead])
@@ -97,7 +97,7 @@ async def delete_template(
 
 @router.post("/seed-defaults")
 async def seed_defaults(db: AsyncSession = Depends(get_db)) -> dict:
-    """Seed all default templates (distribution, tonality, trigger_library)."""
+    """Seed all default templates (distribution, tonality, trigger_library, actor_distribution)."""
     from app.schemas.actor_types import DISTRIBUTION_TEMPLATES, TONALITY_TEMPLATES
 
     created = 0
@@ -118,6 +118,24 @@ async def seed_defaults(db: AsyncSession = Depends(get_db)) -> dict:
         )
         if not existing.scalar_one_or_none():
             db.add(Template(category="tonality", name=actor_type, is_default=True, content={"text": tonality}))
+            created += 1
+
+    # Trigger-Library templates
+    trigger_defaults = {
+        "Produktrueckruf": {"event_type": "news_headline", "intensity": "critical", "content": "Ein bekanntes Medium berichtet ueber einen moeglichen Produktrueckruf. Sicherheitsbedenken stehen im Raum.", "affected_segments": ["media", "company", "authority"]},
+        "Wettbewerber launcht Alternative": {"event_type": "competitor_action", "intensity": "major", "content": "Ein direkter Wettbewerber bringt ein vergleichbares Produkt zu einem deutlich guenstigeren Preis auf den Markt.", "affected_segments": ["company", "media", "influencer"]},
+        "Regulatorische Verschaerfung": {"event_type": "regulatory_change", "intensity": "major", "content": "Neue EU-Verordnung verschaerft Anforderungen an die Branche. Uebergangsfristen sind kurz.", "affected_segments": ["authority", "company", "collective"]},
+        "Viraler Social-Media-Vorfall": {"event_type": "social_incident", "intensity": "major", "content": "Ein virales Video zeigt einen negativen Vorfall mit dem Produkt. Millionen Views innerhalb weniger Stunden.", "affected_segments": ["influencer", "media", "private_person"]},
+        "Positive Studie veroeffentlicht": {"event_type": "news_headline", "intensity": "minor", "content": "Eine renommierte Forschungseinrichtung veroeffentlicht positive Studienergebnisse zum Produkt.", "affected_segments": ["research_institute", "expert", "media"]},
+        "Preissteigerung angekuendigt": {"event_type": "competitor_action", "intensity": "minor", "content": "Das Unternehmen kuendigt eine Preiserhoehung ab naechstem Quartal an.", "affected_segments": ["private_person", "company", "media"]},
+        "Validierer gibt Freigabe": {"event_type": "validator_decision", "intensity": "major", "content": "Eine zustaendige Pruefstelle erteilt die offizielle Freigabe/Zertifizierung.", "affected_segments": ["validator", "authority", "company"]},
+    }
+    for name, trigger in trigger_defaults.items():
+        existing = await db.execute(
+            select(Template).where(Template.category == "trigger_library", Template.name == name, Template.is_default == True)
+        )
+        if not existing.scalar_one_or_none():
+            db.add(Template(category="trigger_library", name=name, is_default=True, content=trigger))
             created += 1
 
     await db.flush()

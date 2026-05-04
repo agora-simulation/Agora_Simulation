@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { Simulation, SimulationCreate, SimulationStats, TickSnapshot } from '../models/simulation.model';
+import { InfluenceEvent } from '../models/content.model';
 import { PaginatedResponse } from '../models/api.model';
 
 @Injectable({ providedIn: 'root' })
@@ -70,5 +71,9 @@ export class SimulationService {
 
   approveResearch(id: string): Observable<{ simulation_id: string; message: string }> {
     return this.api.post(`/simulations/${id}/research/approve`);
+  }
+
+  getInfluenceEvents(id: string, params?: { ingame_day?: number; limit?: number }): Observable<InfluenceEvent[]> {
+    return this.api.get(`/simulations/${id}/influence-events`, params as Record<string, string | number>);
   }
 }

@@ -1169,8 +1169,345 @@ label, .label {
   z-index: 1;
 }
 
-/* Ensure content is above body pseudo-elements */
-.app-shell, .page, .modal-overlay {
+/* Ensure main content is above body pseudo-elements (ambient orbs) */
+.app-shell {
   position: relative;
   z-index: 1;
+}
+/* Pages don't create stacking context — allows modals to escape */
+.page {
+  position: relative;
+}
+
+/* ============================================================
+   PAGE CONTAINERS — Settings, Research, Templates, Platforms
+   ============================================================ */
+.page-container {
+  padding: 32px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+/* ============================================================
+   PROVIDER / ITEM GRIDS
+   ============================================================ */
+.provider-grid, .item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+.item-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Provider / Item Card */
+.provider-card, .item-card {
+  padding: 20px;
+}
+.provider-card-header, .item-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.provider-icon, .item-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: var(--primary-l);
+  color: var(--primary);
+}
+.provider-info, .item-info {
+  flex: 1;
+  min-width: 0;
+}
+.provider-name, .item-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.provider-type-badge {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.default-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--primary-l);
+  color: var(--primary);
+  border: 1px solid rgba(230, 183, 113, 0.2);
+  white-space: nowrap;
+}
+.provider-detail, .item-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.detail-label {
+  color: var(--ink-3);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.detail-value {
+  color: var(--ink-2);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.provider-actions, .item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.test-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-top: 10px;
+}
+.test-result.success {
+  background: var(--success-l);
+  color: var(--success);
+}
+.test-result.error {
+  background: var(--danger-l);
+  color: var(--danger);
+}
+
+/* ============================================================
+   LOADING & EMPTY STATES
+   ============================================================ */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: var(--ink-3);
+  font-size: 14px;
+}
+.loading-state i {
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 56px 24px;
+  color: var(--ink-3);
+  gap: 8px;
+}
+.empty-state i {
+  font-size: 2.5rem;
+  color: var(--ink-4);
+  margin-bottom: 8px;
+}
+.empty-state p {
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   BUTTON EXTRAS
+   ============================================================ */
+.btn-danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border-color: rgba(224, 90, 74, 0.25);
+}
+.btn-danger-outline:hover:not(:disabled) {
+  background: var(--danger-l);
+  border-color: rgba(224, 90, 74, 0.4);
+}
+
+/* ============================================================
+   FIELD EXTRAS
+   ============================================================ */
+.field-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.field-inline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.field-inline label {
+  margin-bottom: 0;
+  cursor: pointer;
+}
+.modal-wide {
+  max-width: 520px;
+}
+
+/* ============================================================
+   TAB PILLS (alternative to underline tabs)
+   ============================================================ */
+.tab-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.tab-pill:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+.tab-pill-active {
+  background: var(--primary-l) !important;
+  color: var(--primary) !important;
+  border-color: rgba(230, 183, 113, 0.25) !important;
+  font-weight: 600;
+}
+
+/* ============================================================
+   STAT METRICS (inline KPI rows)
+   ============================================================ */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.stat-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+   TOGGLE SWITCH
+   ============================================================ */
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.toggle-btn-active {
+  background: var(--success-l);
+  color: var(--success);
+  border-color: rgba(74, 186, 122, 0.25);
+}
+.toggle-btn-inactive {
+  background: var(--surface-3);
+  color: var(--ink-4);
+  border-color: var(--border);
+}
+
+/* ============================================================
+   DISTRIBUTION BAR (for template percentages)
+   ============================================================ */
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.dist-label {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+.dist-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.dist-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 400ms ease;
+}
+.dist-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  min-width: 36px;
+  text-align: right;
 }

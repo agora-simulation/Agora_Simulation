@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { ResearchSnapshot, ResearchSnapshotCreate } from '../models/research-snapshot.model';
+import { ResearchSnapshot, ResearchSnapshotCreate, ResearchExecuteRequest } from '../models/research-snapshot.model';
 import { PaginatedResponse } from '../models/api.model';
 
 @Injectable({ providedIn: 'root' })
@@ -30,5 +30,9 @@ export class ResearchSnapshotService {
 
   approve(id: string): Observable<ResearchSnapshot> {
     return this.api.post(`/research/${id}/approve`);
+  }
+
+  execute(id: string, data?: ResearchExecuteRequest): Observable<ResearchSnapshot> {
+    return this.api.post(`/research/${id}/execute`, data || {});
   }
 }

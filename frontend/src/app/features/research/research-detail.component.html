@@ -1,0 +1,194 @@
+@if (loading()) {
+  <div class="page-container">
+    <div class="loading-state"><i class="pi pi-spin pi-spinner"></i> Lade Recherche...</div>
+  </div>
+} @else if (snapshot(); as snap) {
+  <div class="page-container">
+    <!-- Header -->
+    <div class="page-header animate-fade-in">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a routerLink="/research" class="btn btn-sm btn-secondary" title="Zurueck zur Liste">
+          <i class="pi pi-arrow-left"></i>
+        </a>
+        <div>
+          <h1 class="page-title" style="margin-bottom: 4px;">{{ snap.name }}</h1>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="badge" [class]="statusBadgeClass(snap.status)">
+              @if (snap.status === 'running') { <i class="pi pi-spin pi-spinner" style="font-size: 10px;"></i> }
+              {{ statusLabel(snap.status) }}
+            </span>
+            @if (snap.llm_used) {
+              <span style="font-size: 12px; color: var(--ink-4); font-family: var(--font-mono);">{{ snap.llm_used }}</span>
+            }
+            @if (executionDuration(); as dur) {
+              <span style="font-size: 12px; color: var(--ink-4);">{{ dur }}</span>
+            }
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        @if (snap.status === 'completed') {
+          <button class="btn btn-primary" (click)="approve()">
+            <i class="pi pi-check"></i> Freigeben
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;" class="animate-fade-in-delay-1">
+
+      <!-- LEFT: Configuration -->
+      <div class="card" style="padding: 24px;">
+        <h3 style="font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 20px; color: var(--ink);">
+          <i class="pi pi-cog" style="color: var(--primary); margin-right: 8px;"></i>Konfiguration
+        </h3>
+
+        <!-- Name -->
+        <div class="field">
+          <label for="res-name">Name</label>
+          <input id="res-name" type="text" class="input" [ngModel]="name()" (ngModelChange)="name.set($event)" placeholder="Recherche-Titel">
+        </div>
+
+        <!-- Provider -->
+        <div class="field">
+          <label for="res-provider">Provider</label>
+          @if (providers().length === 0) {
+            <p class="label-hint" style="color: var(--danger);">
+              Kein Provider registriert — bitte zuerst unter <a routerLink="/settings" style="color: var(--primary);">Einstellungen</a> anlegen.
+            </p>
+          } @else {
+            <select id="res-provider" class="input" [ngModel]="selectedProviderId()" (ngModelChange)="onProviderChange($event)">
+              <option [ngValue]="null" disabled>Provider waehlen...</option>
+              @for (p of providers(); track p.id) {
+                <option [value]="p.id">{{ p.name }} ({{ p.provider_type }})</option>
+              }
+            </select>
+          }
+        </div>
+
+        <!-- Model -->
+        @if (availableModels().length > 0) {
+          <div class="field">
+            <label for="res-model">Modell</label>
+            <select id="res-model" class="input" [ngModel]="selectedModel()" (ngModelChange)="selectedModel.set($event)">
+              <option [ngValue]="null" disabled>Modell waehlen...</option>
+              @for (m of availableModels(); track m.model_id) {
+                <option [value]="m.model_id">{{ m.label }} ({{ m.tier }})</option>
+              }
+            </select>
+          </div>
+        }
+
+        <!-- Template -->
+        @if (templates().length > 0) {
+          <div class="field">
+            <label for="res-template">Prompt-Template</label>
+            <select id="res-template" class="input" [ngModel]="selectedTemplateId()" (ngModelChange)="onTemplateSelect($event)">
+              <option [ngValue]="null">Kein Template (manuell)</option>
+              @for (t of templates(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+            <p class="label-hint">Waehle ein Template um den Prompt vorzufuellen.</p>
+          </div>
+        }
+
+        <!-- Prompt -->
+        <div class="field">
+          <label for="res-prompt">Prompt</label>
+          <textarea id="res-prompt" class="input" rows="8" style="resize: vertical; min-height: 120px;"
+                    [ngModel]="prompt()" (ngModelChange)="prompt.set($event)"
+                    placeholder="Beschreibe deine Recherche-Anfrage..."></textarea>
+        </div>
+
+        <!-- Temperature -->
+        <div class="field">
+          <label>Temperatur: <span style="font-family: var(--font-mono); color: var(--primary);">{{ temperature() ?? 'Standard' }}</span></label>
+          <input type="range" class="range-slider" min="0" max="2" step="0.1"
+                 [ngModel]="temperature() ?? 0.7" (ngModelChange)="temperature.set($event)"
+                 style="width: 100%;">
+          <p class="label-hint">Niedrig = fokussiert, hoch = kreativ.</p>
+        </div>
+
+        <!-- System Prompt (collapsible) -->
+        <button class="btn btn-sm btn-tertiary" style="margin-bottom: 12px;" (click)="showSystemPrompt.set(!showSystemPrompt())">
+          <i class="pi" [class]="showSystemPrompt() ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+          System-Prompt {{ showSystemPrompt() ? 'ausblenden' : 'anzeigen' }}
+        </button>
+        @if (showSystemPrompt()) {
+          <div class="field">
+            <textarea class="input" rows="4" style="resize: vertical; font-size: 13px;"
+                      [ngModel]="systemPrompt()" (ngModelChange)="systemPrompt.set($event)"
+                      placeholder="System-Anweisung fuer die KI..."></textarea>
+            <p class="label-hint">Definiert die Rolle und das Verhalten der KI. Leer = Standard-Prompt.</p>
+          </div>
+        }
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <button class="btn btn-primary" (click)="execute()"
+                  [disabled]="executing() || !selectedProviderId() || !prompt()"
+                  style="flex: 1;">
+            @if (executing()) {
+              <i class="pi pi-spin pi-spinner"></i> Recherchiert...
+            } @else if (snap.status === 'completed' || snap.status === 'failed') {
+              <i class="pi pi-replay"></i> Neu recherchieren
+            } @else {
+              <i class="pi pi-play"></i> Recherche starten
+            }
+          </button>
+          <button class="btn btn-secondary" (click)="saveConfig()" [disabled]="saving()">
+            @if (saving()) { <i class="pi pi-spin pi-spinner"></i> } @else { <i class="pi pi-save"></i> }
+            Speichern
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Result -->
+      <div>
+        @if (snap.status === 'running') {
+          <div class="card" style="padding: 48px 24px; text-align: center;">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 16px; display: block;"></i>
+            <p style="color: var(--ink-2); font-size: 15px;">Recherche wird durchgefuehrt...</p>
+            <p style="color: var(--ink-4); font-size: 13px; margin-top: 4px;">Dies kann 10-60 Sekunden dauern.</p>
+          </div>
+        } @else if (snap.status === 'failed') {
+          <div class="card" style="padding: 24px; border-color: rgba(224, 90, 74, 0.3);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+              <i class="pi pi-times-circle" style="color: var(--danger); font-size: 20px;"></i>
+              <h3 style="font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--danger);">Fehlgeschlagen</h3>
+            </div>
+            <div style="background: var(--danger-l); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--danger); font-family: var(--font-mono); white-space: pre-wrap; word-break: break-all;">{{ snap.error }}</div>
+            <p style="margin-top: 12px; font-size: 13px; color: var(--ink-3);">Pruefe Provider-Einstellungen und API-Key, dann versuche es erneut.</p>
+          </div>
+        } @else if (snap.result) {
+          <div class="card" style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--ink);">
+                <i class="pi pi-file-check" style="color: var(--success); margin-right: 8px;"></i>Ergebnis
+              </h3>
+              @if (snap.execution_finished_at) {
+                <span style="font-size: 12px; color: var(--ink-4);">
+                  {{ snap.execution_finished_at | date:'dd.MM.yyyy HH:mm' }}
+                  @if (executionDuration(); as dur) { · {{ dur }} }
+                </span>
+              }
+            </div>
+            <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; line-height: 1.7; font-size: 14px; color: var(--ink-2); max-height: 70vh; overflow-y: auto;"
+                 [innerHTML]="snap.result | markdown"></div>
+          </div>
+        } @else {
+          <!-- Empty state -->
+          <div class="card" style="padding: 48px 24px; text-align: center;">
+            <i class="pi pi-search" style="font-size: 2.5rem; color: var(--ink-4); margin-bottom: 16px; display: block;"></i>
+            <p style="color: var(--ink-3); font-size: 15px;">Noch kein Ergebnis</p>
+            <p style="color: var(--ink-4); font-size: 13px; margin-top: 4px;">
+              Konfiguriere links Provider, Modell und Prompt — dann starte die Recherche.
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

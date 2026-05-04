@@ -21,7 +21,7 @@ class TriggerEvent(Base):
     event_type = Column(String(50), nullable=False)  # news_headline, competitor_action, regulatory_change, validator_decision, social_incident
     title = Column(String(500), nullable=False)
     content = Column(Text, nullable=True)
-    affected_segments = Column(JSON, default=[])  # which actor types react
+    affected_segments = Column(JSON, default=list)  # which actor types react
     intensity = Column(String(20), default="minor")  # minor, major, critical
     source_attribution = Column(String(500), nullable=True)
     was_auto_generated = Column(Boolean, default=False)  # for stagnation auto-reactivation

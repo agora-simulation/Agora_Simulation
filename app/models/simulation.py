@@ -31,7 +31,7 @@ class Simulation(Base):
     target_market = Column(String(255))
     industry = Column(String(255))
     status = Column(Enum(SimulationStatus, name='simulationstatus', create_type=False), default=SimulationStatus.pending, nullable=False)
-    config = Column(JSON, default={})  # persona_count, tick_count, tick_duration_days
+    config = Column(JSON, default=dict)  # persona_count, tick_count, tick_duration_days
     current_tick = Column(Integer, default=0)
     total_ticks = Column(Integer, default=15)
     webhook_url = Column(String(2048), nullable=True)   # Optional: URL für Completion-Notification
@@ -64,7 +64,7 @@ class SimulationTick(Base):
     simulation_id = Column(UUID(as_uuid=True), ForeignKey("simulations.id"), nullable=False)
     tick_number = Column(Integer, nullable=False)
     ingame_day = Column(Integer, nullable=False)
-    snapshot = Column(JSON, default={})  # Weltstand-Snapshot des Ticks
+    snapshot = Column(JSON, default=dict)  # Weltstand-Snapshot des Ticks
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", back_populates="ticks")

@@ -188,23 +188,6 @@ async def health(db: AsyncSession = Depends(get_db)):
     }
 
 
-# --- Static Frontend (Angular SPA) ---
-_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
-
-if _STATIC_DIR.is_dir():
-    # Angular Assets (JS, CSS, Icons etc.) — served unter /static/
-    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets" if (_STATIC_DIR / "assets").is_dir() else _STATIC_DIR), name="assets")
-
-    # SPA Fallback: Alle nicht-API-Routen → index.html (Angular Router übernimmt)
-    @app.get("/{path:path}", tags=["system"], include_in_schema=False)
-    async def spa_fallback(path: str):
-        # API-Pfade nicht abfangen
-        file_path = _STATIC_DIR / path
-        if file_path.is_file():
-            return FileResponse(file_path)
-        return FileResponse(_STATIC_DIR / "index.html")
-
-
 @app.get("/metrics", tags=["system"], dependencies=[Depends(verify_api_key)])
 async def metrics(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func, select
@@ -223,3 +206,20 @@ async def metrics(db: AsyncSession = Depends(get_db)):
         "active_api_keys": keys,
         "uptime_seconds": int(_time.time() - _APP_START),
     }
+
+
+# --- Static Frontend (Angular SPA) ---
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+if _STATIC_DIR.is_dir():
+    # Angular Assets (JS, CSS, Icons etc.) — served unter /static/
+    app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets" if (_STATIC_DIR / "assets").is_dir() else _STATIC_DIR), name="assets")
+
+    # SPA Fallback: Alle nicht-API-Routen → index.html (Angular Router übernimmt)
+    @app.get("/{path:path}", tags=["system"], include_in_schema=False)
+    async def spa_fallback(path: str):
+        # API-Pfade nicht abfangen
+        file_path = _STATIC_DIR / path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        return FileResponse(_STATIC_DIR / "index.html")

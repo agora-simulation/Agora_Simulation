@@ -1,72 +1,87 @@
-<div class="p-4">
-  <h2 class="text-xl font-semibold mb-4">Crowd-Layer (Anonymer Schwarm)</h2>
+<div style="padding: 24px;">
+  <h2 style="font-family: var(--font-display); font-size: 20px; font-weight: 700; margin-bottom: 20px;">
+    <i class="pi pi-users" style="color: var(--primary); margin-right: 8px;"></i>Crowd-Layer (Anonymer Schwarm)
+  </h2>
 
   @if (loading()) {
-    <div class="text-center py-8 text-gray-400">Lade Crowd-Daten...</div>
+    <div class="loading-state"><i class="pi pi-spin pi-spinner"></i> Lade Crowd-Daten...</div>
   } @else if (states().length === 0) {
-    <div class="text-center py-12 text-gray-400">
-      <i class="pi pi-users text-4xl mb-3 block"></i>
+    <div class="empty-state">
+      <i class="pi pi-users"></i>
       <p>Keine Crowd-Daten vorhanden.</p>
-      <p class="text-sm mt-1">Crowd-Daten werden waehrend der Simulation generiert.</p>
+      <p style="font-size: 13px; color: var(--ink-4);">Crowd-Daten werden waehrend der Simulation generiert.</p>
     </div>
   } @else {
-    <!-- Current State Card -->
+    <!-- KPI Cards -->
     @if (latest(); as l) {
-      <div class="grid grid-cols-4 gap-4 mb-6">
-        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-          <div class="text-xs text-gray-400 mb-1">Volumen</div>
-          <div class="text-2xl font-bold text-white">{{ l.volume | number }}</div>
-          <div class="text-xs text-gray-500">Reaktionen</div>
+      <div class="animate-fade-in" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+        <div class="card" style="padding: 18px;">
+          <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 4px;">Volumen</div>
+          <div style="font-size: 28px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">{{ l.volume | number }}</div>
+          <div style="font-size: 11px; color: var(--ink-4);">Reaktionen</div>
         </div>
-        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-          <div class="text-xs text-gray-400 mb-1">Sentiment</div>
-          <div class="text-2xl font-bold" [class]="sentimentColor(l.sentiment)">{{ l.sentiment | number:'1.2-2' }}</div>
-          <div class="text-xs text-gray-500">{{ sentimentLabel(l.sentiment) }}</div>
+        <div class="card" style="padding: 18px;">
+          <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 4px;">Sentiment</div>
+          <div style="font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;" [style.color]="sentimentCssColor(l.sentiment)">{{ l.sentiment | number:'1.2-2' }}</div>
+          <div style="font-size: 11px; color: var(--ink-4);">{{ sentimentLabel(l.sentiment) }}</div>
         </div>
-        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-          <div class="text-xs text-gray-400 mb-1">Polarisierung</div>
-          <div class="text-2xl font-bold text-white">{{ l.polarization | number:'1.2-2' }}</div>
-          <div class="text-xs text-gray-500">0 = Konsens, 1 = Gespalten</div>
+        <div class="card" style="padding: 18px;">
+          <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 4px;">Polarisierung</div>
+          <div style="font-size: 28px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;">{{ l.polarization | number:'1.2-2' }}</div>
+          <div style="font-size: 11px; color: var(--ink-4);">0 = Konsens, 1 = Gespalten</div>
         </div>
-        <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
-          <div class="text-xs text-gray-400 mb-1">Momentum</div>
-          <div class="text-2xl font-bold"><i [class]="momentumIcon(l.momentum)"></i> {{ l.momentum | number:'1.2-2' }}</div>
-          <div class="text-xs text-gray-500">Veraenderung</div>
+        <div class="card" style="padding: 18px;">
+          <div style="font-size: 12px; color: var(--ink-3); margin-bottom: 4px;">Momentum</div>
+          <div style="font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;">
+            <i [class]="momentumIcon(l.momentum)" style="font-size: 18px;"></i> {{ l.momentum | number:'1.2-2' }}
+          </div>
+          <div style="font-size: 11px; color: var(--ink-4);">Veraenderung</div>
         </div>
       </div>
     }
 
     <!-- Representative Voices -->
     @if (latest()?.representative_voices?.length) {
-      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
-        <h3 class="text-sm font-medium text-gray-400 mb-2">Repraesentative Stimmen</h3>
-        @for (voice of latest()!.representative_voices; track voice) {
-          <p class="text-sm text-gray-300 italic">"{{ voice }}"</p>
-        }
+      <div class="card animate-fade-in-delay-1" style="padding: 20px; margin-bottom: 24px;">
+        <h3 style="font-size: 13px; font-weight: 600; color: var(--ink-3); margin-bottom: 12px;">
+          <i class="pi pi-comment" style="margin-right: 6px;"></i>Repraesentative Stimmen
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          @for (voice of latest()!.representative_voices; track voice) {
+            <p style="font-size: 14px; color: var(--ink-2); font-style: italic; padding: 10px 14px; background: var(--surface-2); border-radius: var(--radius-sm); border-left: 3px solid var(--primary);">
+              "{{ voice }}"
+            </p>
+          }
+        </div>
       </div>
     }
 
     <!-- Timeline -->
-    <h3 class="text-sm font-medium text-gray-400 mb-3">Verlauf</h3>
-    <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-      <table class="w-full text-sm">
+    <div class="card animate-fade-in-delay-2" style="overflow: hidden;">
+      <h3 style="font-size: 13px; font-weight: 600; color: var(--ink-3); padding: 16px 20px; border-bottom: 1px solid var(--border);">
+        <i class="pi pi-chart-line" style="margin-right: 6px;"></i>Verlauf
+      </h3>
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
         <thead>
-          <tr class="border-b border-gray-700 text-gray-400">
-            <th class="p-3 text-left">Tag</th>
-            <th class="p-3 text-right">Volumen</th>
-            <th class="p-3 text-right">Sentiment</th>
-            <th class="p-3 text-right">Polarisierung</th>
-            <th class="p-3 text-right">Momentum</th>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <th style="padding: 10px 16px; text-align: left; color: var(--ink-3); font-weight: 600;">Tag</th>
+            <th style="padding: 10px 16px; text-align: right; color: var(--ink-3); font-weight: 600;">Volumen</th>
+            <th style="padding: 10px 16px; text-align: right; color: var(--ink-3); font-weight: 600;">Sentiment</th>
+            <th style="padding: 10px 16px; text-align: right; color: var(--ink-3); font-weight: 600;">Polarisierung</th>
+            <th style="padding: 10px 16px; text-align: right; color: var(--ink-3); font-weight: 600;">Momentum</th>
           </tr>
         </thead>
         <tbody>
-          @for (s of states(); track s.id) {
-            <tr class="border-b border-gray-700/50 hover:bg-gray-700/30">
-              <td class="p-3">Tag {{ s.tick }}</td>
-              <td class="p-3 text-right">{{ s.volume }}</td>
-              <td class="p-3 text-right" [class]="sentimentColor(s.sentiment)">{{ s.sentiment | number:'1.2-2' }}</td>
-              <td class="p-3 text-right">{{ s.polarization | number:'1.2-2' }}</td>
-              <td class="p-3 text-right"><i [class]="momentumIcon(s.momentum)"></i> {{ s.momentum | number:'1.2-2' }}</td>
+          @for (s of states(); track s.id; let i = $index) {
+            <tr style="border-bottom: 1px solid var(--border); transition: background 150ms;" class="stagger-in" [style.--i]="i"
+                onmouseenter="this.style.background='var(--surface-3)'" onmouseleave="this.style.background='transparent'">
+              <td style="padding: 10px 16px; color: var(--ink); font-weight: 500;">Tag {{ s.tick }}</td>
+              <td style="padding: 10px 16px; text-align: right; color: var(--ink); font-family: var(--font-mono);">{{ s.volume }}</td>
+              <td style="padding: 10px 16px; text-align: right; font-family: var(--font-mono); font-weight: 600;" [style.color]="sentimentCssColor(s.sentiment)">{{ s.sentiment | number:'1.2-2' }}</td>
+              <td style="padding: 10px 16px; text-align: right; color: var(--ink-2); font-family: var(--font-mono);">{{ s.polarization | number:'1.2-2' }}</td>
+              <td style="padding: 10px 16px; text-align: right; font-family: var(--font-mono);">
+                <i [class]="momentumIcon(s.momentum)" style="font-size: 12px;"></i> {{ s.momentum | number:'1.2-2' }}
+              </td>
             </tr>
           }
         </tbody>

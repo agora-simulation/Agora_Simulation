@@ -22,30 +22,30 @@ class Persona(Base):
     location = Column(String(255))       # z.B. "München", "Berlin", "Wien"
     occupation = Column(String(255))
     personality = Column(Text)           # Ausführliche Persönlichkeitsbeschreibung
-    values = Column(JSON, default=[])    # Kernwerte als Liste
+    values = Column(JSON, default=list)    # Kernwerte als Liste
     communication_style = Column(Text)   # Wie schreibt/spricht diese Person?
     initial_opinion = Column(Text)       # Erste Haltung zum Produkt
     is_skeptic = Column(Boolean, default=False)
     persona_type = Column(String(50), default="individual")  # individual, organization, institution, politician
     entity_subtype = Column(String(200))  # z.B. "tech_startup", "forschungsinstitut"
-    social_connections = Column(JSON, default=[])  # UUIDs verbundener Personas
+    social_connections = Column(JSON, default=list)  # UUIDs verbundener Personas
 
     # Modul 1: Langzeitgedächtnis
     # Struktur: [{"tick": int, "type": str, "summary": str, "emotional_weight": float, ...}]
-    memory = Column(JSON, default=[])
+    memory = Column(JSON, default=list)
 
     # Modul 3: Erweiterte Felder — Demografie
     education_level = Column(String(50))    # "Hauptschule", "Ausbildung", "Bachelor", "Master", "Promotion"
     income_bracket = Column(String(50))     # "niedrig", "mittel", "hoch", "sehr_hoch"
     family_status = Column(String(100))     # "single", "partnerschaft", "familie_klein", etc.
     political_leaning = Column(String(100)) # "links", "mitte", "rechts", "unpolitisch", etc.
-    media_consumption = Column(JSON, default=[])  # ["social_media", "qualitaetspresse", ...]
+    media_consumption = Column(JSON, default=list)  # ["social_media", "qualitaetspresse", ...]
     tech_affinity = Column(Float, default=0.5)    # 0.0 (technikfern) bis 1.0 (early adopter)
 
     # Modul 3: Big-Five-Persönlichkeitsmodell
     # Struktur: {"openness": float, "conscientiousness": float, "extraversion": float,
     #            "agreeableness": float, "neuroticism": float}
-    personality_traits = Column(JSON, default={})
+    personality_traits = Column(JSON, default=dict)
 
     # JSON-Struktur:
     # {
@@ -64,8 +64,8 @@ class Persona(Base):
     #     "personal_relevance": float
     #   }
     # }
-    current_state = Column(JSON, default={})
-    extra = Column(JSON, default={})     # Sonstige Attribute
+    current_state = Column(JSON, default=dict)
+    extra = Column(JSON, default=dict)     # Sonstige Attribute
 
     # v1.1: Actor System
     actor_type = Column(String(50), nullable=False, default="private_person")  # 9 types
@@ -75,9 +75,9 @@ class Persona(Base):
     stance = Column(String(100), nullable=True)  # type-specific stance
     activation_latency = Column(Integer, nullable=False, default=0)  # days before active
     trigger_condition = Column(JSON, nullable=True)  # threshold conditions
-    function_tags = Column(JSON, default=[])  # meinungs_gatekeeper, bruckenakteur etc.
+    function_tags = Column(JSON, default=list)  # meinungs_gatekeeper, bruckenakteur etc.
     engagement_decay_rate = Column(Float, default=0.05)
-    profile_data = Column(JSON, default={})  # type-specific profile fields
+    profile_data = Column(JSON, default=dict)  # type-specific profile fields
 
     created_at = Column(DateTime, default=_utcnow)
 

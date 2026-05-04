@@ -1,45 +1,75 @@
-<div class="max-w-4xl mx-auto p-6">
-  <div class="flex justify-between items-center mb-6">
+<div class="page-container">
+  <div class="page-header animate-fade-in">
     <div>
-      <h1 class="text-2xl font-bold">Plattformen</h1>
-      <p class="text-gray-400 text-sm">Diskussions-Raeume mit eigenen Eigenschaften</p>
+      <h1 class="page-title">Plattformen</h1>
+      <p class="page-subtitle">Diskussions-Raeume mit eigenen Eigenschaften — bestimmen Reichweite, Echokammern und Engagement.</p>
     </div>
-    <button class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600" (click)="seedDefaults()">
-      Defaults laden
-    </button>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn btn-secondary" (click)="seedDefaults()">
+        <i class="pi pi-download"></i> Defaults laden
+      </button>
+      <button class="btn btn-primary" (click)="openCreateDialog()">
+        <i class="pi pi-plus"></i> Plattform erstellen
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
-    <div class="text-center py-8 text-gray-400">Lade...</div>
+    <div class="loading-state"><i class="pi pi-spin pi-spinner"></i> Lade Plattformen...</div>
   } @else if (platforms().length === 0) {
-    <div class="text-center py-12 text-gray-400">
-      <p>Keine Plattformen vorhanden. Klicke "Defaults laden".</p>
+    <div class="empty-state animate-fade-in">
+      <i class="pi pi-globe"></i>
+      <p>Keine Plattformen vorhanden.</p>
+      <p style="font-size: 13px; color: var(--ink-4); margin-top: 4px;">Lade die Standard-Plattformen oder erstelle eigene.</p>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button class="btn btn-secondary" (click)="seedDefaults()"><i class="pi pi-download"></i> Defaults laden</button>
+        <button class="btn btn-primary" (click)="openCreateDialog()"><i class="pi pi-plus"></i> Eigene erstellen</button>
+      </div>
     </div>
   } @else {
-    <div class="space-y-4">
-      @for (p of platforms(); track p.id) {
-        <div class="bg-gray-800 rounded-lg p-5 border border-gray-700" [class.opacity-50]="!p.is_active">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-lg font-semibold">{{ p.name }}</h3>
-              <span class="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded">{{ characterLabel(p.character) }}</span>
+    <div class="item-list">
+      @for (p of platforms(); track p.id; let i = $index) {
+        <div class="card card-hover item-card stagger-in" [style.--i]="i" appCardGlow
+             [style.opacity]="p.is_active ? 1 : 0.55">
+          <div class="item-card-header">
+            <div class="item-icon" [style.background]="p.is_active ? 'var(--primary-l)' : 'var(--surface-3)'"
+                 [style.color]="p.is_active ? 'var(--primary)' : 'var(--ink-4)'">
+              <i class="pi pi-globe"></i>
             </div>
-            <button class="text-sm" [class]="p.is_active ? 'text-green-400' : 'text-gray-500'" (click)="toggleActive(p)">
-              {{ p.is_active ? 'Aktiv' : 'Inaktiv' }}
-            </button>
+            <div class="item-info">
+              <div class="item-name">{{ p.name }}</div>
+              <span class="badge badge-primary" style="font-size: 11px; margin-top: 2px;">
+                {{ characterLabel(p.character) }}
+              </span>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button class="btn btn-sm btn-secondary" (click)="openEditDialog(p)" title="Bearbeiten">
+                <i class="pi pi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-danger-outline" (click)="deletePlatform(p.id, $event)" title="Loeschen">
+                <i class="pi pi-trash"></i>
+              </button>
+              <button class="toggle-btn" (click)="toggleActive(p)"
+                      [class.toggle-btn-active]="p.is_active"
+                      [class.toggle-btn-inactive]="!p.is_active">
+                <i class="pi" [class]="p.is_active ? 'pi-check-circle' : 'pi-minus-circle'"></i>
+                {{ p.is_active ? 'Aktiv' : 'Inaktiv' }}
+              </button>
+            </div>
           </div>
-          <div class="grid grid-cols-3 gap-4 mt-4 text-sm">
-            <div>
-              <span class="text-gray-400">Reichweite</span>
-              <div class="text-white font-medium">{{ p.reach_multiplier }}x</div>
+
+          <div class="stat-row">
+            <div class="stat-item">
+              <span class="stat-label">Reichweite</span>
+              <span class="stat-value">{{ p.reach_multiplier }}x</span>
             </div>
-            <div>
-              <span class="text-gray-400">Echokammer</span>
-              <div class="text-white font-medium">{{ p.echo_chamber_strength }}</div>
+            <div class="stat-item">
+              <span class="stat-label">Echokammer</span>
+              <span class="stat-value">{{ p.echo_chamber_strength }}</span>
             </div>
-            <div>
-              <span class="text-gray-400">Engagement</span>
-              <div class="text-white font-medium">{{ p.default_engagement_rate }}</div>
+            <div class="stat-item">
+              <span class="stat-label">Engagement</span>
+              <span class="stat-value">{{ p.default_engagement_rate }}</span>
             </div>
           </div>
         </div>
@@ -47,3 +77,146 @@
     </div>
   }
 </div>
+
+<!-- ============================================================
+     CREATE DIALOG
+     ============================================================ -->
+@if (showCreateDialog()) {
+  <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);"
+       (click)="showCreateDialog.set(false)" (keydown.escape)="showCreateDialog.set(false)">
+    <div class="modal animate-fade-in" (click)="$event.stopPropagation()"
+         style="max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 36px 40px 28px;">
+      <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+        <i class="pi pi-globe"></i>
+      </div>
+      <h3 class="modal-title">Neue Plattform erstellen</h3>
+      <p style="font-size: 13px; color: var(--ink-3); margin-bottom: 20px;">
+        Definiere einen neuen Diskussionsraum mit eigenen Dynamiken fuer deine Simulationen.
+      </p>
+
+      <div class="field">
+        <label for="cp-name">Name</label>
+        <input id="cp-name" type="text" class="input" [ngModel]="newName()" (ngModelChange)="newName.set($event)"
+               placeholder="z.B. Fachforum, TikTok, Branchenportal">
+      </div>
+
+      <div class="field">
+        <label>Charakter</label>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+          @for (c of characters; track c.id) {
+            <button type="button" class="card card-hover" (click)="newCharacter.set(c.id)"
+                    style="padding: 12px; text-align: left; cursor: pointer;"
+                    [style.border-color]="newCharacter() === c.id ? 'var(--primary)' : ''"
+                    [style.background]="newCharacter() === c.id ? 'var(--primary-l)' : ''">
+              <p style="font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ c.label }}</p>
+              <p style="font-size: 11px; color: var(--ink-3); line-height: 1.4;">{{ c.desc }}</p>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Reichweite: <span style="font-family: var(--font-mono); color: var(--primary);">{{ newReach() }}x</span></label>
+          <input type="range" min="0.1" max="5" step="0.1" class="range-slider" style="width: 100%;"
+                 [ngModel]="newReach()" (ngModelChange)="newReach.set($event)">
+          <p class="label-hint">Multiplikator fuer Post-Sichtbarkeit</p>
+        </div>
+        <div class="field">
+          <label>Echokammer: <span style="font-family: var(--font-mono); color: var(--primary);">{{ newEcho() }}</span></label>
+          <input type="range" min="0" max="1" step="0.05" class="range-slider" style="width: 100%;"
+                 [ngModel]="newEcho()" (ngModelChange)="newEcho.set($event)">
+          <p class="label-hint">0 = offen, 1 = stark gefiltert</p>
+        </div>
+        <div class="field">
+          <label>Engagement: <span style="font-family: var(--font-mono); color: var(--primary);">{{ newEngagement() }}</span></label>
+          <input type="range" min="0" max="1" step="0.05" class="range-slider" style="width: 100%;"
+                 [ngModel]="newEngagement()" (ngModelChange)="newEngagement.set($event)">
+          <p class="label-hint">Basis-Interaktionsrate</p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cp-tonality">Tonalitaet <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+        <input id="cp-tonality" type="text" class="input" [ngModel]="newTonality()" (ngModelChange)="newTonality.set($event)"
+               placeholder="z.B. sachlich-fachlich, emotional-polarisierend">
+        <p class="label-hint">Beeinflusst den Sprachstil der Personas auf dieser Plattform.</p>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="showCreateDialog.set(false)">Abbrechen</button>
+        <button class="btn btn-primary" [disabled]="!newName() || saving()" (click)="createPlatform()">
+          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> }
+          Erstellen
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ============================================================
+     EDIT DIALOG
+     ============================================================ -->
+@if (showEditDialog()) {
+  <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);"
+       (click)="showEditDialog.set(false)" (keydown.escape)="showEditDialog.set(false)">
+    <div class="modal animate-fade-in" (click)="$event.stopPropagation()"
+         style="max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 36px 40px 28px;">
+      <div class="modal-icon" style="background: var(--primary-l); color: var(--primary);">
+        <i class="pi pi-pencil"></i>
+      </div>
+      <h3 class="modal-title">Plattform bearbeiten</h3>
+
+      <div class="field">
+        <label for="ep-name">Name</label>
+        <input id="ep-name" type="text" class="input" [ngModel]="editName()" (ngModelChange)="editName.set($event)">
+      </div>
+
+      <div class="field">
+        <label>Charakter</label>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+          @for (c of characters; track c.id) {
+            <button type="button" class="card card-hover" (click)="editCharacter.set(c.id)"
+                    style="padding: 12px; text-align: left; cursor: pointer;"
+                    [style.border-color]="editCharacter() === c.id ? 'var(--primary)' : ''"
+                    [style.background]="editCharacter() === c.id ? 'var(--primary-l)' : ''">
+              <p style="font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ c.label }}</p>
+              <p style="font-size: 11px; color: var(--ink-3); line-height: 1.4;">{{ c.desc }}</p>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div class="field">
+          <label>Reichweite: <span style="font-family: var(--font-mono); color: var(--primary);">{{ editReach() }}x</span></label>
+          <input type="range" min="0.1" max="5" step="0.1" class="range-slider" style="width: 100%;"
+                 [ngModel]="editReach()" (ngModelChange)="editReach.set($event)">
+        </div>
+        <div class="field">
+          <label>Echokammer: <span style="font-family: var(--font-mono); color: var(--primary);">{{ editEcho() }}</span></label>
+          <input type="range" min="0" max="1" step="0.05" class="range-slider" style="width: 100%;"
+                 [ngModel]="editEcho()" (ngModelChange)="editEcho.set($event)">
+        </div>
+        <div class="field">
+          <label>Engagement: <span style="font-family: var(--font-mono); color: var(--primary);">{{ editEngagement() }}</span></label>
+          <input type="range" min="0" max="1" step="0.05" class="range-slider" style="width: 100%;"
+                 [ngModel]="editEngagement()" (ngModelChange)="editEngagement.set($event)">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="ep-tonality">Tonalitaet <span style="color: var(--ink-4); font-weight: 400;">(optional)</span></label>
+        <input id="ep-tonality" type="text" class="input" [ngModel]="editTonality()" (ngModelChange)="editTonality.set($event)">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="showEditDialog.set(false)">Abbrechen</button>
+        <button class="btn btn-primary" [disabled]="!editName() || saving()" (click)="updatePlatform()">
+          @if (saving()) { <i class="pi pi-spin pi-spinner"></i> }
+          Speichern
+        </button>
+      </div>
+    </div>
+  </div>
+}

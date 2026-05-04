@@ -178,7 +178,7 @@ Create Simulation             Describe product, market, industry
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-user/agora.git && cd agora
+git clone https://github.com/agora-simulation/Agora_Simulation.git && cd Agora_Simulation
 
 # 2. Configure environment
 cp .env.example .env
@@ -326,6 +326,25 @@ Transparency is part of the product:
 
 ---
 
+## License
+
+Agora is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+**You can freely:**
+- Self-host Agora for personal, internal, or commercial use
+- Modify the code for your own needs
+- Run it for your clients as part of consulting work
+
+**AGPL requires you to:**
+- Publish your modifications under AGPL if you offer Agora as a
+  network service to third parties
+
+**Commercial License:** For organizations that want to embed Agora
+in proprietary products or offer it as a hosted service without
+AGPL obligations, a commercial license is available.
+Contact: [agora.simulation@gmail.com](mailto:agora.simulation@gmail.com)
+
+---
 <p align="center">
   <sub>Built with Claude and mass amounts of Coffee and Energy. GDPR-native. European.</sub>
 </p>

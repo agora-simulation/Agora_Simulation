@@ -21,6 +21,14 @@ export class SimulationCreateComponent {
   currentStep = signal(1);
   submitting = signal(false);
 
+  readonly stepDefs = [
+    { n: 1, label: 'Szenario' },
+    { n: 2, label: 'Umfang' },
+    { n: 3, label: 'Provider' },
+    { n: 4, label: 'Akteure' },
+    { n: 5, label: 'Pr\u00FCfen' },
+  ];
+
   // Step 1: Product
   name = signal('');
   productDescription = signal('');
@@ -58,10 +66,9 @@ export class SimulationCreateComponent {
     { id: 'openai',    label: 'OpenAI',             sub: 'GPT-5 + GPT-5-mini',     icon: 'pi-bolt' },
   ];
 
-  // Modell-Wahl
+  // Modell-Wahl (legacy, kept for submit payload)
   customModelFast = signal<string>('');
   customModelSmart = signal<string>('');
-  showAdvanced = signal(false);
 
   // Modell-Optionen pro Provider mit Beschreibung
   readonly modelOptions: Record<LlmProvider, { id: string; label: string; tier: 'fast' | 'smart'; info: string }[]> = {
@@ -286,7 +293,7 @@ export class SimulationCreateComponent {
     this.selectedPreset.set('');
   }
 
-  nextStep() { if (this.currentStep() < 3) this.currentStep.update(s => s + 1); }
+  nextStep() { if (this.currentStep() < 5) this.currentStep.update(s => s + 1); }
   prevStep() { if (this.currentStep() > 1) this.currentStep.update(s => s - 1); }
 
   canProceed(): boolean {
