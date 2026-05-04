@@ -326,12 +326,6 @@ Transparency is part of the product:
 
 ---
 
-## License
-
-Proprietary. All rights reserved.
-
----
-
 <p align="center">
   <sub>Built with Claude, GPT, and mass amounts of coffee. GDPR-native. European.</sub>
 </p>
