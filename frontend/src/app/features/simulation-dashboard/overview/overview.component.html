@@ -51,7 +51,7 @@
                  [style.width.%]="stats()!.progress_pct">
             </div>
           </div>
-          <span style="font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 36px; text-align: right;">
             {{ stats()!.progress_pct }}%
           </span>
         </div>
@@ -65,10 +65,22 @@
     <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--danger); display: flex; align-items: center; justify-content: center;">
       <i class="pi pi-times" style="color: var(--primary-text); font-size: 16px;"></i>
     </div>
-    <div>
+    <div style="flex: 1;">
       <div style="font-size: 14px; font-weight: 700; color: var(--danger);">Simulation fehlgeschlagen</div>
-      <div style="font-size: 12px; color: var(--danger); margin-top: 2px; opacity: 0.85;">Prüfe die Server-Logs für Details.</div>
+      <div style="font-size: 13.5px; color: var(--danger); margin-top: 2px; opacity: 0.85;">
+        @if ((simulation()?.current_tick || 0) > 0) {
+          Abgebrochen bei Tick {{ simulation()!.current_tick }}/{{ simulation()!.total_ticks }}.
+        } @else {
+          Prüfe die Server-Logs für Details.
+        }
+      </div>
     </div>
+    @if ((simulation()?.current_tick || 0) > 0) {
+      <button class="btn btn-primary btn-sm" [disabled]="resuming()" (click)="resumeSimulation()" style="white-space: nowrap;">
+        <i class="pi pi-refresh" style="font-size: 12px; margin-right: 6px;"></i>
+        {{ resuming() ? 'Wird fortgesetzt...' : 'Fortsetzen ab Tick ' + ((simulation()!.current_tick || 0) + 1) }}
+      </button>
+    }
   </div>
 }
 
@@ -83,7 +95,7 @@
           <i class="pi pi-search" style="margin-right: 6px; color: var(--primary);"></i>
           Web-Recherche Ergebnis
         </h3>
-        <p style="font-size: 12px; color: var(--ink-3);">
+        <p style="font-size: 13.5px; color: var(--ink-3);">
           {{ marketContext().raw_sources?.length || 0 }} Quellen analysiert
         </p>
       </div>
@@ -103,24 +115,24 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
       <!-- Makro -->
       <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px;">
-        <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Makro-Kontext</h4>
-        <p style="font-size: 12.5px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().macro_context }}</p>
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;">Makro-Kontext</h4>
+        <p style="font-size: 14px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().macro_context }}</p>
       </div>
       <!-- Branche -->
       <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px;">
-        <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Branchen-Kontext</h4>
-        <p style="font-size: 12.5px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().industry_context }}</p>
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;">Branchen-Kontext</h4>
+        <p style="font-size: 14px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().industry_context }}</p>
       </div>
       <!-- Zielgruppe -->
       <div style="background: var(--surface); border-radius: var(--radius-sm); padding: 14px;">
-        <h4 style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Zielgruppen-Kontext</h4>
-        <p style="font-size: 12.5px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().target_group_context }}</p>
+        <h4 style="font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;">Zielgruppen-Kontext</h4>
+        <p style="font-size: 14px; color: var(--ink-2); line-height: 1.6; white-space: pre-line;">{{ marketContext().target_group_context }}</p>
       </div>
     </div>
 
     @if (simulation()!.status === 'research_complete') {
-      <p style="font-size: 11.5px; color: var(--ink-3); margin-top: 12px; font-style: italic;">
-        <i class="pi pi-info-circle" style="font-size: 10px; margin-right: 4px;"></i>
+      <p style="font-size: 13px; color: var(--ink-3); margin-top: 12px; font-style: italic;">
+        <i class="pi pi-info-circle" style="font-size: 12px; margin-right: 4px;"></i>
         Prüfe das Recherche-Ergebnis. Du kannst es über die API editieren (PUT /simulations/{{ simulation()!.id }}/market-context) bevor du die Simulation startest.
       </p>
     }
@@ -141,7 +153,7 @@
         {{ stats()!.progress_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Fortschritt</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         Tag {{ stats()!.current_tick }} / {{ stats()!.total_ticks }}
       </div>
     </div>
@@ -153,7 +165,7 @@
         {{ stats()!.persona_count }}
       </div>
       <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Personas</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         davon {{ skepticCount() }} Skeptiker
       </div>
     </div>
@@ -165,7 +177,7 @@
         {{ stats()!.post_count }}
       </div>
       <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Beiträge</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         + {{ stats()!.comment_count }} Kommentare
       </div>
     </div>
@@ -177,7 +189,7 @@
         {{ stats()!.reaction_count }}
       </div>
       <div style="font-size: 14px; color: var(--ink-2); font-weight: 500; margin-top: 8px;">Reaktionen</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">Likes · Dislikes · Shares</div>
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">Likes · Dislikes · Shares</div>
     </div>
   </div>
 }
@@ -201,7 +213,7 @@
         {{ kpis().nps.score }}<span style="font-size: 16px; font-weight: 500; color: var(--ink-3);"> NPS</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Net Promoter Score</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         {{ kpis().nps.promoters }} Promoter · {{ kpis().nps.detractors }} Detractor
       </div>
     </div>
@@ -214,7 +226,7 @@
         {{ kpis().brand_awareness.awareness_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Brand Awareness</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         {{ kpis().brand_awareness.aware_count }} / {{ kpis().brand_awareness.total }} aktiv
       </div>
     </div>
@@ -228,7 +240,7 @@
         {{ kpis().sentiment.positive_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">{{ getSentimentLabel(kpis().sentiment.overall) }}</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         {{ kpis().sentiment.negative_pct }}% negativ · Score {{ kpis().sentiment.overall }}
       </div>
     </div>
@@ -241,7 +253,7 @@
         {{ kpis().adoption.adoption_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Adoption Rate</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         {{ kpis().adoption.adopted_count }} / {{ kpis().adoption.total }} positiv
       </div>
     </div>
@@ -257,7 +269,7 @@
         {{ kpis().virality.coefficient }}
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Virality Coefficient</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         Ø {{ kpis().virality.avg_comments }} Kommentare · {{ kpis().virality.avg_reactions }} Reaktionen
       </div>
     </div>
@@ -269,7 +281,7 @@
         {{ kpis().total_influence_events }}
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Influence Events</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         {{ kpis().total_posts }} Beiträge gesamt
       </div>
     </div>
@@ -283,7 +295,7 @@
         {{ kpis().churn_risk.at_risk_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Churn Risk</div>
-      <div style="font-size: 13px; color: var(--ink-3); margin-top: 3px;">
+      <div style="font-size: 14px; color: var(--ink-3); margin-top: 3px;">
         {{ kpis().churn_risk.high_risk_count }} hoch · {{ kpis().churn_risk.medium_risk_count }} mittel
       </div>
     </div>
@@ -302,7 +314,7 @@
         <i class="pi pi-chart-bar" style="font-size: 18px; color: var(--primary);"></i>
         Aktivität pro Tag
       </h3>
-      <span class="font-mono" style="font-size: 12px; color: var(--ink-3); padding: 4px 10px; background: var(--surface-3); border-radius: 999px;">
+      <span class="font-mono" style="font-size: 13px; color: var(--ink-3); padding: 4px 10px; background: var(--surface-3); border-radius: 999px;">
         {{ ticks().length }} Ticks
       </span>
     </header>
@@ -323,7 +335,7 @@
         <i class="pi pi-heart" style="font-size: 18px; color: var(--purple);"></i>
         Stimmungen
       </h3>
-      <span class="font-mono" style="font-size: 12px; color: var(--ink-3); padding: 4px 10px; background: var(--surface-3); border-radius: 999px;">
+      <span class="font-mono" style="font-size: 13px; color: var(--ink-3); padding: 4px 10px; background: var(--surface-3); border-radius: 999px;">
         n={{ personas().length }}
       </span>
     </header>
@@ -351,7 +363,7 @@
           <i class="pi pi-bolt" style="font-size: 18px; color: var(--threadit);"></i>
           Engagement Rate
         </h3>
-        <span class="font-mono" style="font-size: 12px; color: var(--ink-3); padding: 4px 10px; background: var(--surface-3); border-radius: 999px;">
+        <span class="font-mono" style="font-size: 13px; color: var(--ink-3); padding: 4px 10px; background: var(--surface-3); border-radius: 999px;">
           pro Tag
         </span>
       </header>
@@ -371,14 +383,14 @@
           <i class="pi pi-sliders-h" style="font-size: 18px; color: var(--cyan);"></i>
           Meinungsprofil
         </h3>
-        <p style="font-size: 13px; color: var(--ink-3); margin-top: 4px;">Durchschnitt über alle Personas</p>
+        <p style="font-size: 14px; color: var(--ink-3); margin-top: 4px;">Durchschnitt über alle Personas</p>
       </header>
       <div style="display: flex; flex-direction: column; gap: 14px;">
         @for (entry of dimensionEntries(); track entry.key) {
           <div>
-            <div class="flex justify-between mb-1" style="font-size: 13.5px;">
+            <div class="flex justify-between mb-1" style="font-size: 14px;">
               <span style="color: var(--ink); font-weight: 600;">{{ entry.label }}</span>
-              <span class="font-mono" style="font-size: 12px;"
+              <span class="font-mono" style="font-size: 13px;"
                     [style.color]="entry.avg > 0.1 ? '#15803d' : entry.avg < -0.1 ? '#c8321f' : '#6b675c'">
                 {{ entry.avg > 0 ? '+' : '' }}{{ entry.avg }}
               </span>
@@ -393,7 +405,7 @@
                    [style.background]="entry.avg > 0.1 ? '#15803d' : entry.avg < -0.1 ? '#c8321f' : '#6b675c'">
               </div>
             </div>
-            <div class="flex justify-between" style="font-size: 10.5px; color: var(--ink-4); margin-top: 2px;">
+            <div class="flex justify-between" style="font-size: 12px; color: var(--ink-4); margin-top: 2px;">
               <span>{{ entry.positive_pct }}% positiv</span>
               <span>{{ entry.negative_pct }}% negativ</span>
             </div>
@@ -413,7 +425,7 @@
       <span class="live-dot"></span>
       Live-Feed
     </h3>
-    <span class="font-mono" style="font-size: 12px; color: var(--ink-3);">
+    <span class="font-mono" style="font-size: 13px; color: var(--ink-3);">
       letzte {{ recentPosts().length }} Beiträge
     </span>
   </header>
@@ -440,7 +452,7 @@
               <span class="badge" [class.badge-feedbook]="post.platform === 'feedbook'" [class.badge-threadit]="post.platform === 'threadit'">
                 {{ post.platform === 'feedbook' ? 'FeedBook' : 'Threadit' }}
               </span>
-              <span class="font-mono" style="font-size: 12px; color: var(--ink-3); margin-left: auto;">
+              <span class="font-mono" style="font-size: 13px; color: var(--ink-3); margin-left: auto;">
                 Tag {{ post.ingame_day }}
               </span>
             </div>
@@ -452,7 +464,7 @@
       }
     </ul>
     <footer style="padding: 12px 24px; border-top: 1px solid var(--border); text-align: right;">
-      <a [routerLink]="['../personas']" style="font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none;">
+      <a [routerLink]="['../personas']" style="font-size: 14px; font-weight: 600; color: var(--primary); text-decoration: none;">
         Alle Beiträge & Personas →
       </a>
     </footer>

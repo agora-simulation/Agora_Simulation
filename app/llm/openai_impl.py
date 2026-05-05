@@ -211,7 +211,7 @@ class OpenAIProvider(LLMProvider):
                 f"max_tokens={max_tokens}). Text: {text[:300]}"
             )
 
-        raw_args = tool_calls[0].function.arguments or "{}"
+        raw_args = (tool_calls[0].function.arguments or "{}").replace("\x00", "")
         try:
             parsed = json.loads(raw_args)
         except json.JSONDecodeError as e:
@@ -256,7 +256,7 @@ class OpenAIProvider(LLMProvider):
             raise RuntimeError(
                 f"OpenAI chat: keine Text-Antwort (finish_reason={response.choices[0].finish_reason})"
             )
-        return text
+        return text.replace("\x00", "")
 
 
 def build_default_provider() -> OpenAIProvider:

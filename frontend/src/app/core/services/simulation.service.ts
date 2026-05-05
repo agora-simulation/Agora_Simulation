@@ -73,6 +73,10 @@ export class SimulationService {
     return this.api.post(`/simulations/${id}/research/approve`);
   }
 
+  resume(id: string): Observable<{ simulation_id: string; resumed_from_tick: number; remaining_ticks: number; message: string }> {
+    return this.api.post(`/simulations/${id}/resume`);
+  }
+
   getInfluenceEvents(id: string, params?: { ingame_day?: number; limit?: number }): Observable<InfluenceEvent[]> {
     return this.api.get(`/simulations/${id}/influence-events`, params as Record<string, string | number>);
   }

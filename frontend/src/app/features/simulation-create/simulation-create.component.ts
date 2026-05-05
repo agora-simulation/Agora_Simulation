@@ -3,7 +3,9 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SimulationService } from '../../core/services/simulation.service';
 import { ProviderService } from '../../core/services/provider.service';
+import { ResearchSnapshotService } from '../../core/services/research-snapshot.service';
 import { SimulationCreate, LlmProvider, ResearchMode } from '../../core/models/simulation.model';
+import { ResearchSnapshot } from '../../core/models/research-snapshot.model';
 import { SimulationProviderConfig, PhaseProviderEntry, Preset, CostEstimate, Provider } from '../../core/models/provider.model';
 import { PhaseConfigComponent } from './phase-config.component';
 
@@ -16,6 +18,7 @@ import { PhaseConfigComponent } from './phase-config.component';
 export class SimulationCreateComponent {
   private simService = inject(SimulationService);
   private providerService = inject(ProviderService);
+  private researchService = inject(ResearchSnapshotService);
   private router = inject(Router);
 
   currentStep = signal(1);
@@ -40,6 +43,33 @@ export class SimulationCreateComponent {
   tickCount = signal(15);
   llmProvider = signal<LlmProvider>('anthropic');
   researchMode = signal<ResearchMode>('quick');
+
+  // Research Snapshot Selection
+  useOwnResearch = signal(false);
+  availableSnapshots = signal<ResearchSnapshot[]>([]);
+  selectedSnapshotId = signal<string | null>(null);
+
+  selectResearchMode(mode: ResearchMode) {
+    this.researchMode.set(mode);
+    this.useOwnResearch.set(false);
+    this.selectedSnapshotId.set(null);
+  }
+
+  selectOwnResearch() {
+    this.useOwnResearch.set(true);
+    this.researchMode.set('quick'); // No auto-research needed
+    if (this.availableSnapshots().length === 0) {
+      this.researchService.list({ status: 'completed' }).subscribe(res => {
+        // Also load approved ones
+        this.researchService.list({ status: 'approved' }).subscribe(res2 => {
+          const all = [...res.items, ...res2.items];
+          // Deduplicate by id
+          const unique = Array.from(new Map(all.map(s => [s.id, s])).values());
+          this.availableSnapshots.set(unique);
+        });
+      });
+    }
+  }
 
   // v1.1: Distribution & Stagnation
   stagnationMode = signal<'off' | 'mild' | 'aggressive'>('mild');
@@ -401,6 +431,7 @@ export class SimulationCreateComponent {
       llm_model_fast: this.resolveModelFast(),
       llm_model_smart: this.resolveModelSmart(),
       research_mode: this.researchMode(),
+      research_snapshot_id: this.selectedSnapshotId() || undefined,
       // v1.1
       stagnation_mode: this.stagnationMode(),
       distribution_template: this.selectedDistribution() ? this.getDistributionContent(this.selectedDistribution()) : undefined,

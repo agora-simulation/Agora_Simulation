@@ -17,7 +17,7 @@ import { Component, input } from '@angular/core';
       padding: 20px;
     }
     .kpi-label {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       color: var(--ink-3);
       margin-bottom: 8px;

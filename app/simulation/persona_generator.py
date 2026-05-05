@@ -308,7 +308,7 @@ async def _enrich_persona(
 
     prompt = f"""Person: {identity}
 Bildung: {skeleton.get('education_level', 'k.A.')} | Einkommen: {skeleton.get('income_bracket', 'k.A.')}
-Tech-Affinität: {skeleton.get('tech_affinity', 0.5)} | Typ: {ptype}
+Tech-Affinität: {skeleton.get('tech_affinity', 0.5)} | Typ: {actor_type}
 {skeptic_hint}
 
 Produkt: {product_description[:200]}

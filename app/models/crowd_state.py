@@ -7,7 +7,7 @@ def _utcnow():
 
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, JSON
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from app.database import Base
 
@@ -26,4 +26,4 @@ class CrowdState(Base):
     representative_voices = Column(JSON, default=list)
     created_at = Column(DateTime, default=_utcnow)
 
-    simulation = relationship("Simulation", backref="crowd_states")
+    simulation = relationship("Simulation", backref=backref("crowd_states", cascade="all, delete-orphan"))

@@ -7,7 +7,7 @@ def _utcnow():
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from app.database import Base
 
@@ -27,4 +27,4 @@ class TriggerEvent(Base):
     was_auto_generated = Column(Boolean, default=False)  # for stagnation auto-reactivation
     created_at = Column(DateTime, default=_utcnow)
 
-    simulation = relationship("Simulation", backref="trigger_events")
+    simulation = relationship("Simulation", backref=backref("trigger_events", cascade="all, delete-orphan"))

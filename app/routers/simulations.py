@@ -511,6 +511,43 @@ async def cancel_simulation(
     return {"simulation_id": str(simulation_id), "message": "Simulation wird abgebrochen."}
 
 
+@router.post("/{simulation_id}/resume")
+async def resume_simulation(
+    simulation_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Resume a failed simulation from where it left off (keeps all existing data)."""
+    result = await db.execute(
+        select(Simulation).where(Simulation.id == simulation_id)
+    )
+    sim = result.scalar_one_or_none()
+    if not sim:
+        raise HTTPException(status_code=404, detail="Simulation nicht gefunden")
+
+    if sim.status == SimulationStatus.running:
+        raise HTTPException(status_code=409, detail="Simulation laeuft bereits")
+    if sim.status == SimulationStatus.completed:
+        raise HTTPException(status_code=400, detail="Simulation ist bereits abgeschlossen")
+
+    remaining = (sim.total_ticks or 15) - (sim.current_tick or 0)
+    if remaining <= 0:
+        # All ticks done, just need report — set to running and let runner handle it
+        pass
+
+    sim.status = SimulationStatus.running
+    sim.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    await db.flush()
+
+    background_tasks.add_task(run_simulation_background, simulation_id)
+    return {
+        "simulation_id": str(simulation_id),
+        "resumed_from_tick": sim.current_tick,
+        "remaining_ticks": remaining,
+        "message": f"Simulation wird ab Tick {sim.current_tick + 1} fortgesetzt.",
+    }
+
+
 @router.post("/{simulation_id}/reset", response_model=SimulationResetResponse)
 async def reset_simulation(
     simulation_id: UUID,

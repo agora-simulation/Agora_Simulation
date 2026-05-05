@@ -35,6 +35,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
   kpis = signal<any>(null);
   marketContext = signal<any>(null);
   approvingResearch = signal(false);
+  resuming = signal(false);
   private pollInterval: ReturnType<typeof setInterval> | null = null;
   activityChartOption = signal<any>({});
   moodChartOption = signal<any>({});
@@ -183,6 +184,18 @@ export class OverviewComponent implements OnInit, OnDestroy {
     this.simService.getKpis(this.simId).subscribe({
       next: k => { this.kpis.set(k); this.buildEngagementChart(k); this.buildNpsChart(k); },
       error: () => {},
+    });
+  }
+
+  resumeSimulation() {
+    this.resuming.set(true);
+    this.simService.resume(this.simId).subscribe({
+      next: () => {
+        this.resuming.set(false);
+        // Force parent dashboard to reload (picks up new status + reconnects SSE)
+        window.location.reload();
+      },
+      error: () => this.resuming.set(false),
     });
   }
 

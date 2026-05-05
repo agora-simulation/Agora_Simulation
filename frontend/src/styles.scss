@@ -18,12 +18,12 @@
   --border-strong:rgba(230, 183, 113, 0.22);
   --border-glow:  rgba(230, 183, 113, 0.35);
 
-  /* === Text — warm light tones === */
-  --ink:          #f4e8d4;
-  --ink-2:        #e0d0b8;
-  --ink-3:        #a89171;
-  --ink-4:        #7a6850;
-  --ink-5:        #4a3d2e;
+  /* === Text — warm light tones (boosted contrast) === */
+  --ink:          #f7efe3;
+  --ink-2:        #e8dac6;
+  --ink-3:        #c4a882;
+  --ink-4:        #9a8468;
+  --ink-5:        #5c4e3b;
 
   /* === Brand & Signal — Warm gold === */
   --primary:      #e6b771;
@@ -112,12 +112,12 @@
    ============================================================ */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; }
 
 body {
   font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 16px;
+  line-height: 1.6;
   color: var(--ink);
   background-color: var(--bg);
   min-height: 100vh;
@@ -249,18 +249,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .text-meta {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-3);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 .text-muted { color: var(--ink-3); }
 
 .eyebrow, .plate-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--primary);
 }
@@ -268,10 +268,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .section-index {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--primary);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 .font-display { font-family: var(--font-display); }
 .font-mono    { font-family: var(--font-mono); }
@@ -288,7 +288,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
   padding: 11px 20px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
   border-radius: var(--radius);
@@ -311,8 +311,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 .btn:hover::after { opacity: 1; }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.btn-sm { padding: 7px 14px; font-size: 12.5px; }
-.btn-lg { padding: 13px 24px; font-size: 15px; }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-lg { padding: 13px 24px; font-size: 15.5px; }
 
 /* Primary */
 .btn-primary, .btn-ink {
@@ -391,7 +391,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   padding: 11px 14px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -408,7 +408,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(230, 183, 113, 0.15);
 }
 
-.input-lg { padding: 13px 16px; font-size: 15px; }
+.input-lg { padding: 13px 16px; font-size: 15.5px; }
 
 textarea.input, textarea.input-paper { resize: vertical; min-height: 90px; line-height: 1.5; }
 
@@ -423,7 +423,7 @@ select.input, select.input-paper {
 
 label, .label {
   display: block;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   margin-bottom: 6px;
@@ -433,7 +433,7 @@ label, .label {
 .label-required::after { content: ' *'; color: var(--cyan); }
 
 .label-hint {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--ink-3);
   font-weight: 400;
   margin-top: 6px;
@@ -511,14 +511,14 @@ label, .label {
   align-items: center;
   gap: 6px;
   padding: 4px 11px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   border-radius: 999px;
   letter-spacing: 0.02em;
   white-space: nowrap;
   backdrop-filter: blur(8px);
 }
-.badge-lg { padding: 6px 14px; font-size: 13px; }
+.badge-lg { padding: 6px 14px; font-size: 14px; }
 
 .badge-success {
   background: var(--success-l);
@@ -654,7 +654,7 @@ label, .label {
   gap: 8px;
   padding: 12px 18px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
   color: var(--ink-3);
   background: transparent;
@@ -685,7 +685,7 @@ label, .label {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   border-radius: 999px;
   background: var(--surface-3);
@@ -848,7 +848,7 @@ label, .label {
 }
 
 .page-subtitle {
-  font-size: 15px;
+  font-size: 15.5px;
   color: var(--ink-2);
   max-width: 640px;
   line-height: 1.6;
@@ -862,7 +862,7 @@ label, .label {
 }
 .section-title {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--ink);
 }
@@ -886,7 +886,7 @@ label, .label {
   color: var(--feedbook);
   border: 1px solid rgba(90, 159, 214, 0.2);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 .platform-threadit {
@@ -898,7 +898,7 @@ label, .label {
   color: var(--threadit);
   border: 1px solid rgba(230, 160, 64, 0.2);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 
@@ -1248,7 +1248,7 @@ label, .label {
   margin-bottom: 2px;
 }
 .provider-type-badge {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-3);
   font-weight: 500;
 }
@@ -1257,7 +1257,7 @@ label, .label {
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   border-radius: 999px;
   background: var(--primary-l);
@@ -1270,7 +1270,7 @@ label, .label {
   align-items: center;
   gap: 8px;
   padding: 8px 0;
-  font-size: 13px;
+  font-size: 14px;
   border-top: 1px solid var(--border);
   margin-top: 8px;
 }
@@ -1282,7 +1282,7 @@ label, .label {
 .detail-value {
   color: var(--ink-2);
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 13.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1300,7 +1300,7 @@ label, .label {
   gap: 8px;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 14px;
   margin-top: 10px;
 }
 .test-result.success {
@@ -1322,7 +1322,7 @@ label, .label {
   gap: 10px;
   padding: 48px 24px;
   color: var(--ink-3);
-  font-size: 14px;
+  font-size: 15px;
 }
 .loading-state i {
   font-size: 18px;
@@ -1398,7 +1398,7 @@ label, .label {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--ink-3);
   background: var(--surface);
@@ -1436,12 +1436,12 @@ label, .label {
   gap: 2px;
 }
 .stat-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-3);
   font-weight: 500;
 }
 .stat-value {
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
   font-family: var(--font-mono);
@@ -1455,7 +1455,7 @@ label, .label {
   align-items: center;
   gap: 8px;
   padding: 5px 14px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -1485,7 +1485,7 @@ label, .label {
   padding: 4px 0;
 }
 .dist-label {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--ink-3);
   min-width: 80px;
   flex-shrink: 0;
@@ -1504,7 +1504,7 @@ label, .label {
   transition: width 400ms ease;
 }
 .dist-value {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ink);
   font-family: var(--font-mono);

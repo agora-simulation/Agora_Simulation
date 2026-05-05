@@ -164,7 +164,7 @@ class AnthropicProvider(LLMProvider):
         # Erster Text-Block
         for block in response.content:
             if block.type == "text":
-                return block.text
+                return block.text.replace("\x00", "")
         raise RuntimeError(f"Anthropic chat: keine Text-Antwort (stop_reason={response.stop_reason})")
 
 

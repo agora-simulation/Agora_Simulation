@@ -408,6 +408,19 @@ async def run_simulation_background(simulation_id: UUID):
                 await _assign_social_connections(db, simulation_id)
                 await db.commit()
 
+            # Guard: Abort if no personas exist (e.g. generator failed)
+            persona_count_result = await db.execute(
+                select(func.count(Persona.id)).where(Persona.simulation_id == simulation_id)
+            )
+            if persona_count_result.scalar() == 0:
+                logger.error(f"[{simulation_id}] Keine Personas vorhanden — Simulation abgebrochen")
+                await db.execute(
+                    update(Simulation).where(Simulation.id == simulation_id)
+                    .values(status=SimulationStatus.failed, updated_at=datetime.now(timezone.utc).replace(tzinfo=None))
+                )
+                await db.commit()
+                return
+
             # 2. Tick-Schleife
             sim = await db.get(Simulation, simulation_id)
             start_tick = (sim.current_tick or 0) + 1

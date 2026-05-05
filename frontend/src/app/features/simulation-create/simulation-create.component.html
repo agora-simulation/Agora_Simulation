@@ -166,27 +166,60 @@
     <section class="card animate-fade-in-delay-2" style="padding: 24px 28px; margin-bottom: 16px;">
       <label style="margin-bottom: 12px; display: block;">Recherche-Modus</label>
       <div style="display: flex; gap: 12px;" role="radiogroup">
-        <button type="button" (click)="researchMode.set('quick')" role="radio"
-                class="card card-hover preset-card" [class.preset-active]="researchMode() === 'quick'"
+        <button type="button" (click)="selectResearchMode('quick')" role="radio"
+                class="card card-hover preset-card" [class.preset-active]="researchMode() === 'quick' && !useOwnResearch()"
                 style="flex: 1; padding: 14px 16px;">
           <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">
             <i class="pi pi-bolt" style="font-size: 12px; color: var(--primary); margin-right: 6px;"></i>Quick
           </p>
           <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.4;">Sofort starten — Personas nutzen allgemeines KI-Wissen.</p>
         </button>
-        <button type="button" (click)="researchMode.set('deep')" role="radio"
-                class="card card-hover preset-card" [class.preset-active]="researchMode() === 'deep'"
+        <button type="button" (click)="selectResearchMode('deep')" role="radio"
+                class="card card-hover preset-card" [class.preset-active]="researchMode() === 'deep' && !useOwnResearch()"
                 style="flex: 1; padding: 14px 16px;">
           <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">
             <i class="pi pi-search" style="font-size: 12px; color: var(--primary); margin-right: 6px;"></i>Deep
           </p>
           <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.4;">Web-Recherche vor Start (~2-5 Min). Nutzt einen Standard-Systemprompt fuer allgemeine Marktanalyse.</p>
         </button>
+        <button type="button" (click)="selectOwnResearch()" role="radio"
+                class="card card-hover preset-card" [class.preset-active]="useOwnResearch()"
+                style="flex: 1; padding: 14px 16px;">
+          <p style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">
+            <i class="pi pi-file-edit" style="font-size: 12px; color: var(--primary); margin-right: 6px;"></i>Eigene Recherche
+          </p>
+          <p style="font-size: 11.5px; color: var(--ink-3); line-height: 1.4;">Verwende eine gespeicherte Recherche aus dem Recherche-Modul.</p>
+        </button>
       </div>
-      <p class="label-hint" style="margin-top: 10px;">
-        <i class="pi pi-info-circle" style="font-size: 11px;"></i>
-        Eigene Recherchen kannst du unter <a routerLink="/research" style="color: var(--primary); font-weight: 600;">Recherchen</a> erstellen und der Simulation zuweisen.
-      </p>
+
+      @if (useOwnResearch()) {
+        <div style="margin-top: 16px;">
+          @if (availableSnapshots().length === 0) {
+            <p style="color: var(--ink-3); font-size: 13px;">
+              <i class="pi pi-info-circle" style="font-size: 11px; margin-right: 4px;"></i>
+              Keine abgeschlossenen Recherchen vorhanden.
+              <a routerLink="/research" style="color: var(--primary); font-weight: 600;">Recherche erstellen</a>
+            </p>
+          } @else {
+            <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Recherche auswaehlen</label>
+            <select class="input" style="width: 100%;"
+                    [ngModel]="selectedSnapshotId()"
+                    (ngModelChange)="selectedSnapshotId.set($event)">
+              <option [ngValue]="null" disabled>— Recherche waehlen —</option>
+              @for (snap of availableSnapshots(); track snap.id) {
+                <option [ngValue]="snap.id">
+                  {{ snap.name }} ({{ snap.status === 'approved' ? 'Freigegeben' : 'Abgeschlossen' }}{{ snap.llm_used ? ' · ' + snap.llm_used : '' }})
+                </option>
+              }
+            </select>
+          }
+        </div>
+      } @else {
+        <p class="label-hint" style="margin-top: 10px;">
+          <i class="pi pi-info-circle" style="font-size: 11px;"></i>
+          Eigene Recherchen kannst du unter <a routerLink="/research" style="color: var(--primary); font-weight: 600;">Recherchen</a> erstellen und hier zuweisen.
+        </p>
+      }
     </section>
   }
 
@@ -432,7 +465,7 @@
         </div>
         <div style="cursor: pointer;" (click)="currentStep.set(2)">
           <p class="eyebrow" style="margin-bottom: 6px;">Recherche <i class="pi pi-pencil" style="font-size: 10px; color: var(--ink-4);"></i></p>
-          <p style="font-size: 13.5px; color: var(--ink); font-weight: 600;">{{ researchMode() === 'deep' ? 'Deep (Web-Recherche)' : 'Quick' }}</p>
+          <p style="font-size: 13.5px; color: var(--ink); font-weight: 600;">{{ useOwnResearch() ? 'Eigene Recherche' : researchMode() === 'deep' ? 'Deep (Web-Recherche)' : 'Quick' }}</p>
         </div>
         <div style="cursor: pointer;" (click)="currentStep.set(4)">
           <p class="eyebrow" style="margin-bottom: 6px;">Stagnation <i class="pi pi-pencil" style="font-size: 10px; color: var(--ink-4);"></i></p>

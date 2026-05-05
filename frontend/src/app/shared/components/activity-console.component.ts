@@ -144,14 +144,14 @@ interface LogLine {
 
     .ac-title {
       font-family: var(--font-sans);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--ink);
       letter-spacing: -0.005em;
     }
     .ac-status-label {
       font-family: var(--font-sans);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -165,7 +165,7 @@ interface LogLine {
 
     .ac-counter {
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 12px;
       color: var(--ink-3);
       letter-spacing: 0.02em;
     }
@@ -186,7 +186,7 @@ interface LogLine {
       transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
     }
     .ac-toggle:hover { color: var(--ink); border-color: var(--ink-3); background: var(--surface-2); }
-    .ac-toggle .pi { font-size: 11px; }
+    .ac-toggle .pi { font-size: 12px; }
 
     .ac-body {
       flex: 1 1 auto;
@@ -201,7 +201,7 @@ interface LogLine {
     .ac-body::-webkit-scrollbar-thumb { background: #2a3038; border-radius: 4px; }
 
     .ac-line {
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.6;
       color: #d4dae2;
       white-space: pre-wrap;
@@ -249,6 +249,16 @@ export class ActivityConsoleComponent implements OnChanges, OnDestroy, AfterView
       this.tryConnect();
     }
     if (changes['simulationStatus'] && !changes['simulationId']) {
+      // Resume: status changed from failed/completed → running → reset for new stream
+      const prev = changes['simulationStatus'].previousValue;
+      const curr = changes['simulationStatus'].currentValue;
+      if ((prev === 'failed' || prev === 'completed') && curr === 'running') {
+        this.sseSub?.unsubscribe();
+        this.sseSub = undefined;
+        this.finalLogged = false;
+        this.lastTick = -1;
+        this.appendLog('INFO', 'Simulation wird fortgesetzt...');
+      }
       this.tryConnect();
       this.maybeLogFinalStatus();
     }
