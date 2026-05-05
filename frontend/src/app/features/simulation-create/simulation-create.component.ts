@@ -76,13 +76,13 @@ export class SimulationCreateComponent {
   selectedDistribution = signal<string>('');
 
   // Realism Overhaul: Scenario & Realism Settings
-  scenarioType = signal<string>('');
+  scenarioType = signal<ScenarioType | ''>('');
   noiseRate = signal(20);
   fatigueEnabled = signal(true);
   neutralSentimentTarget = signal(true);
   discussionDynamics = signal(true);
 
-  readonly scenarioTypes = [
+  readonly scenarioTypes: { id: ScenarioType; label: string; desc: string }[] = [
     { id: 'b2c_product', label: 'B2C Produkt', desc: '75% Konsumenten, Influencer-getrieben' },
     { id: 'b2b_saas', label: 'B2B SaaS', desc: '35% Firmen, 28% Experten, professionell' },
     { id: 'healthcare', label: 'Healthcare', desc: '45% Experten, 18% Behörden, evidenzbasiert' },
@@ -91,7 +91,7 @@ export class SimulationCreateComponent {
     { id: 'industrial', label: 'Industrie', desc: '28% Firmen, 28% Experten, technisch' },
   ];
 
-  selectScenario(id: string) {
+  selectScenario(id: ScenarioType) {
     this.scenarioType.set(id);
     // Auto-suggest passende Distribution
     const scenarioToDistribution: Record<string, string> = {
@@ -469,7 +469,7 @@ export class SimulationCreateComponent {
       stagnation_mode: this.stagnationMode(),
       distribution_template: this.selectedDistribution() ? this.getDistributionContent(this.selectedDistribution()) : undefined,
       // Realism Overhaul
-      scenario_type: this.scenarioType() || undefined,
+      scenario_type: (this.scenarioType() || undefined) as ScenarioType | undefined,
       realism_config: {
         noise_rate: this.noiseRate() / 100,
         fatigue_enabled: this.fatigueEnabled(),
