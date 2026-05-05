@@ -18,60 +18,112 @@ logger = logging.getLogger("agora.chat")
 router = APIRouter()
 
 
+def _big_five_to_behavior_rules(traits: dict) -> str:
+    """Übersetzt Big-Five-Werte in konkrete Verhaltensanweisungen."""
+    if not traits:
+        return ""
+    rules = []
+
+    e = traits.get("extraversion", 0.5)
+    if e > 0.7:
+        rules.append("Du redest gerne und viel. Du stellst Gegenfragen. Stille ist dir unangenehm.")
+    elif e < 0.3:
+        rules.append("Du antwortest knapp. Du wartest ab. Du offenbarst wenig von dir selbst.")
+
+    a = traits.get("agreeableness", 0.5)
+    if a > 0.7:
+        rules.append("Du suchst Harmonie. Du stimmst anderen oft zu. Konfrontation meidest du.")
+    elif a < 0.3:
+        rules.append("Du bist direkt und kritisch. Du widersprichst ohne Scheu. Höflichkeit ist dir egal.")
+
+    o = traits.get("openness", 0.5)
+    if o > 0.7:
+        rules.append("Du bist neugierig und offen für neue Ideen. Du denkst gerne abstrakt.")
+    elif o < 0.3:
+        rules.append("Du bist skeptisch gegenüber Neuem. Du vertraust dem Bewährten. Theoretisches langweilt dich.")
+
+    n = traits.get("neuroticism", 0.5)
+    if n > 0.7:
+        rules.append("Du bist emotional und reagierst schnell gereizt. Deine Stimmung schwankt.")
+    elif n < 0.3:
+        rules.append("Du bist gelassen und schwer aus der Ruhe zu bringen.")
+
+    c = traits.get("conscientiousness", 0.5)
+    if c > 0.7:
+        rules.append("Du bist gründlich und präzise. Du korrigierst Fehler anderer.")
+    elif c < 0.3:
+        rules.append("Du bist spontan und unstrukturiert. Details sind dir egal.")
+
+    return "\n".join(rules)
+
+
+def _select_relevant_memories(memories: list, max_items: int = 5) -> list:
+    """Wählt die relevantesten Erinnerungen aus (RAG-style statt Memory-Dump)."""
+    if not memories:
+        return []
+    # Core-Memories + Top-N nach emotional_weight
+    core = [m for m in memories if m.get("is_core") or m.get("emotional_weight", 0) >= 0.8]
+    non_core = sorted(
+        [m for m in memories if m not in core],
+        key=lambda m: m.get("emotional_weight", 0),
+        reverse=True,
+    )
+    selected = core[:3] + non_core[: max_items - min(len(core), 3)]
+    return selected[:max_items]
+
+
 def _build_chat_system_prompt(persona: Persona) -> str:
-    """Baut den System-Prompt für den Chat — mit Memory und Opinion-Dimensionen."""
+    """Baut den System-Prompt für den Chat — verhaltensbasiert, kompakt."""
     current_state: dict = persona.current_state or {}
 
-    # Basis-Profil
-    prompt = (
-        f"Du bist {persona.name}, {persona.age} Jahre alt, wohnhaft in {persona.location}.\n"
-        f"Beruf: {persona.occupation}\n\n"
-        f"Deine Persönlichkeit: {persona.personality}\n"
-        f"Deine Werte: {', '.join(persona.values or [])}\n"
-        f"Dein Kommunikationsstil: {persona.communication_style}\n\n"
-        f"Deine Erfahrung aus der Simulation:\n"
-        f"Meinungsentwicklung: {current_state.get('opinion_evolution', persona.initial_opinion)}\n"
-        f"Aktuelle Stimmung: {current_state.get('mood', 'neutral')}\n"
-        f"Letzte Aktivitäten: {json.dumps(current_state.get('recent_actions', []), ensure_ascii=False)}\n"
-    )
+    # === IDENTITY BLOCK ===
+    prompt = f"""Du bist {persona.name}, {persona.age}, {persona.location}. {persona.occupation}.
+{persona.personality}
 
-    # Modul 1: Langzeitgedächtnis — alle Erinnerungen für den Chat
-    memories = list(persona.memory or [])
+DEIN VERHALTEN:
+{_big_five_to_behavior_rules(persona.personality_traits or {})}
+Kommunikationsstil: {persona.communication_style}
+Werte: {', '.join(persona.values or [])}
+"""
+
+    # === MEMORY BLOCK (nur relevanteste, als Ich-Perspektive) ===
+    memories = _select_relevant_memories(list(persona.memory or []))
     if memories:
-        memories_sorted = sorted(memories, key=lambda m: m.get("emotional_weight", 0), reverse=True)
-        prompt += "\n=== Deine Erinnerungen aus der Simulation ===\n"
-        for mem in memories_sorted:
-            weight = mem.get("emotional_weight", 0)
-            weight_label = "hoch" if weight >= 0.7 else ("mittel" if weight >= 0.4 else "niedrig")
-            prompt += f"[Tag {mem.get('tick', '?')}] {mem.get('summary', '')} (emotional: {weight_label})\n"
+        prompt += "\nWAS DU ERLEBT HAST (deine Erinnerungen):\n"
+        for mem in memories:
+            prompt += f"- {mem.get('summary', '')}\n"
 
-    # Modul 2: Mehrdimensionale Meinung
+    # === OPINION BLOCK (kompakt) ===
     opinion_dims = current_state.get("opinion_dimensions", {})
     if opinion_dims:
-        label_map = {
-            "product_quality": "Produktqualität",
-            "price_fairness": "Preis-Leistung",
-            "brand_trust": "Markenvertrauen",
-            "innovation": "Innovation",
-            "ethical_concerns": "Ethische Bedenken",
-            "social_proof": "Sozialer Einfluss",
-            "personal_relevance": "Persönliche Relevanz",
-        }
-        prompt += "\n=== Deine Einstellung zum Produkt (intern) ===\n"
-        for key, label in label_map.items():
-            val = opinion_dims.get(key)
-            if val is not None:
-                desc = "sehr positiv" if val >= 0.6 else ("eher positiv" if val >= 0.2 else
-                       "neutral" if val >= -0.2 else "eher negativ" if val >= -0.6 else "sehr negativ")
-                prompt += f"{label}: {desc} ({val:.1f})\n"
+        positive = [k.replace("_", " ") for k, v in opinion_dims.items() if v >= 0.3]
+        negative = [k.replace("_", " ") for k, v in opinion_dims.items() if v <= -0.3]
+        if positive:
+            prompt += f"\nWovon du ÜBERZEUGT bist: {', '.join(positive)}\n"
+        if negative:
+            prompt += f"Was dich STÖRT: {', '.join(negative)}\n"
 
-    prompt += (
-        "\nAntworte IMMER in der ersten Person, konsistent mit deiner Persönlichkeit.\n"
-        "Sei authentisch — du musst nicht höflich sein wenn du das nicht bist.\n"
-        "Wenn du Skeptiker bist, zeige das deutlich.\n"
-        "Referenziere deine Erinnerungen wenn relevant.\n"
-        "Antworte auf Deutsch, kurz und natürlich (wie in einem echten Gespräch)."
-    )
+    mood = current_state.get("mood", "neutral")
+    opinion_evo = current_state.get("opinion_evolution", persona.initial_opinion or "")
+    prompt += f"\nDeine aktuelle Stimmung: {mood}\n"
+    if opinion_evo:
+        prompt += f"Deine Meinung zum Produkt: {opinion_evo}\n"
+
+    # === BEHAVIOR RULES ===
+    # Verbal tics aus extra
+    extra = persona.extra or {}
+    verbal_tics = extra.get("verbal_tics", [])
+    if verbal_tics:
+        prompt += f"\nDeine Sprachmarotten: {', '.join(verbal_tics)} — verwende sie natürlich.\n"
+
+    prompt += """
+REGELN:
+- Du antwortest IMMER als diese Person. Erste Person. Deutsch.
+- Kurz und natürlich — wie in einem echten Gespräch, nicht wie ein Essay.
+- Wenn jemand fragt "Bist du eine KI?" reagiere verwirrt oder genervt ("Was soll die Frage?").
+- Wenn du etwas nicht weißt, sag "Keine Ahnung" — erfinde keine Fakten.
+- Du musst NICHT höflich sein. Sei authentisch zu deiner Persönlichkeit.
+- Referenziere deine Erinnerungen nur wenn sie zum Thema passen."""
 
     return prompt
 

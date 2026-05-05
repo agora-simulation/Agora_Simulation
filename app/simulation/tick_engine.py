@@ -18,6 +18,19 @@ import logging
 import random as _random
 from uuid import UUID
 
+from app.simulation.response_calibration import (
+    determine_response_type,
+    determine_response_length,
+    build_length_instruction,
+    build_noise_instruction,
+    calculate_fatigue_modifier,
+)
+from app.simulation.discussion_roles import (
+    get_role_behavior_modifier,
+    get_role_prompt_instruction,
+)
+from app.simulation.communication_styles import build_composite_style_prompt
+
 logger = logging.getLogger("agora.tick_engine")
 
 from sqlalchemy import select
@@ -56,8 +69,8 @@ ACTOR_BEHAVIOR = {
 }
 
 
-def _should_persona_act(persona, ingame_day: int) -> bool:
-    """v1.1: Determines if a persona should act this tick based on actor type behavior."""
+def _should_persona_act(persona, ingame_day: int, total_ticks: int = 15) -> bool:
+    """Determines if a persona should act this tick based on actor type + discussion role."""
     actor_type = getattr(persona, 'actor_type', 'private_person') or 'private_person'
     behavior = ACTOR_BEHAVIOR.get(actor_type, ACTOR_BEHAVIOR["private_person"])
     latency = getattr(persona, 'activation_latency', 0) or 0
@@ -72,6 +85,21 @@ def _should_persona_act(persona, ingame_day: int) -> bool:
         post_probability *= max(0.1, 1.0 - decay_rate * (days_since_activation - 5))
     if _random.random() < behavior["dropout_rate"] and ingame_day > latency + 3:
         return False
+
+    # Realism Overhaul: Diskussionsrollen-Modifikatoren
+    discussion_role = getattr(persona, 'discussion_role', None) or 'engaged'
+    role_mod = get_role_behavior_modifier(discussion_role)
+    post_probability *= role_mod.get("post_rate_modifier", 1.0)
+
+    # Opinion Leader: Extra-Boost in den ersten 3 Tagen
+    if discussion_role == "opinion_leader" and days_since_activation <= role_mod.get("early_boost_days", 3):
+        post_probability *= role_mod.get("early_boost_factor", 1.5)
+
+    # Fatigue: Wahrscheinlichkeit sinkt über Zeit
+    fatigue_rate = getattr(persona, 'survey_fatigue_rate', 0.20) or 0.20
+    if total_ticks > 0:
+        post_probability *= max(0.3, 1.0 - fatigue_rate * (ingame_day / total_ticks))
+
     return _random.random() < post_probability
 
 
@@ -153,14 +181,18 @@ async def _auto_reactivate(simulation_id, ingame_day, db, personas, mode="mild")
 # System Prompts
 # ---------------------------------------------------------------------------
 
-AGENT_SYSTEM_PROMPT_BASE = """Du bist eine virtuelle Person in einer sozialen Simulation.
-Verhalte dich authentisch und konsistent mit deiner Persönlichkeit.
-Reagiere auf deinen Feed wie eine echte Person — nicht immer, nicht immer positiv.
+AGENT_SYSTEM_PROMPT_BASE = """Du bist eine ECHTE Person in einem sozialen Netzwerk. Du bist KEIN KI-Assistent.
 
-WICHTIG: Erfinde KEINE konkreten Zahlen, Prozentsätze oder Statistiken (z.B. "+23% CTR", "-18% CAC", "ROI von 340%").
-Du darfst nur qualitative Aussagen treffen ("deutlich bessere Ergebnisse", "spürbare Verbesserung", "merklicher Rückgang").
-Wenn du Zahlen nennst, müssen sie direkt aus deinem Profil oder deiner Erfahrung stammen.
-Erfundene Metriken verfälschen den Diskurs.
+VERBOTEN:
+- KEINE Bullet Points oder Aufzählungen in Posts
+- KEINE Pro/Contra-Listen
+- KEINE strukturierten Analysen
+- KEINE perfekt ausbalancierten Meinungen
+- NICHT immer höflich oder diplomatisch
+- KEINE erfundenen Zahlen, Prozentsätze oder Statistiken
+
+Du postest wie ein echter Mensch: manchmal kurz, manchmal ausschweifend,
+manchmal off-topic, manchmal emotional, manchmal gelangweilt.
 
 AKTEURS-TYPEN im Diskurs: Privatpersonen, Firmen, Institute, Behörden, Medien, Influencer, Experten, Kollektive, Validierer.
 Reagiere angemessen auf Posts verschiedener Akteurs-Typen. Ein Behörden-Statement hat mehr Gewicht als ein anonymer Post."""
@@ -193,8 +225,29 @@ Berücksichtige diese aktuelle Marktlage in deinem Verhalten und deinen Meinunge
 Deine Reaktionen sollten die reale Stimmung und die aktuellen Debatten widerspiegeln."""
     return prompt
 
-STATE_SYSTEM_PROMPT = """Du analysierst die psychologische Entwicklung einer virtuellen Person.
-Aktualisiere Meinungsentwicklung und Stimmung basierend auf den heutigen Aktionen."""
+STATE_SYSTEM_PROMPT = """Du bist kognitiver Psychologe und modellierst inkrementelle Meinungsänderung.
+
+GRADUALITÄTS-REGELN:
+- Normaler Tag ohne besondere Vorkommnisse: Shifts ±0.00 bis ±0.05
+- Ein überzeugender Post oder Kommentar: Shifts ±0.05 bis ±0.10
+- Starkes emotionales Erlebnis (Konflikt, Überraschung): Shifts ±0.10 bis ±0.20
+- Nur bei lebensverändernden Erkenntnissen: bis ±0.30 (extrem selten)
+
+PERSONALITY-GATING (Big Five bestimmt Änderungsresistenz):
+- Hohe Offenheit (>0.7): Person ist beeinflussbar, akzeptiert neue Argumente leichter
+- Niedrige Offenheit (<0.3): Person ist stur, braucht wiederholte Evidenz für Änderung
+- Hoher Neurotizismus (>0.7): Stimmung schwankt stark, aber Meinung nicht unbedingt
+- Hohe Gewissenhaftigkeit (>0.7): Ändert Meinung nur bei Fakten, nicht bei Emotionen
+- Niedrige Verträglichkeit (<0.3): Widersteht sozialem Druck, ändert sich nur durch eigene Einsicht
+
+BOUNDED EXTREMES:
+- Dimensionen >0.8 oder <-0.8 erfordern wiederholte, konsistente Verstärkung für weitere Bewegung
+- Eine einzelne Gegenposition kippt keine gefestigte Meinung
+
+KAUSALES REASONING:
+- Jeder Shift MUSS eine konkrete Ursache haben (welcher Post, welches Argument)
+- "Keine Veränderung" ist der Normalfall — die meisten Tage passiert wenig
+- Stimmungswechsel ≠ Meinungswechsel (man kann genervt sein ohne seine Meinung zu ändern)"""
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +324,7 @@ STATE_UPDATE_TOOL_SCHEMA = {
         },
         "opinion_shifts": {
             "type": "object",
-            "description": "Meinungsänderungen pro Dimension (Deltas -0.3 bis +0.3)",
+            "description": "Meinungsänderungen pro Dimension. NORMAL: ±0.00-0.05. Nur bei konkretem Anlass höher.",
             "properties": {
                 "product_quality": {"type": "number"},
                 "price_fairness": {"type": "number"},
@@ -282,8 +335,17 @@ STATE_UPDATE_TOOL_SCHEMA = {
                 "personal_relevance": {"type": "number"},
             },
         },
+        "change_justification": {
+            "type": "string",
+            "description": (
+                "PFLICHT: Konkrete Begründung für die Shifts. "
+                "Was genau hat die Änderung ausgelöst? Welcher Post, welches Argument? "
+                "Bei Shift=0: 'Kein relevanter Impuls heute.' "
+                "Bei Shift>0.1: Muss spezifischen Auslöser benennen."
+            ),
+        },
     },
-    "required": ["opinion_evolution", "mood"],
+    "required": ["opinion_evolution", "mood", "change_justification"],
 }
 
 
@@ -841,6 +903,52 @@ def _calculate_ambient_mood(persona: Persona, posts: list[Post]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Realism Overhaul: Phasen-Dynamik & Sentiment-Kalibrierung
+# ---------------------------------------------------------------------------
+
+def _get_phase_instruction(ingame_day: int, total_ticks: int) -> str:
+    """Gibt Phasen-Instruktion basierend auf Fortschritt zurück."""
+    if total_ticks <= 0:
+        return ""
+    progress = ingame_day / total_ticks
+    if progress <= 0.15:
+        return "PHASE: Anfangsneugier. Du bist vorsichtig optimistisch oder neugierig. Stelle Fragen, äußere erste Eindrücke."
+    elif progress <= 0.50:
+        return "PHASE: Vertiefung. Erste Kritik wird lauter, konkrete Use-Cases werden diskutiert. Du hast schon Erfahrungen gesammelt."
+    elif progress <= 0.80:
+        return "PHASE: Polarisierung. Skeptiker werden lauter, Lager bilden sich. Du hast eine klarere Meinung als am Anfang."
+    else:
+        return "PHASE: Festigung. Positionen sind klar, wenig Meinungswechsel. Du wiederholst deine Kernaussagen oder ziehst Fazit."
+
+
+def _get_sentiment_calibration_nudge(personas: list, target_neutral: float = 0.65) -> str:
+    """Gibt Sentiment-Kalibrierungs-Nudge zurück wenn Stimmung zu polarisiert ist."""
+    if not personas:
+        return ""
+    positive = 0
+    negative = 0
+    for p in personas:
+        dims = (p.current_state or {}).get("opinion_dimensions", {})
+        if dims:
+            avg = sum(dims.values()) / len(dims)
+            if avg > 0.2:
+                positive += 1
+            elif avg < -0.2:
+                negative += 1
+    total = len(personas)
+    if total == 0:
+        return ""
+    pos_pct = positive / total
+    neg_pct = negative / total
+
+    if pos_pct > 0.40:
+        return "KALIBRIERUNG: Die Stimmung im Netzwerk ist übermäßig positiv. Sei kritischer, differenzierter. Nicht alles ist gut."
+    elif neg_pct > 0.30:
+        return "KALIBRIERUNG: Die Stimmung im Netzwerk ist übermäßig negativ. Es gibt auch positive Aspekte. Sei differenzierter."
+    return ""
+
+
+# ---------------------------------------------------------------------------
 # Persona-Action (async — ein API-Call pro Persona, mit tool_use)
 # ---------------------------------------------------------------------------
 
@@ -856,6 +964,9 @@ async def persona_action(
     top_p: float | None = None,
     top_k: int | None = None,
     market_context_summary: str | None = None,
+    total_ticks: int = 15,
+    all_personas: list | None = None,
+    realism_config: dict | None = None,
 ) -> dict:
     """Lässt eine Persona auf ihren Feed reagieren.
 
@@ -874,6 +985,45 @@ async def persona_action(
 
     system_prompt = _build_agent_system_prompt(market_context_summary)
 
+    # --- Realism Overhaul: Instruktionen zusammenbauen ---
+    realism_instructions = []
+
+    # 1. Response-Typ bestimmen (noise, protest, acquiescence, superficial, normal)
+    config = realism_config or {}
+    if config.get("discussion_dynamics", True):
+        response_type = determine_response_type(persona, ingame_day, total_ticks)
+        noise_instr = build_noise_instruction(response_type)
+        if noise_instr:
+            realism_instructions.append(noise_instr)
+
+    # 2. Antwort-Länge bestimmen
+    length_type = determine_response_length(persona)
+    realism_instructions.append(build_length_instruction(length_type))
+
+    # 3. Diskussionsrollen-Instruktion
+    discussion_role = getattr(persona, 'discussion_role', None)
+    if discussion_role:
+        realism_instructions.append(get_role_prompt_instruction(discussion_role))
+
+    # 4. Communication Style Composite
+    style_prompt = build_composite_style_prompt(persona)
+    if style_prompt:
+        realism_instructions.append(style_prompt)
+
+    # 5. Phasen-Dynamik
+    if config.get("discussion_dynamics", True):
+        phase_instr = _get_phase_instruction(ingame_day, total_ticks)
+        if phase_instr:
+            realism_instructions.append(phase_instr)
+
+    # 6. Sentiment-Kalibrierung
+    if config.get("neutral_sentiment_target", True) and all_personas:
+        sentiment_nudge = _get_sentiment_calibration_nudge(all_personas)
+        if sentiment_nudge:
+            realism_instructions.append(sentiment_nudge)
+
+    realism_block = "\n\n".join(realism_instructions) if realism_instructions else ""
+
     try:
         async with semaphore:
             return await provider.call_tool(
@@ -887,6 +1037,7 @@ async def persona_action(
                             f"Ingame-Tag {ingame_day}.\n\n"
                             f"{history_block}"
                             f"=== Dein Feed heute ===\n{feed_text}\n\n"
+                            f"{'=== VERHALTENS-INSTRUKTIONEN ===' + chr(10) + realism_block + chr(10) + '=== ENDE ===' + chr(10) + chr(10) if realism_block else ''}"
                             f"Was tust du heute? Du kannst 1-3 Aktionen durchführen "
                             f"(posten, kommentieren, reagieren oder nichts tun). "
                             f"Nutze das persona_action Tool."
@@ -972,14 +1123,15 @@ async def update_persona_state_async(
     prompt = (
         f"Persona: {persona.name}, {persona.age}J, {persona.location}\n"
         f"Persönlichkeit: {persona.personality}\n"
+        f"Big Five: {json.dumps(persona.personality_traits or {}, ensure_ascii=False)}\n"
         f"Bisherige Meinungsentwicklung: {current_opinion}\n"
         f"Aktuelle Stimmung: {current_mood}\n"
         f"Stimmung im sozialen Umfeld: {ambient_mood}\n"
         f"Heutige Aktionen (Tag {tick_number}): {combined_summary}\n\n"
-        f"Beschreibe in 1-2 Sätzen wie sich die Meinung dieser Person entwickelt hat, "
-        f"dann gib die aktuelle Stimmung als ein Wort an. "
-        f"Welcher Post aus dem Feed hat die Meinung dieser Person heute am meisten beeinflusst? "
-        f"Gib die post_id an (oder null wenn keiner entscheidend war). "
+        f"Analysiere den heutigen Tag dieser Person. "
+        f"WICHTIG: Die meisten Tage passiert wenig — Shift=0 ist der Normalfall. "
+        f"Nur wenn ein konkreter Post oder Ereignis die Person beeinflusst hat, gibt es einen Shift. "
+        f"Begründe jeden Shift kausal (change_justification). "
         f"Nutze das state_update Tool."
     )
 
@@ -1253,7 +1405,7 @@ async def run_tick(
         )
 
         # v1.1: Filter personas by activation latency and posting probability
-        active_wave_personas = [p for p in wave_personas if _should_persona_act(p, ingame_day)]
+        active_wave_personas = [p for p in wave_personas if _should_persona_act(p, ingame_day, total_ticks)]
 
         # If trigger events exist, boost activation for affected types
         if trigger_events:
@@ -1281,6 +1433,9 @@ async def run_tick(
         }
 
         # --- Persona-Calls parallel (max 10 concurrent via Semaphore) ---
+        # Realism config von der Simulation lesen
+        sim_realism_config = getattr(sim, 'realism_config', None) or {}
+
         results = await asyncio.gather(
             *[
                 persona_action(
@@ -1295,6 +1450,9 @@ async def run_tick(
                     top_p=action_top_p,
                     top_k=action_top_k,
                     market_context_summary=effective_context or None,
+                    total_ticks=total_ticks,
+                    all_personas=personas,
+                    realism_config=sim_realism_config,
                 )
                 for p in active_wave_personas
             ],

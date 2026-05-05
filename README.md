@@ -97,21 +97,21 @@ Market research is expensive, slow, and often inconclusive. Focus groups cost fi
   <tr>
     <td width="50%">
       <h3>Virtual Market Research</h3>
-      <p>10 to 500 AI personas with Big Five personality traits, demographic profiles, and individual opinions. Distributed along the Rogers Diffusion curve: innovators, early adopters, skeptics, traditionalists.</p>
+      <p>10 to 500 AI personas with Big Five personality traits, demographic profiles, and individual opinions. Distributed along the Rogers Diffusion curve: innovators, early adopters, skeptics, traditionalists. 9 actor types: private persons, companies, research institutes, authorities, media, influencers, experts, collectives, validators.</p>
     </td>
     <td width="50%">
-      <h3>Deep Mode: Web Research</h3>
-      <p>Before the simulation, Agora automatically researches current market conditions — economy, industry trends, target group sentiment. Personas live in <em>today's</em> reality, not generic LLM training data.</p>
+      <h3>Realism Overhaul</h3>
+      <p>Research-backed calibration: 6 discussion roles (opinion leaders, followers, contrarians…), regional DACH dialects, age-based communication styles, survey fatigue, noise/off-topic responses (15-30%), and phase dynamics (curiosity → deepening → polarization → consolidation). Based on AAPOR, ESOMAR, and Stanford Generative Agents research.</p>
     </td>
   </tr>
   <tr>
     <td>
       <h3>Anti-Echo-Chamber</h3>
-      <p>Bounded Confidence, Conviction Strength, Opposing-View Injection, and automatic contrarian posts prevent unrealistic mass conversion. Skeptics stay skeptical — when they should.</p>
+      <p>Bounded Confidence, Conviction Strength, Opposing-View Injection, sentiment calibration feedback loops, and automatic contrarian posts prevent unrealistic mass conversion. Skeptics stay skeptical — when they should.</p>
     </td>
     <td>
-      <h3>Confidence Ratings</h3>
-      <p>Every insight in the report is tagged [HIGH], [MEDIUM], or [LOW CONFIDENCE]. The report honestly tells you what's reliable and what needs real-world validation.</p>
+      <h3>ESOMAR-Compliant Reports</h3>
+      <p>Reports include methodology sections, confidence intervals (95% CI), significance tests (p-values, Cohen's d), NPS industry benchmarks, and honest limitations. Every insight tagged [HIGH], [MEDIUM], or [LOW CONFIDENCE].</p>
     </td>
   </tr>
   <tr>
@@ -122,6 +122,16 @@ Market research is expensive, slow, and often inconclusive. Focus groups cost fi
     <td>
       <h3>Multi-Run & Stress Tests</h3>
       <p>Run the same simulation 3-5 times and measure variance. Sensitivity tests with different skeptic ratios. Remove-and-rerun: remove the most influential actors and check if results hold.</p>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <h3>Deep Mode: Web Research</h3>
+      <p>Before the simulation, Agora automatically researches current market conditions — economy, industry trends, target group sentiment. Personas live in <em>today's</em> reality, not generic LLM training data.</p>
+    </td>
+    <td>
+      <h3>Scenario Types</h3>
+      <p>6 predefined scenario types (B2C Product, B2B SaaS, Healthcare, Political, Financial, Industrial) with optimized actor distributions. Each scenario auto-suggests the best respondent mix based on market research methodology.</p>
     </td>
   </tr>
 </table>
@@ -158,11 +168,11 @@ Create Simulation             Describe product, market, industry
 
 | Phase | What Happens | Model Tier |
 |-------|-------------|------------|
-| Web Research | Gather current market data | Smart (Sonnet/GPT-5) |
-| Persona Generation | Skeletons + personality enrichment | Smart (parallel) |
-| Agent Actions | Posting, commenting, reacting | Fast (Haiku/GPT-5-mini) |
-| State Updates | Opinion & mood evolution | Fast (parallel) |
-| Analysis Report | Structured market research report | Smart |
+| Web Research | Gather current market data with authority-ranked synthesis | Smart (Sonnet/GPT-5) |
+| Persona Generation | Skeletons + enrichment (discussion roles, verbal tics, contradictions) | Smart (parallel) |
+| Agent Actions | Posting, commenting, reacting — with response calibration, noise, fatigue | Fast (Haiku/GPT-5-mini) |
+| State Updates | Opinion & mood evolution with causal reasoning (change_justification) | Fast (parallel) |
+| Analysis Report | ESOMAR-compliant report with confidence intervals and benchmarks | Smart |
 
 
 ---
@@ -322,6 +332,8 @@ Transparency is part of the product:
 - [ ] A/B comparison: simulate two product descriptions against each other
 - [ ] Real-time persona chat during running simulation
 - [ ] Webhook integrations (Slack, Teams, n8n)
+- [ ] Van Westendorp pricing analysis module
+- [ ] Conjoint analysis simulation
 - [ ] Self-hosted cloud version
 
 ---

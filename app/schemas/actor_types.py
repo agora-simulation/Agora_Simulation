@@ -175,6 +175,62 @@ DISTRIBUTION_TEMPLATES: dict[str, dict[str, float]] = {
 }
 
 
+# --- Szenario-Respondenten-Mix (Realism Overhaul Phase 7) ---
+# Szenario-spezifische Verteilungen auf Basis von Marktforschungsmethodik
+
+SCENARIO_RESPONDENT_MIX: dict[str, dict[str, int]] = {
+    "b2c_product": {
+        "private_person": 75, "influencer": 12, "company": 8, "expert": 5,
+    },
+    "b2b_saas": {
+        "company": 35, "expert": 28, "private_person": 22, "authority": 15,
+    },
+    "healthcare": {
+        "expert": 45, "authority": 18, "research_institute": 12,
+        "private_person": 8, "company": 17,
+    },
+    "political": {
+        "private_person": 70, "media": 10, "expert": 8,
+        "collective": 5, "authority": 5, "influencer": 2,
+    },
+    "financial": {
+        "private_person": 45, "company": 22, "expert": 18, "authority": 15,
+    },
+    "industrial": {
+        "company": 28, "expert": 28, "authority": 17,
+        "private_person": 12, "research_institute": 15,
+    },
+}
+
+
+def resolve_scenario_to_actor_distribution(scenario_type: str) -> dict[str, int]:
+    """Löst einen Szenario-Typ in eine Akteurs-Verteilung auf.
+
+    Falls der Szenario-Typ nicht in SCENARIO_RESPONDENT_MIX vorhanden ist,
+    wird auf DISTRIBUTION_TEMPLATES zurückgefallen.
+
+    Args:
+        scenario_type: z.B. "b2c_product", "b2b_saas", "healthcare"
+
+    Returns:
+        Dict mit Akteurs-Typ -> Prozent-Anteil
+    """
+    if scenario_type in SCENARIO_RESPONDENT_MIX:
+        return SCENARIO_RESPONDENT_MIX[scenario_type]
+
+    # Mapping Szenario -> existierendes Template
+    _SCENARIO_TO_TEMPLATE = {
+        "b2c_product": "b2c_konsum",
+        "b2b_saas": "b2b_software",
+        "healthcare": "healthcare_pharma",
+        "political": "politische_initiative",
+        "financial": "finanz",
+        "industrial": "b2b_industriegut",
+    }
+    template_key = _SCENARIO_TO_TEMPLATE.get(scenario_type, "b2c_konsum")
+    return DISTRIBUTION_TEMPLATES.get(template_key, DISTRIBUTION_TEMPLATES["b2c_konsum"])
+
+
 # --- Platform affinity defaults ---
 
 PLATFORM_AFFINITY_DEFAULTS: dict[str, dict[str, float]] = {

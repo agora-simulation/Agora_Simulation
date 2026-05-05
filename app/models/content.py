@@ -96,6 +96,10 @@ class AnalysisReport(Base):
     stagnation_events = Column(Text, nullable=True)
     function_tag_overview = Column(Text, nullable=True)
     quota_estimates = Column(JSON, nullable=True)
+    # Realism Overhaul: ESOMAR-Pflichtfelder
+    methodology_section = Column(Text, nullable=True)
+    statistical_notes = Column(Text, nullable=True)
+    nps_benchmark_comparison = Column(Text, nullable=True)
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", back_populates="reports")

@@ -48,7 +48,7 @@
     </div>
   </div>
 
-  <p style="font-size: 14px; color: var(--ink-3); margin-bottom: 32px; max-width: 640px;">
+  <p style="font-size: 15px; color: var(--ink-3); margin-bottom: 32px; max-width: 640px;">
     Erzählerische Auswertung mit Wendepunkten, Kritikpunkten und Chancen.
   </p>
 
@@ -120,9 +120,11 @@
 
         <!-- Section Cards -->
         <div class="mt-8">
-          <h3 style="font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 14px;">
+          <h3 style="font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; align-items: center; gap: 10px;">
+            <i class="pi pi-list" style="font-size: 16px; color: var(--cyan);"></i>
             Detail-Befunde
           </h3>
+          <p style="font-size: 14px; color: var(--ink-3); margin-bottom: 16px;">Einzelauswertungen zu Sentiment, Netzwerk, Wendepunkten und mehr</p>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             @for (section of sections; track section.key) {
@@ -268,28 +270,102 @@
     padding-bottom: 20px;
     border-bottom: 1px solid var(--border);
   }
+
+  /* ── Report Prose — richer typography ── */
   .report-prose {
     font-size: 15.5px;
-    line-height: 1.75;
+    line-height: 1.8;
     color: var(--ink);
   }
   .report-prose :first-child { margin-top: 0; }
-  .report-prose h3 { font-size: 18px; font-weight: 700; color: var(--ink); margin: 28px 0 12px; }
-  .report-prose h4 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 20px 0 8px; }
-  .report-prose p { margin: 0 0 14px; }
-  .report-prose strong { font-weight: 600; color: var(--ink); }
-  .report-prose ul, .report-prose ol { margin: 0 0 14px; padding-left: 24px; }
-  .report-prose li { margin-bottom: 6px; }
-  .report-prose blockquote {
-    border-left: 3px solid var(--primary);
-    padding: 8px 16px;
-    margin: 14px 0;
-    background: var(--surface-2);
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  .report-prose h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 32px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-prose h4 {
+    font-size: 15.5px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin: 22px 0 10px;
+  }
+  .report-prose p { margin: 0 0 16px; }
+  .report-prose strong {
+    font-weight: 700;
+    color: var(--ink);
+    background: linear-gradient(to top, rgba(230, 183, 113, 0.15) 40%, transparent 40%);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  .report-prose em {
     color: var(--ink-2);
     font-style: italic;
   }
+  .report-prose ul, .report-prose ol { margin: 0 0 16px; padding-left: 8px; list-style: none; }
+  .report-prose ul li {
+    margin-bottom: 8px;
+    padding-left: 20px;
+    position: relative;
+  }
+  .report-prose ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    opacity: 0.6;
+  }
+  .report-prose ol { counter-reset: report-ol; padding-left: 0; }
+  .report-prose ol li {
+    margin-bottom: 8px;
+    padding-left: 28px;
+    position: relative;
+    counter-increment: report-ol;
+  }
+  .report-prose ol li::before {
+    content: counter(report-ol);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--primary-l);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+  }
+  .report-prose blockquote {
+    border-left: 3px solid var(--cyan);
+    padding: 12px 18px;
+    margin: 18px 0;
+    background: rgba(61, 184, 165, 0.06);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    color: var(--ink-2);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .report-prose code {
+    background: var(--surface-3);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: var(--font-mono);
+  }
 
+  /* ── Summary Sections — colored accents per section ── */
   .summary-sections {
     display: flex;
     flex-direction: column;
@@ -299,15 +375,31 @@
   .summary-section-card {
     background: var(--surface);
     border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
     border-radius: var(--radius);
     padding: 28px 32px;
     scroll-margin-top: 110px;
-    transition: border-color 160ms ease, box-shadow 160ms ease;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 200ms ease;
   }
+  .summary-section-card:nth-child(1) { border-left-color: var(--primary); }
+  .summary-section-card:nth-child(2) { border-left-color: var(--cyan); }
+  .summary-section-card:nth-child(3) { border-left-color: var(--purple); }
+  .summary-section-card:nth-child(4) { border-left-color: var(--success); }
+  .summary-section-card:nth-child(5) { border-left-color: var(--info); }
+  .summary-section-card:nth-child(6) { border-left-color: var(--warning); }
+
   .summary-section-card:hover {
     border-color: var(--border-strong);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
+    transform: translateX(2px);
   }
+  .summary-section-card:nth-child(1):hover { border-left-color: var(--primary); }
+  .summary-section-card:nth-child(2):hover { border-left-color: var(--cyan); }
+  .summary-section-card:nth-child(3):hover { border-left-color: var(--purple); }
+  .summary-section-card:nth-child(4):hover { border-left-color: var(--success); }
+  .summary-section-card:nth-child(5):hover { border-left-color: var(--info); }
+  .summary-section-card:nth-child(6):hover { border-left-color: var(--warning); }
+
   .summary-section-header {
     display: flex;
     align-items: center;
@@ -317,18 +409,30 @@
     border-bottom: 1px solid var(--border);
   }
   .summary-section-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
+  /* Icon colors matching the left border */
+  .summary-section-card:nth-child(1) .summary-section-icon { background: rgba(230, 183, 113, 0.12); }
+  .summary-section-card:nth-child(1) .summary-section-icon i { color: var(--primary); }
+  .summary-section-card:nth-child(2) .summary-section-icon { background: rgba(61, 184, 165, 0.12); }
+  .summary-section-card:nth-child(2) .summary-section-icon i { color: var(--cyan); }
+  .summary-section-card:nth-child(3) .summary-section-icon { background: rgba(165, 116, 204, 0.12); }
+  .summary-section-card:nth-child(3) .summary-section-icon i { color: var(--purple); }
+  .summary-section-card:nth-child(4) .summary-section-icon { background: rgba(74, 186, 122, 0.12); }
+  .summary-section-card:nth-child(4) .summary-section-icon i { color: var(--success); }
+  .summary-section-card:nth-child(5) .summary-section-icon { background: rgba(90, 159, 214, 0.12); }
+  .summary-section-card:nth-child(5) .summary-section-icon i { color: var(--info); }
+  .summary-section-card:nth-child(6) .summary-section-icon { background: rgba(230, 160, 64, 0.12); }
+  .summary-section-card:nth-child(6) .summary-section-icon i { color: var(--warning); }
+
   .summary-section-icon i {
-    font-size: 16px;
-    color: var(--primary);
+    font-size: 18px;
   }
   .summary-section-title {
     font-size: 18px;
@@ -338,7 +442,7 @@
   }
 
   .outline-group-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -346,51 +450,134 @@
     padding: 4px 10px;
   }
 
+  /* ── Detail Section Cards — color-coded by category ── */
   .section-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 22px;
     scroll-margin-top: 110px;
-    transition: border-color 160ms ease, box-shadow 160ms ease;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 200ms ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .section-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary);
+    opacity: 0.5;
+    transition: opacity 200ms ease;
   }
   .section-card:hover {
     border-color: var(--border-strong);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
   }
+  .section-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Color-code by section category */
+  .section-card:nth-child(6n+1)::before { background: var(--primary); }
+  .section-card:nth-child(6n+2)::before { background: var(--cyan); }
+  .section-card:nth-child(6n+3)::before { background: var(--purple); }
+  .section-card:nth-child(6n+4)::before { background: var(--success); }
+  .section-card:nth-child(6n+5)::before { background: var(--info); }
+  .section-card:nth-child(6n+6)::before { background: var(--warning); }
+
+  .section-card:nth-child(6n+1) .section-card-header i { color: var(--primary); }
+  .section-card:nth-child(6n+2) .section-card-header i { color: var(--cyan); }
+  .section-card:nth-child(6n+3) .section-card-header i { color: var(--purple); }
+  .section-card:nth-child(6n+4) .section-card-header i { color: var(--success); }
+  .section-card:nth-child(6n+5) .section-card-header i { color: var(--info); }
+  .section-card:nth-child(6n+6) .section-card-header i { color: var(--warning); }
+
   .section-card-header {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
   .section-card-header i {
-    font-size: 16px;
-    color: var(--primary);
+    font-size: 18px;
   }
   .section-card-header h4 {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 15.5px;
+    font-weight: 700;
     color: var(--ink);
   }
+
+  /* ── Section Text — styled prose ── */
   .section-text {
-    font-size: 13.5px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.7;
     color: var(--ink-2);
   }
   .section-text :first-child { margin-top: 0; }
   .section-text :last-child { margin-bottom: 0; }
-  .section-text h3 { font-size: 14.5px; font-weight: 600; color: var(--ink); margin: 16px 0 6px; }
-  .section-text p { margin: 0 0 10px; }
-  .section-text strong { font-weight: 600; color: var(--ink); }
-  .section-text ul, .section-text ol { margin: 0 0 10px; padding-left: 20px; }
-  .section-text li { margin-bottom: 4px; }
+  .section-text h3 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 18px 0 8px;
+  }
+  .section-text p { margin: 0 0 12px; }
+  .section-text strong {
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .section-text ul, .section-text ol { margin: 0 0 12px; padding-left: 6px; list-style: none; }
+  .section-text ul li {
+    margin-bottom: 6px;
+    padding-left: 16px;
+    position: relative;
+  }
+  .section-text ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    opacity: 0.5;
+  }
+  .section-text ol { counter-reset: section-ol; }
+  .section-text ol li {
+    margin-bottom: 6px;
+    padding-left: 22px;
+    position: relative;
+    counter-increment: section-ol;
+  }
+  .section-text ol li::before {
+    content: counter(section-ol) ".";
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 13px;
+    font-family: var(--font-mono);
+  }
   .section-text blockquote {
-    border-left: 2px solid var(--primary);
-    padding: 6px 12px;
-    margin: 8px 0;
-    background: var(--surface-2);
+    border-left: 2px solid var(--purple);
+    padding: 8px 14px;
+    margin: 10px 0;
+    background: rgba(165, 116, 204, 0.06);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     font-style: italic;
+    color: var(--ink-2);
+  }
+  .section-text code {
+    background: var(--surface-3);
+    color: var(--cyan);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: var(--font-mono);
   }
 </style>

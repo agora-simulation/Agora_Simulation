@@ -31,6 +31,9 @@ class SimulationCreate(BaseModel):
     research_snapshot_id: UUID | None = None
     stagnation_mode: str = Field("mild", description="off, mild, aggressive")
     distribution_template: dict | None = None
+    # Realism Overhaul
+    scenario_type: str | None = Field(None, description="b2c_product, b2b_saas, healthcare, political, financial, industrial")
+    realism_config: dict | None = Field(None, description="noise_rate, fatigue_enabled, neutral_sentiment_target, discussion_dynamics")
 
     @field_validator("webhook_url")
     @classmethod
@@ -76,6 +79,9 @@ class SimulationRead(UUIDModel, TimestampMixin):
     research_snapshot_id: UUID | None = None
     stagnation_mode: str = "mild"
     distribution_template: dict | None = None
+    # Realism Overhaul
+    scenario_type: str | None = None
+    realism_config: dict | None = None
 
 
 class SimulationRunResponse(BaseModel):

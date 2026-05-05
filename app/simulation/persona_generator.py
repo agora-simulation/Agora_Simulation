@@ -89,10 +89,26 @@ SKELETON_TOOL_SCHEMA = {
                         "enum": ["niedrig", "mittel", "hoch", "sehr_hoch"],
                     },
                     "tech_affinity": {"type": "number"},
+                    "discussion_role": {
+                        "type": "string",
+                        "enum": ["opinion_leader", "engaged", "follower", "quiet", "contrarian", "showboat"],
+                    },
+                    "rogers_category": {
+                        "type": "string",
+                        "enum": ["innovator", "early_adopter", "early_majority", "late_majority", "laggard"],
+                    },
+                    "formality_level": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "regional_dialect": {
+                        "type": "string",
+                        "enum": ["norddeutsch", "bayerisch", "berlinerisch", "oesterreichisch", "schweizerdeutsch", "neutral"],
+                    },
+                    "b2b_b2c_mode": {"type": "string", "enum": ["b2b", "b2c"]},
                 },
                 "required": ["name", "age", "location", "occupation", "is_skeptic",
                              "actor_type", "preferred_platform", "education_level",
-                             "income_bracket", "tech_affinity"],
+                             "income_bracket", "tech_affinity",
+                             "discussion_role", "rogers_category", "formality_level",
+                             "regional_dialect"],
             },
         }
     },
@@ -121,6 +137,23 @@ Die 9 AKTEURS-TYPEN:
 7. expert — Domänen-Autorität
 8. collective — Verband/NGO/Partei/Kammer/Stiftung (subtype angeben)
 9. validator — Prüfstelle/Zertifizierer (subtype: tuev/behoerdliche_pruefstelle/versicherer/norm_setter)
+
+DISKUSSIONSROLLEN (jede Persona bekommt genau eine):
+- opinion_leader (10-15%): Spricht zuerst, rahmt die Diskussion
+- engaged (30-40%): Aktiv, baut auf anderen auf
+- follower (25-35%): Stimmt Mehrheit zu, kurz
+- quiet (10-20%): Spricht nur wenn angesprochen
+- contrarian (5-10%): Stellt Konsens in Frage
+- showboat (3-5%): Off-topic, monopolisiert
+
+ROGERS DIFFUSION: innovator 2.5%, early_adopter 13.5%, early_majority 34%, late_majority 34%, laggard 16%
+Korreliert mit tech_affinity: Innovatoren >0.8, Laggards <0.2.
+
+REGIONALE DIALEKTE (DACH): norddeutsch, bayerisch, berlinerisch, oesterreichisch, schweizerdeutsch, neutral
+Wähle passend zum Standort. ~40% neutral, Rest verteilt nach Region.
+
+FORMALITÄTS-LEVEL 1-5: Korreliert mit Alter und Bildung.
+1 = sehr salopp (Gen Z), 2 = locker, 3 = normal, 4 = formell, 5 = sehr formell (Boomer/Akademiker).
 
 activation_latency (Tage bis aktiv): Privatpersonen 0-1, Firmen 1-3, Institute 5-10,
 Behörden 7-15, Medien 1-4, Influencer 0-2, Experten 2-5, Kollektive 3-7, Validierer 10-20.
@@ -242,12 +275,46 @@ ENRICH_TOOL_SCHEMA = {
             },
             "required": ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"],
         },
+        # Realism Overhaul: neue Enrichment-Felder
+        "response_length_tendency": {
+            "type": "string",
+            "enum": ["one_liner", "medium", "detailed"],
+            "description": "Antwort-Tendenz: 35% one_liner, 40% medium, 25% detailed",
+        },
+        "noise_propensity": {
+            "type": "number",
+            "minimum": 0, "maximum": 1,
+            "description": "Off-Topic-Wahrscheinlichkeit (0-1, Realität: 0.15-0.30)",
+        },
+        "acquiescence_bias": {
+            "type": "number",
+            "minimum": 0, "maximum": 1,
+            "description": "Ja-Sager-Tendenz (0-1, Realität: 0.10-0.20)",
+        },
+        "survey_fatigue_rate": {
+            "type": "number",
+            "minimum": 0, "maximum": 1,
+            "description": "Ermüdungsrate (0-1, wie schnell die Antwortqualität sinkt)",
+        },
+        "verbal_tics": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 3,
+            "description": "1-3 Sprachmarotten (z.B. 'quasi', 'im Endeffekt', 'sage ich mal')",
+        },
+        "internal_contradictions": {
+            "type": "string",
+            "description": "1 realistischer Widerspruch in den Ansichten dieser Person",
+        },
     },
     "required": ["personality", "values", "communication_style", "initial_opinion",
-                 "family_status", "political_leaning", "media_consumption", "personality_traits"],
+                 "family_status", "political_leaning", "media_consumption", "personality_traits",
+                 "response_length_tendency", "noise_propensity", "acquiescence_bias",
+                 "survey_fatigue_rate", "verbal_tics", "internal_contradictions"],
 }
 
-ENRICH_SYSTEM_PROMPT = """Du bist Psychologe und Gesellschaftsforscher.
+ENRICH_SYSTEM_PROMPT = """Du bist KEIN KI-Assistent. Du erschaffst eine ECHTE Person mit Macken, Widersprüchen und Eigenheiten.
+
 Erstelle eine realistische, EINZIGARTIGE Persönlichkeit. Jede Person muss sich deutlich von anderen unterscheiden.
 
 DIVERSITÄTS-REGELN:
@@ -258,6 +325,14 @@ DIVERSITÄTS-REGELN:
 - Big Five: Extreme nutzen! Nicht alles bei 0.4-0.6. Introvertierte (E<0.2), Konfrontative (A<0.2), Neurotische (N>0.8) sind realistisch.
 - political_leaning: Volle Bandbreite, nicht nur "mitte".
 - media_consumption: Realistisch zur Person (68-Jährige liest Tageszeitung, nicht TikTok).
+
+ANTWORT-VERHALTEN (realistische Marktforschung):
+- response_length_tendency: 35% one_liner, 40% medium, 25% detailed. Wähle passend zur Person.
+- noise_propensity (0-1): Wie oft geht die Person off-topic? Realität: 15-30%. Extrovertierte & Showboats höher.
+- acquiescence_bias (0-1): Ja-Sager-Tendenz. Realität: 10-20%. Follower höher, Contrarians niedriger.
+- survey_fatigue_rate (0-1): Wie schnell ermüdet die Person? Jüngere und Desinteressierte schneller.
+- verbal_tics: 1-3 KONKRETE Sprachmarotten. Z.B. "quasi", "im Endeffekt", "sage ich mal", "halt", "sozusagen", "an und für sich", "jetzt mal ehrlich", "also ich muss sagen".
+- internal_contradictions: 1 KONKRETER Widerspruch. Z.B. "Ist für Umweltschutz, fliegt aber 3x im Jahr in den Urlaub" oder "Fordert Datenschutz, nutzt aber alle Social-Media-Plattformen".
 
 HALTE DICH KURZ. Keine langen Erklärungen."""
 
@@ -371,6 +446,12 @@ def _classify_adopter_type(persona: dict) -> str:
     else: return "laggard"
 
 
+DISCUSSION_ROLE_DISTRIBUTION = {
+    "opinion_leader": 0.12, "engaged": 0.35, "follower": 0.30,
+    "quiet": 0.15, "contrarian": 0.05, "showboat": 0.03,
+}
+
+
 def _validate_and_adjust_personas(personas: list[dict], target_count: int) -> list[dict]:
     if not personas:
         return personas
@@ -393,6 +474,38 @@ def _validate_and_adjust_personas(personas: list[dict], target_count: int) -> li
         non_skeptics.sort(key=lambda p: (p.get("personality_traits") or {}).get("openness", 0.5))
         for p in non_skeptics[:int(0.20 * n) - skeptic_count]:
             p["is_skeptic"] = True
+
+    # Diskussionsrollen-Verteilung prüfen und nachrüsten
+    role_counts = {}
+    no_role = []
+    for p in personas:
+        role = p.get("discussion_role")
+        if role and role in DISCUSSION_ROLE_DISTRIBUTION:
+            role_counts[role] = role_counts.get(role, 0) + 1
+        else:
+            no_role.append(p)
+
+    # Fehlende Rollen zuweisen
+    if no_role:
+        from app.simulation.discussion_roles import assign_discussion_role
+        for p in no_role:
+            p["discussion_role"] = assign_discussion_role(p)
+        logger.info(f"Diskussionsrollen nachgerüstet für {len(no_role)} Personas")
+
+    # Regionale Dialekt-Verteilung prüfen (~40% neutral)
+    dialect_counts = {}
+    for p in personas:
+        d = p.get("regional_dialect", "neutral")
+        dialect_counts[d] = dialect_counts.get(d, 0) + 1
+    neutral_pct = dialect_counts.get("neutral", 0) / n
+    if neutral_pct < 0.25:
+        logger.warning(f"Nur {neutral_pct:.0%} neutral-Dialekt (Soll: ~40%)")
+
+    # Formality-Level Verteilung (Normalverteilung um 3)
+    formality_values = [p.get("formality_level", 3) for p in personas]
+    avg_formality = sum(formality_values) / n
+    if abs(avg_formality - 3.0) > 1.0:
+        logger.warning(f"Formality-Level Durchschnitt = {avg_formality:.1f} (Soll: ~3.0)")
 
     return personas
 

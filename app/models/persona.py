@@ -79,6 +79,17 @@ class Persona(Base):
     engagement_decay_rate = Column(Float, default=0.05)
     profile_data = Column(JSON, default=dict)  # type-specific profile fields
 
+    # Realism Overhaul: Diskussions- und Verhaltensfelder
+    discussion_role = Column(String(30), nullable=True)  # opinion_leader, engaged, follower, quiet, contrarian, showboat
+    rogers_category = Column(String(20), nullable=True)  # innovator, early_adopter, early_majority, late_majority, laggard
+    formality_level = Column(Integer, nullable=True)  # 1 (sehr salopp) bis 5 (sehr formell)
+    response_length_tendency = Column(String(20), nullable=True)  # one_liner, medium, detailed
+    noise_propensity = Column(Float, default=0.15)  # 0.0-1.0, Off-Topic-Wahrscheinlichkeit
+    acquiescence_bias = Column(Float, default=0.10)  # 0.0-1.0, Ja-Sager-Tendenz
+    survey_fatigue_rate = Column(Float, default=0.20)  # 0.0-1.0, Qualitätsabfall über Zeit
+    regional_dialect = Column(String(50), default="neutral")  # norddeutsch, bayerisch, berlinerisch, oesterreichisch, schweizerdeutsch, neutral
+    b2b_b2c_mode = Column(String(10), default="b2c")  # b2b oder b2c
+
     created_at = Column(DateTime, default=_utcnow)
 
     simulation = relationship("Simulation", back_populates="personas")

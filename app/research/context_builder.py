@@ -164,33 +164,36 @@ async def synthesize_context(
 
     search_text = json.dumps(search_data, ensure_ascii=False, indent=2) if search_data else "Keine Ergebnisse gefunden."
 
-    prompt = f"""Analysiere diese Web-Recherche-Ergebnisse und erstelle ein strukturiertes Market-Context-Document.
-
-## Simulationskontext
-Produkt: {product_description}
+    prompt = f"""Produkt: {product_description}
 Zielmarkt: {target_market}
 Branche: {industry}
 
 ## Web-Recherche-Ergebnisse
 {search_text}
 
-## Anweisungen
-1. Fasse die Ergebnisse in drei Schichten zusammen: Makro, Branche, Zielgruppe
-2. Sei KONKRET aber KURZ — max 150 Wörter pro Schicht
-3. Wenn die Quellen wenig hergeben, ergänze mit deinem Wissen — markiere als "[LLM-Wissen]"
-4. prompt_summary: MAX 200 Wörter, kompakt genug für einen Persona-Prompt
-5. Fokus auf Faktoren die Persona-Verhalten beeinflussen
-6. KEINE langen Einleitungen oder Zusammenfassungen — direkt die Fakten
+Synthetisiere zu MarketContext. Max 3 Bullets pro Kategorie. Nutze das market_context Tool."""
 
-Nutze das market_context Tool."""
+    synthesis_system = """Du bist Research-Analyst. Synthetisiere Web-Recherche zu Marktkontext.
+
+AUTORITÄTS-HIERARCHIE (bestimmt Gewichtung):
+1. Offizielle Statistik (Destatis, Eurostat, Branchenverbände) → [GESICHERT]
+2. Branchenreports (McKinsey, Gartner, Bitkom) → [GESICHERT]
+3. Qualitätsjournalismus (Handelsblatt, FAZ, NZZ) → [PLAUSIBEL]
+4. Fachforen, Blogs, Social Media → [UNSICHER]
+
+REGELN:
+- Veraltete Quellen (>12 Monate) und werbliche Inhalte ignorieren
+- Fakten und Interpretation explizit trennen
+- Datenlücken dokumentieren statt spekulieren
+- Eigenes Wissen mit [LLM-Wissen] markieren
+- Max 3 Bullets pro Kategorie, max 150 Wörter pro Sektion
+- prompt_summary: max 200 Wörter, nur was Personas wissen müssen
+
+OUTPUT-SEKTIONEN: Makrotrends, Wettbewerber/Branche, Regulierung, Zielgruppen-Stimmung, Datenlücken."""
 
     result = await provider.call_tool(
         tier="smart",
-        system=(
-            "Du bist ein Senior Market Research Analyst. "
-            "Erstelle faktenbasierte Marktkontext-Dokumente auf Basis von Web-Recherche. "
-            "Unterscheide klar zwischen Fakten aus Quellen und eigenem Wissen."
-        ),
+        system=synthesis_system,
         cache_system=True,
         user_blocks=[{"text": prompt}],
         tool_name=CONTEXT_SYNTHESIS_TOOL_NAME,

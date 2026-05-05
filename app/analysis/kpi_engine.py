@@ -2,7 +2,7 @@
 KPI-Engine: Berechnet Marktforschungs-Standard-KPIs aus Simulationsdaten.
 
 KPIs:
-- Simulated NPS (Net Promoter Score)
+- Simulated NPS (Net Promoter Score) + Konfidenzintervall
 - Brand Awareness
 - Share of Voice
 - Engagement Rate
@@ -10,8 +10,12 @@ KPIs:
 - Virality Coefficient
 - Sentiment Score
 - Churn Risk
+- Statistical Quality (Margin of Error, Confidence Level)
+- Segment Comparisons (Signifikanztests)
+- NPS Benchmark (Branchenvergleich)
 """
 import logging
+import math
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -29,6 +33,160 @@ from app.models import (
 )
 
 logger = logging.getLogger("agora.kpi")
+
+
+# --- NPS Branchen-Benchmarks ---
+
+NPS_INDUSTRY_BENCHMARKS: dict[str, float] = {
+    "b2c_product": 55.0,
+    "b2b_saas": 35.0,
+    "healthcare": 25.0,
+    "political": 10.0,
+    "financial": 28.0,
+    "industrial": 30.0,
+    "retail": 55.0,
+    "banking": 28.0,
+    "technology": 40.0,
+}
+
+
+# --- Statistische Hilfsfunktionen (Phase 9) ---
+
+def _compute_confidence_interval(proportion: float, n: int, confidence: float = 0.95) -> tuple[float, float]:
+    """Berechnet Konfidenzintervall für einen Anteilswert.
+
+    Args:
+        proportion: Anteil (0-1)
+        n: Stichprobengröße
+        confidence: Konfidenzniveau (default 0.95)
+
+    Returns:
+        (lower_bound, upper_bound) als Prozent
+    """
+    if n <= 0:
+        return (0.0, 0.0)
+
+    # Z-Wert für gängige Konfidenzniveaus
+    z_values = {0.90: 1.645, 0.95: 1.96, 0.99: 2.576}
+    z = z_values.get(confidence, 1.96)
+
+    # Standardfehler
+    se = math.sqrt(proportion * (1 - proportion) / n) if proportion > 0 and proportion < 1 else 0
+
+    margin = z * se
+    lower = max(0.0, (proportion - margin) * 100)
+    upper = min(100.0, (proportion + margin) * 100)
+    return (round(lower, 1), round(upper, 1))
+
+
+def _compute_margin_of_error(n: int, confidence: float = 0.95) -> float:
+    """Berechnet maximale Fehlerspanne (worst-case p=0.5).
+
+    Args:
+        n: Stichprobengröße
+        confidence: Konfidenzniveau
+
+    Returns:
+        Fehlerspanne in Prozentpunkten
+    """
+    if n <= 0:
+        return 100.0
+
+    z_values = {0.90: 1.645, 0.95: 1.96, 0.99: 2.576}
+    z = z_values.get(confidence, 1.96)
+
+    # Worst-case: p = 0.5
+    margin = z * math.sqrt(0.25 / n)
+    return round(margin * 100, 1)
+
+
+def _compute_significance_test(group_a: list[float], group_b: list[float]) -> dict:
+    """Berechnet Zwei-Stichproben t-Test (Welch's t-test).
+
+    Returns:
+        Dict mit t_statistic, p_value, significant (bool), significance_level
+    """
+    n_a = len(group_a)
+    n_b = len(group_b)
+
+    if n_a < 2 or n_b < 2:
+        return {"t_statistic": 0.0, "p_value": 1.0, "significant": False, "significance_level": "n.s."}
+
+    mean_a = sum(group_a) / n_a
+    mean_b = sum(group_b) / n_b
+    var_a = sum((x - mean_a) ** 2 for x in group_a) / (n_a - 1)
+    var_b = sum((x - mean_b) ** 2 for x in group_b) / (n_b - 1)
+
+    # Welch's t-test
+    se = math.sqrt(var_a / n_a + var_b / n_b)
+    if se == 0:
+        return {"t_statistic": 0.0, "p_value": 1.0, "significant": False, "significance_level": "n.s."}
+
+    t_stat = (mean_a - mean_b) / se
+
+    # Welch-Satterthwaite Freiheitsgrade
+    numerator = (var_a / n_a + var_b / n_b) ** 2
+    denominator = (var_a / n_a) ** 2 / (n_a - 1) + (var_b / n_b) ** 2 / (n_b - 1)
+    df = numerator / denominator if denominator > 0 else 1
+
+    # Approximierter p-Wert via Normalverteilung (für große df)
+    # Für exakte Werte wäre scipy nötig, hier Approximation
+    abs_t = abs(t_stat)
+    if abs_t > 3.5:
+        p_value = 0.0005
+    elif abs_t > 2.576:
+        p_value = 0.005
+    elif abs_t > 1.96:
+        p_value = 0.03
+    elif abs_t > 1.645:
+        p_value = 0.08
+    else:
+        p_value = 0.5  # nicht signifikant
+
+    # Signifikanz-Level
+    if p_value < 0.001:
+        sig_level = "***"
+    elif p_value < 0.01:
+        sig_level = "**"
+    elif p_value < 0.05:
+        sig_level = "*"
+    else:
+        sig_level = "n.s."
+
+    return {
+        "t_statistic": round(t_stat, 3),
+        "p_value": round(p_value, 4),
+        "significant": p_value < 0.05,
+        "significance_level": sig_level,
+        "degrees_of_freedom": round(df, 1),
+        "mean_a": round(mean_a, 3),
+        "mean_b": round(mean_b, 3),
+    }
+
+
+def _compute_effect_size(group_a: list[float], group_b: list[float]) -> float:
+    """Berechnet Cohen's d als Effektgröße.
+
+    Interpretation: 0.2 = klein, 0.5 = mittel, 0.8 = groß
+    """
+    n_a = len(group_a)
+    n_b = len(group_b)
+
+    if n_a < 2 or n_b < 2:
+        return 0.0
+
+    mean_a = sum(group_a) / n_a
+    mean_b = sum(group_b) / n_b
+    var_a = sum((x - mean_a) ** 2 for x in group_a) / (n_a - 1)
+    var_b = sum((x - mean_b) ** 2 for x in group_b) / (n_b - 1)
+
+    # Pooled standard deviation
+    pooled_sd = math.sqrt(((n_a - 1) * var_a + (n_b - 1) * var_b) / (n_a + n_b - 2))
+
+    if pooled_sd == 0:
+        return 0.0
+
+    return round((mean_a - mean_b) / pooled_sd, 3)
 
 
 def _opinion_to_nps_category(opinion_dims: dict) -> str:
@@ -77,13 +235,27 @@ def _compute_nps(personas: list[Persona]) -> dict:
 
     total = len(personas) or 1
     nps = round(((promoters - detractors) / total) * 100, 1)
+    promoter_pct = promoters / total
+    detractor_pct = detractors / total
+
+    # Konfidenzintervall für NPS (Differenz zweier Proportionen)
+    se_nps = math.sqrt(
+        promoter_pct * (1 - promoter_pct) / total +
+        detractor_pct * (1 - detractor_pct) / total
+    ) if total > 1 else 0
+    nps_ci_lower = round((nps - 1.96 * se_nps * 100), 1)
+    nps_ci_upper = round((nps + 1.96 * se_nps * 100), 1)
+
     return {
         "score": nps,
         "promoters": promoters,
         "passives": passives,
         "detractors": detractors,
-        "promoter_pct": round(promoters / total * 100, 1),
-        "detractor_pct": round(detractors / total * 100, 1),
+        "promoter_pct": round(promoter_pct * 100, 1),
+        "detractor_pct": round(detractor_pct * 100, 1),
+        "confidence_interval": (nps_ci_lower, nps_ci_upper),
+        "margin_of_error": round(1.96 * se_nps * 100, 1),
+        "sample_size": total,
     }
 
 
@@ -379,6 +551,54 @@ async def compute_kpis(simulation_id: UUID, db: AsyncSession) -> dict:
         at = getattr(p, "actor_type", "private_person") or "private_person"
         actor_type_distribution[at] = actor_type_distribution.get(at, 0) + 1
 
+    # --- Phase 9: Statistische Maße ---
+    n = len(personas)
+
+    # Statistical Quality
+    statistical_quality = {
+        "sample_size": n,
+        "margin_of_error": _compute_margin_of_error(n, 0.95),
+        "confidence_level": 0.95,
+    }
+
+    # NPS Benchmark
+    scenario_type = getattr(sim, "scenario_type", None) or "b2c_product"
+    industry_benchmark = NPS_INDUSTRY_BENCHMARKS.get(
+        scenario_type,
+        NPS_INDUSTRY_BENCHMARKS.get(sim.industry or "", 35.0)
+    )
+    nps_diff = nps["score"] - industry_benchmark
+    nps_benchmark = {
+        "industry_average": industry_benchmark,
+        "simulated_nps": nps["score"],
+        "difference": round(nps_diff, 1),
+        "significant": abs(nps_diff) > nps["margin_of_error"],
+    }
+
+    # Segment Comparisons: Signifikanztests zwischen Akteurs-Typen
+    segment_comparisons = {}
+    actor_type_scores: dict[str, list[float]] = {}
+    for p in personas:
+        at = getattr(p, "actor_type", "private_person") or "private_person"
+        state = p.current_state or {}
+        dims = state.get("opinion_dimensions", {})
+        if dims:
+            avg = sum(dims.values()) / len(dims)
+            actor_type_scores.setdefault(at, []).append(avg)
+
+    # Vergleiche alle Paare mit mind. 3 Mitgliedern
+    actor_types_with_data = [k for k, v in actor_type_scores.items() if len(v) >= 3]
+    for i, type_a in enumerate(actor_types_with_data):
+        for type_b in actor_types_with_data[i + 1:]:
+            test_result = _compute_significance_test(
+                actor_type_scores[type_a], actor_type_scores[type_b]
+            )
+            effect = _compute_effect_size(
+                actor_type_scores[type_a], actor_type_scores[type_b]
+            )
+            test_result["effect_size_cohens_d"] = effect
+            segment_comparisons[f"{type_a}_vs_{type_b}"] = test_result
+
     return {
         "simulation_id": str(simulation_id),
         "total_personas": len(personas),
@@ -397,4 +617,8 @@ async def compute_kpis(simulation_id: UUID, db: AsyncSession) -> dict:
         # v1.1
         "sentiment_by_actor_type": actor_type_sentiment,
         "actor_type_distribution": actor_type_distribution,
+        # Realism Overhaul: Statistische Maße
+        "statistical_quality": statistical_quality,
+        "nps_benchmark": nps_benchmark,
+        "segment_comparisons": segment_comparisons,
     }

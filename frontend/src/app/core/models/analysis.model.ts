@@ -21,5 +21,9 @@ export interface AnalysisReport {
   stagnation_events?: string;
   function_tag_overview?: string;
   quota_estimates?: Array<Record<string, any>>;
+  // Realism Overhaul: ESOMAR
+  methodology_section?: string;
+  statistical_notes?: string;
+  nps_benchmark_comparison?: string;
   created_at: string;
 }

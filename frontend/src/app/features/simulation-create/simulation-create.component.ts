@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SimulationService } from '../../core/services/simulation.service';
 import { ProviderService } from '../../core/services/provider.service';
 import { ResearchSnapshotService } from '../../core/services/research-snapshot.service';
-import { SimulationCreate, LlmProvider, ResearchMode } from '../../core/models/simulation.model';
+import { SimulationCreate, LlmProvider, ResearchMode, ScenarioType } from '../../core/models/simulation.model';
 import { ResearchSnapshot } from '../../core/models/research-snapshot.model';
 import { SimulationProviderConfig, PhaseProviderEntry, Preset, CostEstimate, Provider } from '../../core/models/provider.model';
 import { PhaseConfigComponent } from './phase-config.component';
@@ -74,6 +74,39 @@ export class SimulationCreateComponent {
   // v1.1: Distribution & Stagnation
   stagnationMode = signal<'off' | 'mild' | 'aggressive'>('mild');
   selectedDistribution = signal<string>('');
+
+  // Realism Overhaul: Scenario & Realism Settings
+  scenarioType = signal<string>('');
+  noiseRate = signal(20);
+  fatigueEnabled = signal(true);
+  neutralSentimentTarget = signal(true);
+  discussionDynamics = signal(true);
+
+  readonly scenarioTypes = [
+    { id: 'b2c_product', label: 'B2C Produkt', desc: '75% Konsumenten, Influencer-getrieben' },
+    { id: 'b2b_saas', label: 'B2B SaaS', desc: '35% Firmen, 28% Experten, professionell' },
+    { id: 'healthcare', label: 'Healthcare', desc: '45% Experten, 18% Behörden, evidenzbasiert' },
+    { id: 'political', label: 'Politik', desc: '70% Privatpersonen, 10% Medien, emotional' },
+    { id: 'financial', label: 'Finanz', desc: '45% Privatpersonen, 22% Firmen, risikobewusst' },
+    { id: 'industrial', label: 'Industrie', desc: '28% Firmen, 28% Experten, technisch' },
+  ];
+
+  selectScenario(id: string) {
+    this.scenarioType.set(id);
+    // Auto-suggest passende Distribution
+    const scenarioToDistribution: Record<string, string> = {
+      'b2c_product': 'b2c_konsum',
+      'b2b_saas': 'b2b_software',
+      'healthcare': 'healthcare_pharma',
+      'political': 'politische_initiative',
+      'financial': 'finanz',
+      'industrial': 'b2b_industriegut',
+    };
+    const suggestedDist = scenarioToDistribution[id];
+    if (suggestedDist) {
+      this.selectedDistribution.set(suggestedDist);
+    }
+  }
 
   readonly distributionTemplates = [
     { id: 'b2c_konsum', label: 'B2C Konsum', desc: '75% Privatpersonen, 8% Influencer' },
@@ -435,6 +468,14 @@ export class SimulationCreateComponent {
       // v1.1
       stagnation_mode: this.stagnationMode(),
       distribution_template: this.selectedDistribution() ? this.getDistributionContent(this.selectedDistribution()) : undefined,
+      // Realism Overhaul
+      scenario_type: this.scenarioType() || undefined,
+      realism_config: {
+        noise_rate: this.noiseRate() / 100,
+        fatigue_enabled: this.fatigueEnabled(),
+        neutral_sentiment_target: this.neutralSentimentTarget(),
+        discussion_dynamics: this.discussionDynamics(),
+      },
     };
     if (this.useProviderConfig()) {
       data.provider_config = this.buildProviderConfig();

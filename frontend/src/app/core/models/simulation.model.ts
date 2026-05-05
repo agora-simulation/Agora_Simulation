@@ -23,8 +23,19 @@ export interface Simulation {
   research_snapshot_id: string | null;
   stagnation_mode: 'off' | 'mild' | 'aggressive';
   distribution_template: Record<string, number> | null;
+  scenario_type: ScenarioType | null;
+  realism_config: RealismConfig | null;
   created_at: string;
   updated_at: string;
+}
+
+export type ScenarioType = 'b2c_product' | 'b2b_saas' | 'healthcare' | 'political' | 'financial' | 'industrial';
+
+export interface RealismConfig {
+  noise_rate?: number;
+  fatigue_enabled?: boolean;
+  neutral_sentiment_target?: boolean;
+  discussion_dynamics?: boolean;
 }
 
 export type SimulationStatus = 'pending' | 'researching' | 'research_complete' | 'running' | 'completed' | 'failed';
@@ -61,6 +72,8 @@ export interface SimulationCreate {
   research_snapshot_id?: string;
   stagnation_mode?: 'off' | 'mild' | 'aggressive';
   distribution_template?: Record<string, number>;
+  scenario_type?: ScenarioType;
+  realism_config?: RealismConfig;
 }
 
 export interface SimulationStreamEvent {

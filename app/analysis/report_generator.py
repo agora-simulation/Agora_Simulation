@@ -58,34 +58,26 @@ def _build_analyst_system_prompt(
         f"{count} {typ}" for typ, count in sorted(persona_type_counts.items(), key=lambda x: -x[1])
     )
 
-    return f"""Du bist ein Senior-Analyst einer renommierten Strategieberatung.
-Du erstellst professionelle Marktanalyse-Reports auf Basis simulierter Gesellschaftsdaten.
-
-WICHTIG: Dies ist eine SIMULATION, keine echte Marktforschung. Deine Analyse muss das transparent reflektieren.
+    n = sum(persona_type_counts.values())
+    return f"""Du bist Marktforscher mit ESOMAR-Zertifizierung. Du schreibst wie ein Mensch, nicht wie eine KI.
 
 {scenario_hint}
 
-Akteur-Mix dieser Simulation: {actor_breakdown}.
-Datenbasis: {total_posts} Beiträge, {total_events} Einfluss-Ereignisse.
+DATEN: {actor_breakdown} | n={n} | {total_posts} Beiträge | {total_events} Influence-Events.
 
-## Konfidenz-Bewertung
-Bewerte JEDE Kernaussage mit einem Konfidenz-Level:
-- **[HOHE KONFIDENZ]**: Ergebnis ist über mehrere Akteure konsistent, überlebt verschiedene Perspektiven
-- **[MITTLERE KONFIDENZ]**: Ergebnis plausibel, aber abhängig von wenigen Schlüsselakteuren oder Annahmen
-- **[NIEDRIGE KONFIDENZ]**: Ergebnis möglicherweise Artefakt der Simulation (Echokammer, LLM-Bias, kleine Stichprobe)
+STATISTISCHE STANDARDS:
+- Jede quantitative Aussage enthält Konfidenzintervall: "X% (±Y Pp, 95%-KI)"
+- Gruppenvergleiche mit Signifikanz: * p<0.05, ** p<0.01, *** p<0.001
+- n<30 pro Segment = explorativ kennzeichnen
+- NPS-Benchmarks: SaaS +30-40, Retail +50-60, Banking +20-35, Healthcare +20-30
 
-Achte besonders auf:
-- Quantitative Claims von Personas (z.B. "+23% CTR") — das sind KEINE echten Daten, sondern Persona-Behauptungen
-- Konsens-Bildung, die zu schnell geht (Echokammer-Risiko)
-- Überzeugungsketten, die auf einzelnen Akteuren basieren (fragil)
+STIL:
+- Jeder Satz enthält einen Datenpunkt oder eine Empfehlung — kein Fülltext
+- Zitiere konkrete Personas und Posts als Evidenz
+- Konfidenz-Level pro Kernaussage: [HOCH] / [MITTEL] / [NIEDRIG]
+- Professionelles Deutsch, Markdown mit ### Unterüberschriften
 
-## Formatierung
-- Schreibe in professionellem, sachlichem Deutsch
-- Verwende Markdown: **Fettdruck** für Kernaussagen, Aufzählungen für Empfehlungen
-- Quantifiziere wo möglich ("73% der Labore zeigten Interesse" statt "viele waren interessiert")
-- Zitiere konkrete Beispiele aus der Simulation (Name, Post-Inhalt, Kontext)
-- Jede Sektion soll eigenständig lesbar sein — kein "wie oben erwähnt"
-- Verwende Zwischenüberschriften (### ) innerhalb langer Sektionen"""
+STRUKTUR: Folge dem Tool-Schema — jede Sektion eigenständig lesbar, keine Rückverweise."""
 
 ANALYSIS_REPORT_TOOL_NAME = "analysis_report"
 ANALYSIS_REPORT_TOOL_DESC = "Strukturierter Analyse-Report der Simulation"
@@ -256,6 +248,37 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
                     "Mindestens 3 Quoten-Aussagen."
                 ),
             },
+            # Realism Overhaul: ESOMAR-Pflichtfelder
+            "methodology_section": {
+                "type": "string",
+                "description": (
+                    "Markdown: ESOMAR-konforme Methodik-Sektion (PFLICHT). "
+                    "Enthält: Stichprobengroesse (n=X), Erhebungsmethode (simulierte Online-Community), "
+                    "Erhebungszeitraum (X simulierte Tage), Quotierung nach Akteurs-Typ, "
+                    "Fehlerspanne bei 95% Konfidenz (±X Prozentpunkte), Gewichtungsmethode. "
+                    "Format als strukturierte Tabelle oder Aufzaehlung."
+                ),
+            },
+            "statistical_notes": {
+                "type": "string",
+                "description": (
+                    "Markdown: Statistische Anmerkungen (PFLICHT). "
+                    "Signifikanztests fuer alle Gruppenvergleiche im Report. "
+                    "Format: 'Unterschied Segment A vs B: Δ=X Pp (* p<0.05)'. "
+                    "Konfidenzintervalle fuer Kern-KPIs. "
+                    "Cohen's d fuer Effektgroessen bei relevanten Vergleichen."
+                ),
+            },
+            "nps_benchmark_comparison": {
+                "type": "string",
+                "description": (
+                    "Markdown: NPS-Benchmark-Vergleich (PFLICHT). "
+                    "Simulierter NPS vs. Branchendurchschnitt. "
+                    "Tabelle: Metrik | Simuliert | Branche | Differenz | Signifikant? "
+                    "Interpretation: Liegt der simulierte NPS im erwartbaren Bereich? "
+                    "Was bedeutet die Abweichung strategisch?"
+                ),
+            },
         },
         "required": [
             "full_report",
@@ -277,6 +300,9 @@ ANALYSIS_REPORT_TOOL_SCHEMA = {
             "stagnation_events",
             "function_tag_overview",
             "quota_estimates",
+            "methodology_section",
+            "statistical_notes",
+            "nps_benchmark_comparison",
         ],
 }
 
@@ -553,31 +579,29 @@ Alle simulierten Beiträge (chronologisch):
 {influence_section}
 {persona_states_section}
 {dimension_section}{trigger_section}{crowd_section}{actor_type_section}{stagnation_section}
-Erstelle einen strukturierten Report mit:
-1. Sentiment-Verlauf über die simulierten Tage
-2. Wichtige Wendepunkte (was hat die Stimmung gekippt?)
-3. Hauptkritikpunkte und -ängste
-4. Erkannte Chancen und positive Reaktionen
-5. Zielgruppen-Segmentierung (wer reagiert wie?)
-6. Überraschende oder unerwartete Erkenntnisse
-7. Empfehlungen für Produkt/Kampagne
-8. Influence-Netzwerk: Wer hat wen überzeugt? Welche Posts waren besonders einflussreich?
-9. Plattform-Analyse: Wo wurde positiver/negativer diskutiert? Plattform-Migration?
-10. Netzwerk-Dynamik: Haben sich Communities gebildet? Echokammern?
-11. Meinungsdimensionen: Welche Dimensionen (Preis, Qualität, Marke etc.) waren am stärksten/schwächsten? \
-    Konkrete Aussagen wie "73% der Skeptiker wurden bei Produktqualität überzeugt, aber Preis bleibt Dealbreaker"
-12. Konfidenz-Bewertung: Welche Erkenntnisse sind belastbar (hohe Konfidenz), welche fragil (niedrig)?
-13. Methodische Grenzen: Was kann diese Simulation NICHT leisten? Was muss real validiert werden?
-14. Sentiment nach Akteurs-Typ: Wie unterscheidet sich die Haltung nach Akteurs-Typ?
-15. Plattform-Vergleich: Threadit vs. Feedbook — welche Unterschiede?
-16. Validierer-Status: Falls vorhanden, welche Freigabe-Entscheidungen?
-17. Trigger-Event-Wirkung: Falls Events eingespeist, welcher Effekt?
-18. Stagnations-Events: Gab es Stagnation? Was wurde dagegen getan?
-19. Funktions-Tags: Wer waren die Schlüssel-Akteure (Brückenakteure, Multiplikatoren)?
-20. Quoten-Schätzungen mit Konfidenzintervall: Mindestens 3 Aussagen im Format "Segment: X% [KI Y-Z%], n=N, KONFIDENZ"
+Erstelle den vollständigen Report gemäß Tool-Schema.
+Jede Sektion mit konkreten Daten, Persona-Zitaten und statistischer Einordnung.
+Fülle ALLE Sektionen — das Tool-Schema definiert Struktur und Inhalt."""
 
-Sei konkret, zitiere Beispiele aus der Simulation.
-Sei EHRLICH über die Grenzen der Methodik — Glaubwürdigkeit entsteht durch Transparenz, nicht durch Überversprechen."""
+    # Few-Shot-Excerpt (cached — zahlt Tokens nur 1x)
+    few_shot_block = """=== BEISPIEL-EXCERPT (Stil & Rigor) ===
+### Kernerkenntnisse
+
+**1. Produktqualität überzeugt Skeptiker selektiv** [HOHE KONFIDENZ]
+62% der initial skeptischen Personas (n=19) verschoben ihre product_quality-Dimension um +0.15 bis +0.35 nach Tag 5 (±8 Pp, 95%-KI). Auslöser: Dr. Martina Kellers Fachbeitrag zu Langzeittests (Tag 4, Threadit) wurde von 7 Skeptikern kommentiert.
+
+**2. Preissensitivität bleibt Dealbreaker** [HOHE KONFIDENZ]
+price_fairness blieb über alle Segmente negativ (Ø -0.22, n=30). Kein einziger Post konnte die Preiswahrnehmung signifikant verbessern. Unterschied Privat vs. B2B: Δ=0.18 Pp (** p<0.01, Cohen's d=0.74).
+
+### Methodik
+| Parameter | Wert |
+|-----------|------|
+| Stichprobe | n=30, simulierte Online-Community |
+| Erhebungszeitraum | 15 simulierte Tage |
+| Fehlerspanne | ±17.9 Pp (95%-KI) |
+| Quotierung | 75% Privatpersonen, 12% Experten, 8% Firmen, 5% Medien |
+| Limitierung | LLM-basierte Simulation, keine realen Kaufentscheidungen |
+=== ENDE BEISPIEL ==="""
 
     logger.info(
         f"[{simulation_id}] Starte Report-Generierung ({len(posts)} Posts, provider={provider.name})"
@@ -586,7 +610,10 @@ Sei EHRLICH über die Grenzen der Methodik — Glaubwürdigkeit entsteht durch T
         tier="smart",
         system=system_prompt,
         cache_system=True,
-        user_blocks=[{"text": prompt}],
+        user_blocks=[
+            {"text": few_shot_block, "cache": True},
+            {"text": prompt},
+        ],
         tool_name=ANALYSIS_REPORT_TOOL_NAME,
         tool_description=ANALYSIS_REPORT_TOOL_DESC,
         tool_schema=ANALYSIS_REPORT_TOOL_SCHEMA,
@@ -625,7 +652,11 @@ Sei EHRLICH über die Grenzen der Methodik — Glaubwürdigkeit entsteht durch T
         trigger_impact=data.get("trigger_impact", placeholder),
         stagnation_events=data.get("stagnation_events", placeholder),
         function_tag_overview=data.get("function_tag_overview", placeholder),
-        quota_estimates=None,  # Will be structured separately
+        quota_estimates=data.get("quota_estimates"),
+        # Realism Overhaul: ESOMAR
+        methodology_section=data.get("methodology_section", placeholder),
+        statistical_notes=data.get("statistical_notes", placeholder),
+        nps_benchmark_comparison=data.get("nps_benchmark_comparison", placeholder),
     )
     db.add(report)
     await db.commit()

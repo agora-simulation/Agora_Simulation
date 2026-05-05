@@ -349,6 +349,64 @@
        ============================================================ -->
   @if (currentStep() === 4) {
 
+    <!-- Scenario Type (Realism Overhaul) -->
+    <section class="card animate-fade-in" style="padding: 28px 32px; margin-bottom: 16px;">
+      <h2 class="h3" style="margin-bottom: 4px;">Szenario-Typ</h2>
+      <p style="color: var(--ink-3); font-size: 13.5px; margin-bottom: 20px;">
+        W&auml;hle den Szenario-Typ &mdash; dies bestimmt die optimale Akteurs-Verteilung und Diskussionsdynamik.
+      </p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        @for (s of scenarioTypes; track s.id) {
+          <button type="button"
+                  class="card card-hover preset-card"
+                  [class.preset-active]="scenarioType() === s.id"
+                  (click)="selectScenario(s.id)"
+                  style="text-align: left; padding: 14px 16px;">
+            <p style="font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px;">{{ s.label }}</p>
+            <p style="font-size: 11px; color: var(--ink-3); line-height: 1.4;">{{ s.desc }}</p>
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Realism Settings (Realism Overhaul) -->
+    <section class="card animate-fade-in" style="padding: 24px 28px; margin-bottom: 16px;">
+      <h3 style="font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 12px;">Realismus-Einstellungen</h3>
+      <p style="color: var(--ink-3); font-size: 13px; margin-bottom: 16px;">
+        Kalibrierung basierend auf Marktforschungsmethodik (AAPOR, ESOMAR).
+      </p>
+
+      <!-- Noise Rate Slider -->
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-size: 13px; font-weight: 500; color: var(--ink-2);">Noise-Rate (Off-Topic)</label>
+          <span style="font-size: 12px; font-weight: 600; color: var(--primary);">{{ noiseRate() }}%</span>
+        </div>
+        <input type="range" min="0" max="40" step="5" [value]="noiseRate()" (input)="noiseRate.set(+$any($event.target).value)"
+               style="width: 100%; accent-color: var(--primary);">
+        <p style="font-size: 11px; color: var(--ink-4); margin-top: 4px;">Echte Studien: 15-30% irrelevante Antworten</p>
+      </div>
+
+      <!-- Toggles -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" [checked]="fatigueEnabled()" (change)="fatigueEnabled.set($any($event.target).checked)"
+                 style="width: 16px; height: 16px; accent-color: var(--primary);">
+          <span style="font-size: 13px; color: var(--ink-2);">Survey Fatigue (Qualit&auml;tsabfall &uuml;ber Zeit)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" [checked]="neutralSentimentTarget()" (change)="neutralSentimentTarget.set($any($event.target).checked)"
+                 style="width: 16px; height: 16px; accent-color: var(--primary);">
+          <span style="font-size: 13px; color: var(--ink-2);">Sentiment-Kalibrierung (Ziel: 60-70% neutral)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+          <input type="checkbox" [checked]="discussionDynamics()" (change)="discussionDynamics.set($any($event.target).checked)"
+                 style="width: 16px; height: 16px; accent-color: var(--primary);">
+          <span style="font-size: 13px; color: var(--ink-2);">Phasen-Dynamik (Neugier &rarr; Vertiefung &rarr; Polarisierung)</span>
+        </label>
+      </div>
+    </section>
+
     <!-- Actor Distribution -->
     <section class="card animate-fade-in" style="padding: 28px 32px; margin-bottom: 16px;">
       <h2 class="h3" style="margin-bottom: 4px;">Akteurs-Verteilung</h2>
@@ -472,6 +530,27 @@
           <p style="font-size: 13.5px; color: var(--ink); font-weight: 600;">{{ stagnationMode() }}</p>
         </div>
       </div>
+
+      <!-- Realism Overhaul Summary -->
+      @if (scenarioType()) {
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+          <div style="cursor: pointer;" (click)="currentStep.set(4)">
+            <p class="eyebrow" style="margin-bottom: 6px;">Szenario <i class="pi pi-pencil" style="font-size: 10px; color: var(--ink-4);"></i></p>
+            <p style="font-size: 13.5px; color: var(--ink); font-weight: 600;">{{ scenarioType() }}</p>
+          </div>
+          <div style="cursor: pointer;" (click)="currentStep.set(4)">
+            <p class="eyebrow" style="margin-bottom: 6px;">Noise-Rate</p>
+            <p style="font-size: 13.5px; color: var(--ink); font-weight: 600;">{{ noiseRate() }}%</p>
+          </div>
+          <div style="cursor: pointer;" (click)="currentStep.set(4)">
+            <p class="eyebrow" style="margin-bottom: 6px;">Realismus</p>
+            <p style="font-size: 13.5px; color: var(--ink); font-weight: 600;">
+              @if (fatigueEnabled()) { Fatigue }
+              @if (discussionDynamics()) { + Phasen }
+            </p>
+          </div>
+        </div>
+      }
 
       @if (isLongRun()) {
         <div class="info-box" style="margin-top: 20px;">

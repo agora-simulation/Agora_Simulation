@@ -46,6 +46,9 @@ class Simulation(Base):
     research_snapshot_id = Column(UUID(as_uuid=True), ForeignKey("research_snapshots.id"), nullable=True)
     stagnation_mode = Column(String(20), default="mild")  # off, mild, aggressive
     distribution_template = Column(JSON, nullable=True)  # actor type distribution percentages
+    # Realism Overhaul
+    scenario_type = Column(String(30), default="b2c_product")  # b2c_product, b2b_saas, healthcare, political, financial, industrial
+    realism_config = Column(JSON, nullable=True)  # noise_rate, fatigue_enabled, neutral_sentiment_target, discussion_dynamics
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 

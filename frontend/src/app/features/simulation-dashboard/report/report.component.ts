@@ -167,6 +167,10 @@ export class ReportComponent implements OnInit {
     { key: 'quota_estimates', label: 'Quoten-Schaetzungen', icon: 'pi-percentage' },
     { key: 'confidence_assessment', label: 'Konfidenz-Bewertung', icon: 'pi-verified' },
     { key: 'methodology_limitations', label: 'Methodische Grenzen', icon: 'pi-info-circle' },
+    // Realism Overhaul: ESOMAR-Sektionen
+    { key: 'methodology_section', label: 'Methodik (ESOMAR)', icon: 'pi-book' },
+    { key: 'statistical_notes', label: 'Statistische Anmerkungen', icon: 'pi-calculator' },
+    { key: 'nps_benchmark_comparison', label: 'NPS-Benchmark', icon: 'pi-chart-bar' },
   ];
 
   private _parseSections(markdown: string): ReportSubSection[] {

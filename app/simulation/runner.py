@@ -344,11 +344,23 @@ async def run_simulation_background(simulation_id: UUID):
                         "actor_type", "subtype", "context", "traegerschaft",
                         "stance", "activation_latency", "function_tags",
                         "engagement_decay_rate",
+                        # Realism Overhaul
+                        "discussion_role", "rogers_category", "formality_level",
+                        "response_length_tendency", "noise_propensity", "acquiescence_bias",
+                        "survey_fatigue_rate", "regional_dialect", "b2b_b2c_mode",
                     }
                     clean = {k: v for k, v in p_data.items() if k in allowed}
 
+                    # Realism Overhaul: verbal_tics + internal_contradictions → extra JSON
+                    extra_realism = {}
+                    if "verbal_tics" in p_data:
+                        extra_realism["verbal_tics"] = p_data["verbal_tics"]
+                    if "internal_contradictions" in p_data:
+                        extra_realism["internal_contradictions"] = p_data["internal_contradictions"]
+
                     # v1.1: Store type-specific profile data
-                    profile_fields = {k: v for k, v in p_data.items() if k not in allowed and k not in {"preferred_platform"}}
+                    skip_fields = allowed | {"preferred_platform", "verbal_tics", "internal_contradictions"}
+                    profile_fields = {k: v for k, v in p_data.items() if k not in skip_fields}
                     if profile_fields:
                         clean["profile_data"] = profile_fields
 
@@ -393,13 +405,28 @@ async def run_simulation_background(simulation_id: UUID):
                     from app.simulation.tick_engine import _init_opinion_dimensions
                     initial_dims = _init_opinion_dimensions(clean.get("is_skeptic", False))
 
+                    # Realism Overhaul: Discussion-Role nachrüsten falls nicht vorhanden
+                    if not clean.get("discussion_role"):
+                        from app.simulation.discussion_roles import assign_discussion_role
+                        clean["discussion_role"] = assign_discussion_role(p_data)
+
+                    # Realism Overhaul: Rogers-Category validieren
+                    valid_rogers = {"innovator", "early_adopter", "early_majority", "late_majority", "laggard"}
+                    if clean.get("rogers_category") not in valid_rogers:
+                        from app.simulation.persona_generator import _classify_adopter_type
+                        clean["rogers_category"] = _classify_adopter_type(p_data)
+
+                    # Extra-Daten zusammenführen
+                    extra_data = {"preferred_platform": preferred}
+                    extra_data.update(extra_realism)
+
                     persona = Persona(
                         simulation_id=simulation_id,
                         current_state={
                             "platform_affinity": initial_affinity,
                             "opinion_dimensions": initial_dims,
                         },
-                        extra={"preferred_platform": preferred},
+                        extra=extra_data,
                         **clean,
                     )
                     db.add(persona)
