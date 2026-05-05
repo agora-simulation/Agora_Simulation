@@ -17,6 +17,7 @@ from app.database import AsyncSessionLocal
 from app.models import Simulation, SimulationStatus, Persona
 from app.simulation.persona_generator import generate_personas
 from app.simulation.tick_engine import run_tick
+from app.simulation.platform_loader import load_active_platforms, build_platform_affinity, get_platform_names
 from app.analysis.report_generator import generate_report
 from app.webhooks import dispatch_webhook
 from app.llm.resolver import resolve_for_phase
@@ -308,6 +309,11 @@ async def run_simulation_background(simulation_id: UUID):
             )
             existing_personas = result.scalars().all()
 
+            # Aktive Plattformen laden (vor Persona-Generierung für preferred_platform)
+            active_platforms = await load_active_platforms(simulation_id, db)
+            platform_names = get_platform_names(active_platforms)
+            logger.info(f"[{simulation_id}] Aktive Plattformen: {platform_names}")
+
             if not existing_personas:
                 persona_count = sim.config.get("persona_count", 10) if sim.config else 10
 
@@ -326,6 +332,7 @@ async def run_simulation_background(simulation_id: UUID):
                 )
                 if distribution_template is not None:
                     gen_kwargs["distribution_template"] = distribution_template
+                gen_kwargs["platform_names"] = platform_names
 
                 raw_personas = await generate_personas(**gen_kwargs)
                 logger.info(f"[{simulation_id}] {len(raw_personas)} Personas generiert")
@@ -386,20 +393,32 @@ async def run_simulation_background(simulation_id: UUID):
                         except (ImportError, KeyError):
                             clean["activation_latency"] = 0
 
-                    # Initiale Plattform-Affinität aus preferred_platform ableiten
-                    preferred = p_data.get("preferred_platform", "feedbook")
-                    if preferred == "threadit":
-                        initial_affinity = {"feedbook": 0.3, "threadit": 0.7}
-                    else:
-                        initial_affinity = {"feedbook": 0.7, "threadit": 0.3}
+                    # Initiale Plattform-Affinität aus aktiven Plattformen + preferred_platform
+                    preferred = p_data.get("preferred_platform", platform_names[0] if platform_names else "feedbook")
+                    # Wenn preferred_platform nicht in aktiven Plattformen, erste aktive wählen
+                    if preferred not in platform_names and platform_names:
+                        preferred = platform_names[0]
+                    initial_affinity = build_platform_affinity(active_platforms, preferred)
 
-                    # v1.1: Platform affinity based on actor type
+                    # v1.1: Actor-Type-basierte Adjustierung
                     actor_type = clean.get("actor_type", "private_person")
                     if actor_type in ("authority", "collective", "validator", "research_institute"):
-                        initial_affinity = {"feedbook": 0.7, "threadit": 0.3}
+                        # Formelle Akteure bevorzugen formellere Plattformen
+                        for pname in platform_names:
+                            plat = next((p for p in active_platforms if p["name"] == pname), None)
+                            if plat and plat.get("character") in ("institutionell", "fachlich"):
+                                initial_affinity[pname] = initial_affinity.get(pname, 0.3) * 1.5
                     elif actor_type in ("influencer", "media"):
-                        initial_affinity = {"feedbook": 0.4, "threadit": 0.6}
-                    # else keep the preferred_platform-based affinity from above
+                        # Reichweiten-Akteure bevorzugen Boulevard/Öffentliche Plattformen
+                        for pname in platform_names:
+                            plat = next((p for p in active_platforms if p["name"] == pname), None)
+                            if plat and plat.get("character") in ("boulevard", "oeffentlich"):
+                                initial_affinity[pname] = initial_affinity.get(pname, 0.3) * 1.5
+
+                    # Normalisieren
+                    total_aff = sum(initial_affinity.values())
+                    if total_aff > 0:
+                        initial_affinity = {k: round(v / total_aff, 3) for k, v in initial_affinity.items()}
 
                     # Modul 2: Initiale Opinion-Dimensions
                     from app.simulation.tick_engine import _init_opinion_dimensions
@@ -470,6 +489,7 @@ async def run_simulation_background(simulation_id: UUID):
                     action_resolved=action_resolved,
                     state_resolved=state_resolved,
                     market_context_summary=market_context_summary,
+                    active_platforms=active_platforms,
                 )
 
                 # v1.1: Crowd Layer

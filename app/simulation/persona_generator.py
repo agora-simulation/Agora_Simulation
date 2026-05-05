@@ -78,7 +78,7 @@ SKELETON_TOOL_SCHEMA = {
                     "entity_subtype": {"type": "string"},
                     "preferred_platform": {
                         "type": "string",
-                        "enum": ["feedbook", "threadit"],
+                        "description": "Name der bevorzugten Plattform (aus verfügbaren Plattformen wählen)",
                     },
                     "education_level": {
                         "type": "string",
@@ -170,6 +170,7 @@ def _build_skeleton_prompt(
     batch_total: int = 1,
     market_context_summary: str | None = None,
     distribution_template: dict | None = None,
+    platform_names: list[str] | None = None,
 ) -> str:
     market_block = ""
     if market_context_summary:
@@ -184,10 +185,14 @@ def _build_skeleton_prompt(
         dist_lines = [f"- {k}: {v}%" for k, v in distribution_template.items() if v > 0]
         distribution_block = "\n\nAkteurs-Verteilung:\n" + "\n".join(dist_lines)
 
+    platforms_block = ""
+    if platform_names:
+        platforms_block = f"\n\nVerfügbare Plattformen: {', '.join(platform_names)}\nWähle für preferred_platform eine davon."
+
     return f"""Produkt: {product_description}
 Zielmarkt: {target_market}
 Branche: {industry}
-{market_block}{distribution_block}
+{market_block}{distribution_block}{platforms_block}
 Erstelle {persona_count} KOMPAKTE Persona-Skelette.
 Nur Basisdaten — Persönlichkeit wird separat generiert.
 Min. 20% Skeptiker. Mix der 9 Akteurs-Typen passend zur Branche und Verteilung.
@@ -205,12 +210,13 @@ async def _generate_skeletons(
     model: str | None = None,
     market_context_summary: str | None = None,
     distribution_template: dict | None = None,
+    platform_names: list[str] | None = None,
 ) -> list[dict]:
     """Phase 1: Generiert kompakte Skelette. ~50 Tokens pro Persona Output."""
     prompt = _build_skeleton_prompt(
         product_description, target_market, industry,
         persona_count, batch_index, batch_total,
-        market_context_summary, distribution_template,
+        market_context_summary, distribution_template, platform_names,
     )
     # ~50 Tokens pro Persona + Buffer
     # ~120 Tokens pro Skelett (GPT-5 ist verbose) + Buffer
@@ -540,6 +546,7 @@ async def generate_personas(
     db=None,
     market_context_summary: str | None = None,
     distribution_template: dict | None = None,
+    platform_names: list[str] | None = None,
 ) -> list[dict]:
     """Generiert N Personas via Hybrid-Architektur (Option C).
 
@@ -582,6 +589,7 @@ async def generate_personas(
                 model=r.model,
                 market_context_summary=market_context_summary,
                 distribution_template=distribution_template,
+                platform_names=platform_names,
             )
 
     # Batches aufteilen

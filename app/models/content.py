@@ -14,8 +14,14 @@ from app.database import Base
 
 
 class Platform(str, PyEnum):
+    """Legacy Enum — wird für Backwards-Kompatibilität beibehalten.
+    Neue Plattformen werden dynamisch aus SimPlatform geladen.
+    """
     feedbook = "feedbook"   # Facebook-ähnlich
     threadit = "threadit"   # Reddit-ähnlich
+
+# Default-Plattformen (Fallback wenn keine SimPlatforms existieren)
+DEFAULT_PLATFORMS = ["feedbook", "threadit"]
 
 
 class ReactionType(str, PyEnum):
@@ -30,7 +36,7 @@ class Post(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     simulation_id = Column(UUID(as_uuid=True), ForeignKey("simulations.id"), nullable=False)
     author_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
-    platform = Column(Enum(Platform, name='platform', create_type=False), nullable=False)
+    platform = Column(String(100), nullable=False)  # Dynamisch: Name aus SimPlatform
     content = Column(Text, nullable=False)
     ingame_day = Column(Integer, nullable=False)   # Simulierter Zeitpunkt
     subreddit = Column(String(255))                # Nur für Threadit

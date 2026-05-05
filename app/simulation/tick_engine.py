@@ -47,7 +47,6 @@ from app.models import (
     Reaction,
     Simulation,
     SimulationTick,
-    Platform,
     ReactionType,
     InfluenceEvent,
 )
@@ -256,6 +255,8 @@ KAUSALES REASONING:
 
 PERSONA_ACTION_TOOL_NAME = "persona_action"
 PERSONA_ACTION_TOOL_DESC = "Deine Aktion(en) für heute"
+
+# Default-Schema (Fallback)
 PERSONA_ACTION_TOOL_SCHEMA = {
     "type": "object",
     "properties": {
@@ -281,6 +282,35 @@ PERSONA_ACTION_TOOL_SCHEMA = {
     },
     "required": ["actions"],
 }
+
+
+def _build_action_tool_schema(platform_names: list[str]) -> dict:
+    """Baut das Action-Tool-Schema dynamisch mit aktiven Plattform-Namen."""
+    return {
+        "type": "object",
+        "properties": {
+            "actions": {
+                "type": "array",
+                "description": "1-3 Aktionen die du heute durchführst",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["post", "comment", "react", "nothing"]},
+                        "platform": {"type": "string", "enum": platform_names},
+                        "content": {"type": "string"},
+                        "react_to_post_id": {"type": "string"},
+                        "reaction_type": {"type": "string", "enum": ["like", "dislike", "share"]},
+                        "comment_on_post_id": {"type": "string"},
+                        "subreddit": {"type": "string"},
+                    },
+                    "required": ["action"],
+                },
+                "minItems": 1,
+                "maxItems": 3,
+            }
+        },
+        "required": ["actions"],
+    }
 
 STATE_UPDATE_TOOL_NAME = "state_update"
 STATE_UPDATE_TOOL_DESC = "Aktualisierter psychologischer Zustand der Persona"
@@ -522,7 +552,7 @@ def build_feed(
                         score += 2.0  # Kontroverse Stimmen im Konsens-Zustand sichtbarer machen
 
         # Plattform-Affinität: 0.5-1.5x Multiplikator
-        platform_bonus = platform_affinity.get(post.platform.value, 0.5)
+        platform_bonus = platform_affinity.get(str(post.platform), 0.5)
         score *= (0.5 + platform_bonus)
 
         scored.append((score, post, opinion_distance))
@@ -555,7 +585,7 @@ def build_feed(
         {
             "post_id": str(p.id),
             "author": p.author.name if p.author else "Unbekannt",
-            "platform": p.platform.value,
+            "platform": str(p.platform),
             "content": p.content,
             "ingame_day": p.ingame_day,
             "comments_count": len(p.comments),
@@ -585,7 +615,7 @@ def _get_persona_history(
 
     lines = ["=== Deine bisherigen Beiträge ==="]
     for post in own_posts:
-        lines.append(f"[Tag {post.ingame_day}, {post.platform.value}] {post.content[:120]}")
+        lines.append(f"[Tag {post.ingame_day}, {str(post.platform)}] {post.content[:120]}")
         # Kommentare auf diesen Post
         if post.comments:
             for c in post.comments[:3]:  # Max 3 Kommentare pro Post
@@ -844,7 +874,7 @@ def _update_platform_affinity(personas: list[Persona], posts: list[Post], ingame
         # Engagement auf eigenen Posts zählen
         own_posts = [p for p in todays_posts if str(p.author_id) == str(persona.id)]
         for post in own_posts:
-            platform = post.platform.value
+            platform = str(post.platform)
             engagement = len(post.comments or []) + len(post.reactions or [])
             # Positives Engagement stärkt die Plattform-Affinität
             if engagement > 0:
@@ -967,6 +997,7 @@ async def persona_action(
     total_ticks: int = 15,
     all_personas: list | None = None,
     realism_config: dict | None = None,
+    platform_names: list[str] | None = None,
 ) -> dict:
     """Lässt eine Persona auf ihren Feed reagieren.
 
@@ -1046,7 +1077,7 @@ async def persona_action(
                 ],
                 tool_name=PERSONA_ACTION_TOOL_NAME,
                 tool_description=PERSONA_ACTION_TOOL_DESC,
-                tool_schema=PERSONA_ACTION_TOOL_SCHEMA,
+                tool_schema=_build_action_tool_schema(platform_names or ["feedbook", "threadit"]),
                 max_tokens=3072,
                 model=model,
                 temperature=temperature,
@@ -1241,6 +1272,7 @@ async def run_tick(
     action_resolved: ResolvedProvider | None = None,
     state_resolved: ResolvedProvider | None = None,
     market_context_summary: str | None = None,
+    active_platforms: list[dict] | None = None,
 ) -> SimulationTick:
     """Führt einen kompletten Tick aus.
 
@@ -1453,6 +1485,7 @@ async def run_tick(
                     total_ticks=total_ticks,
                     all_personas=personas,
                     realism_config=sim_realism_config,
+                    platform_names=[p["name"] for p in active_platforms] if active_platforms else None,
                 )
                 for p in active_wave_personas
             ],
@@ -1482,22 +1515,22 @@ async def run_tick(
 
                 if action_type == "post" and action.get("content"):
                     platform_val = action.get("platform", "feedbook")
-                    try:
-                        platform = Platform(platform_val)
-                    except ValueError:
-                        platform = Platform.feedbook
+                    # Validierung: nur aktive Plattformen erlauben
+                    valid_platforms = [p["name"] for p in active_platforms] if active_platforms else ["feedbook", "threadit"]
+                    if platform_val not in valid_platforms:
+                        platform_val = valid_platforms[0] if valid_platforms else "feedbook"
 
                     post = Post(
                         simulation_id=simulation_id,
                         author_id=persona.id,
-                        platform=platform,
+                        platform=platform_val,
                         content=action["content"],
                         ingame_day=ingame_day,
                         subreddit=action.get("subreddit"),
                     )
                     db.add(post)
                     new_posts_count += 1
-                    action_summary = f"Post auf {platform.value}: {action['content'][:60]}"
+                    action_summary = f"Post auf {platform_val}: {action['content'][:60]}"
                     persona_was_active = True
 
                 elif action_type == "react" and action.get("react_to_post_id"):
