@@ -12,6 +12,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <script>
+    // Prevent flash of wrong theme before Angular bootstraps
+    (function() {
+      var t = localStorage.getItem('theme');
+      var d = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme:dark)').matches;
+      document.documentElement.classList.add(d ? 'dark' : 'light');
+    })();
+  </script>
   <app-root></app-root>
 </body>
 </html>

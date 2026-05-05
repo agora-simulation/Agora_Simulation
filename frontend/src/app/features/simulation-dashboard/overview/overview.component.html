@@ -11,7 +11,7 @@
      ============================================================ -->
 @if (isSimulationActive() || simulation()?.status === 'research_complete') {
   <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); display: flex; align-items: center; gap: 14px;"
-       [style.background]="simulation()?.status === 'research_complete' ? 'linear-gradient(135deg, rgba(90,159,214,0.12) 0%, rgba(165,116,204,0.10) 100%)' : 'linear-gradient(135deg, rgba(230,183,113,0.12) 0%, rgba(230,160,64,0.10) 100%)'"
+       [style.background]="simulation()?.status === 'research_complete' ? 'linear-gradient(135deg, var(--info-l) 0%, var(--purple-l) 100%)' : 'linear-gradient(135deg, var(--primary-l) 0%, var(--warning-l) 100%)'"
        [style.border]="simulation()?.status === 'failed' ? '1px solid var(--danger)' : '1px solid transparent'"
        role="status" aria-live="polite">
 
@@ -61,7 +61,7 @@
 }
 
 @if (simulation()?.status === 'failed') {
-  <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); background: var(--danger-l); border: 1px solid rgba(224, 90, 74, 0.25); display: flex; align-items: center; gap: 14px;">
+  <div class="animate-fade-in" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--radius); background: var(--danger-l); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); display: flex; align-items: center; gap: 14px;">
     <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--danger); display: flex; align-items: center; justify-content: center;">
       <i class="pi pi-times" style="color: var(--primary-text); font-size: 16px;"></i>
     </div>
@@ -236,7 +236,7 @@
          title="Sentiment: Gewichteter Durchschnitt aller Meinungsdimensionen (Qualitaet, Preis, Vertrauen etc.) ueber alle Personas. Positiv = ueberwiegend Zustimmung, Negativ = ueberwiegend Ablehnung.">
       <i class="pi pi-heart" style="font-size: 22px; color: var(--primary); margin-bottom: 12px; display: block;"></i>
       <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
-           [style.color]="kpis().sentiment.overall > 0.1 ? '#15803d' : kpis().sentiment.overall < -0.1 ? '#c8321f' : '#6b675c'">
+           [style.color]="kpis().sentiment.overall > 0.1 ? 'var(--sentiment-pos)' : kpis().sentiment.overall < -0.1 ? 'var(--sentiment-neg)' : 'var(--sentiment-neu)'">
         {{ kpis().sentiment.positive_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">{{ getSentimentLabel(kpis().sentiment.overall) }}</div>
@@ -289,9 +289,9 @@
     <div class="card card-hover" style="padding: 20px;"
          title="Churn Risk: Anteil der Personas die das Produkt wahrscheinlich ablehnen wuerden. Basiert auf negativen Meinungsdimensionen und hohem Neurotizismus. Ueber 20% = kritisch.">
       <i class="pi pi-exclamation-triangle" style="font-size: 22px; margin-bottom: 12px; display: block;"
-         [style.color]="kpis().churn_risk.at_risk_pct > 20 ? '#c8321f' : '#a16207'"></i>
+         [style.color]="kpis().churn_risk.at_risk_pct > 20 ? 'var(--churn-high)' : 'var(--churn-mid)'"></i>
       <div style="font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;"
-           [style.color]="kpis().churn_risk.at_risk_pct > 20 ? '#c8321f' : kpis().churn_risk.at_risk_pct > 10 ? '#a16207' : '#15803d'">
+           [style.color]="kpis().churn_risk.at_risk_pct > 20 ? 'var(--churn-high)' : kpis().churn_risk.at_risk_pct > 10 ? 'var(--churn-mid)' : 'var(--churn-low)'">
         {{ kpis().churn_risk.at_risk_pct }}<span style="font-size: 20px; color: var(--ink-3); font-weight: 600;">%</span>
       </div>
       <div style="font-size: 14px; color: var(--ink-3); font-weight: 500; margin-top: 8px;">Churn Risk</div>
@@ -391,7 +391,7 @@
             <div class="flex justify-between mb-1" style="font-size: 14px;">
               <span style="color: var(--ink); font-weight: 600;">{{ entry.label }}</span>
               <span class="font-mono" style="font-size: 13px;"
-                    [style.color]="entry.avg > 0.1 ? '#15803d' : entry.avg < -0.1 ? '#c8321f' : '#6b675c'">
+                    [style.color]="entry.avg > 0.1 ? 'var(--sentiment-pos)' : entry.avg < -0.1 ? 'var(--sentiment-neg)' : 'var(--sentiment-neu)'">
                 {{ entry.avg > 0 ? '+' : '' }}{{ entry.avg }}
               </span>
             </div>
@@ -402,7 +402,7 @@
               <div style="position: absolute; top: 0; height: 100%; border-radius: 999px; transition: all 400ms ease;"
                    [style.left]="entry.avg >= 0 ? '50%' : (50 + entry.avg * 50) + '%'"
                    [style.width]="(Math.abs(entry.avg) * 50) + '%'"
-                   [style.background]="entry.avg > 0.1 ? '#15803d' : entry.avg < -0.1 ? '#c8321f' : '#6b675c'">
+                   [style.background]="entry.avg > 0.1 ? 'var(--sentiment-pos)' : entry.avg < -0.1 ? 'var(--sentiment-neg)' : 'var(--sentiment-neu)'">
               </div>
             </div>
             <div class="flex justify-between" style="font-size: 12px; color: var(--ink-4); margin-top: 2px;">

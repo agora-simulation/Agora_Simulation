@@ -29,7 +29,9 @@
   flex-shrink: 0;
   overflow-y: auto;
   box-shadow: 1px 0 8px rgba(0, 0, 0, 0.15);
+  transition: background-color 250ms ease, box-shadow 250ms ease;
 }
+
 
 .sidebar-brand {
   padding: 22px 18px 18px;
@@ -213,7 +215,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--overlay);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 9999;

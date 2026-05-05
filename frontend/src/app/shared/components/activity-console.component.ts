@@ -116,7 +116,7 @@ interface LogLine {
     .activity-console {
       background: var(--surface);
       border-top: 2px solid var(--ink);
-      box-shadow: 0 -4px 14px rgba(14, 14, 12, 0.06);
+      box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.06);
       display: flex;
       flex-direction: column;
       max-height: 220px;

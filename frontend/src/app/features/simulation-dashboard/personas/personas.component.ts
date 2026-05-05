@@ -8,8 +8,9 @@ import { EChartsOption } from 'echarts';
 import * as echarts from 'echarts';
 import { PersonaService } from '../../../core/services/persona.service';
 import { Persona, ChatMessage, Conversation, ActorType, ACTOR_TYPE_LABELS, ACTOR_TYPE_ICONS, ACTOR_TYPE_COLORS } from '../../../core/models/persona.model';
-import { CHART, tooltipStyle, classifyMood as classifyMoodShared, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
+import { getChartColors, getTooltipStyle, classifyMood as classifyMoodShared, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
 import type { MoodCategory } from '../../../shared/chart-theme';
+import { ThemeService } from '../../../core/services/theme.service';
 
 export type SortKey = 'name' | 'mood' | 'skeptic' | 'reach';
 export type MoodKey = MoodCategory;
@@ -24,6 +25,7 @@ export type MoodKey = MoodCategory;
 export class PersonasComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private personaService = inject(PersonaService);
+  private theme = inject(ThemeService);
 
   personas = signal<Persona[]>([]);
   filteredPersonas = signal<Persona[]>([]);
@@ -242,14 +244,16 @@ export class PersonasComponent implements OnInit {
       dims.personal_relevance,
     ].map(v => Math.round(((v + 1) / 2) * 100) / 100);
 
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
     this.radarChart.set({
-      tooltip: { trigger: 'item', ...tooltipStyle },
+      tooltip: { trigger: 'item', ...getTooltipStyle(isDark) },
       radar: {
         indicator: indicators,
         shape: 'polygon',
         radius: '65%',
-        axisName: { color: '#a89171', fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(230,183,113,0.08)' } },
+        axisName: { color: C.inkMute, fontSize: 11 },
+        splitLine: { lineStyle: { color: isDark ? 'rgba(230,183,113,0.08)' : 'rgba(120,95,55,0.08)' } },
         splitArea: { show: false },
       },
       series: [{
@@ -257,9 +261,9 @@ export class PersonasComponent implements OnInit {
         data: [{
           value: values,
           name: 'Meinung',
-          itemStyle: { color: CHART.feedbook },
-          lineStyle: { color: CHART.feedbook, width: 2 },
-          areaStyle: { color: CHART.feedbook, opacity: 0.15 },
+          itemStyle: { color: C.feedbook },
+          lineStyle: { color: C.feedbook, width: 2 },
+          areaStyle: { color: C.feedbook, opacity: 0.15 },
         }],
       }],
     });
@@ -330,9 +334,10 @@ export class PersonasComponent implements OnInit {
   }
 
   getTraitColor(val: number): string {
-    if (val > 0.7) return CHART.moss;
-    if (val > 0.4) return CHART.feedbook;
-    return CHART.inkMute;
+    const C = getChartColors(this.theme.isDarkMode());
+    if (val > 0.7) return C.moss;
+    if (val > 0.4) return C.feedbook;
+    return C.inkMute;
   }
 
   // Memory helpers

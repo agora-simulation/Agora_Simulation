@@ -9,7 +9,8 @@ import { SimulationService } from '../../../core/services/simulation.service';
 import { InfluenceEvent } from '../../../core/models/content.model';
 import { Persona } from '../../../core/models/persona.model';
 import { Simulation } from '../../../core/models/simulation.model';
-import { CHART, FONT_MONO, FONT_SANS, tooltipStyle } from '../../../shared/chart-theme';
+import { getChartColors, getTooltipStyle, FONT_MONO, FONT_SANS } from '../../../shared/chart-theme';
+import { ThemeService } from '../../../core/services/theme.service';
 
 @Component({
   selector: 'app-influence',
@@ -23,6 +24,7 @@ export class InfluenceComponent implements OnInit {
   private personaService = inject(PersonaService);
   private postService = inject(PostService);
   private simService = inject(SimulationService);
+  private theme = inject(ThemeService);
 
   events = signal<InfluenceEvent[]>([]);
   personas = signal<Persona[]>([]);
@@ -116,6 +118,9 @@ export class InfluenceComponent implements OnInit {
   private buildSankeyChart(events: InfluenceEvent[], personas: Persona[]) {
     if (events.length === 0) return;
 
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     const nameMap = new Map(personas.map(p => [p.id, p.name]));
 
     // Count influence relationships
@@ -145,7 +150,7 @@ export class InfluenceComponent implements OnInit {
     topLinks.forEach(l => { usedNodes.add(l.source); usedNodes.add(l.target); });
 
     this.sankeyChart.set({
-      tooltip: { trigger: 'item', ...tooltipStyle },
+      tooltip: { trigger: 'item', ...getTooltipStyle(isDark) },
       series: [{
         type: 'sankey',
         layout: 'none',
@@ -155,7 +160,7 @@ export class InfluenceComponent implements OnInit {
         nodeGap: 14,
         data: Array.from(usedNodes).map(name => ({
           name,
-          itemStyle: { color: CHART.feedbook, borderColor: 'rgba(90,159,214,0.4)', borderWidth: 1 },
+          itemStyle: { color: C.feedbook, borderColor: isDark ? 'rgba(90,159,214,0.4)' : 'rgba(42,122,184,0.3)', borderWidth: 1 },
         })),
         links: topLinks,
         lineStyle: { color: 'gradient', opacity: 0.35, curveness: 0.5 },
@@ -163,13 +168,16 @@ export class InfluenceComponent implements OnInit {
           fontFamily: FONT_SANS,
           fontSize: 13,
           fontWeight: 500,
-          color: CHART.ink,
+          color: C.ink,
         },
       }],
     });
   }
 
   private buildTopInfluencers(events: InfluenceEvent[], personas: Persona[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     const countMap = new Map<string, number>();
     for (const event of events) {
       countMap.set(event.source_persona_id, (countMap.get(event.source_persona_id) || 0) + 1);
@@ -214,6 +222,9 @@ export class InfluenceComponent implements OnInit {
   }
 
   private buildTypeBreakdown(events: InfluenceEvent[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     const typeMap = new Map<string, number>();
     for (const e of events) {
       typeMap.set(e.influence_type, (typeMap.get(e.influence_type) || 0) + 1);
@@ -227,35 +238,35 @@ export class InfluenceComponent implements OnInit {
     };
 
     const typeColors: Record<string, string> = {
-      'opinion_shift': CHART.vermillion,
-      'positive_reaction': CHART.moss,
-      'negative_reaction': CHART.rust,
-      'engagement': CHART.feedbook,
+      'opinion_shift': C.vermillion,
+      'positive_reaction': C.moss,
+      'negative_reaction': C.rust,
+      'engagement': C.feedbook,
     };
 
     const data = Array.from(typeMap.entries()).map(([type, count]) => ({
       value: count,
       name: typeLabels[type] || type,
-      itemStyle: { color: typeColors[type] || CHART.inkMute },
+      itemStyle: { color: typeColors[type] || C.inkMute },
     }));
 
     this.typeBreakdownChart.set({
-      tooltip: { trigger: 'item', ...tooltipStyle },
+      tooltip: { trigger: 'item', ...getTooltipStyle(isDark) },
       series: [{
         type: 'pie',
         radius: ['50%', '75%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderColor: CHART.paper, borderWidth: 3, borderRadius: 4 },
+        itemStyle: { borderColor: C.paper, borderWidth: 3, borderRadius: 4 },
         label: {
           show: true,
           formatter: '{b}\n{c} · {d}%',
-          color: CHART.ink,
+          color: C.ink,
           fontFamily: FONT_SANS,
           fontSize: 13,
           fontWeight: 500,
           lineHeight: 18,
         },
-        labelLine: { lineStyle: { color: CHART.paperEdge, width: 1 } },
+        labelLine: { lineStyle: { color: C.paperEdge, width: 1 } },
         data,
       }],
     });

@@ -3,11 +3,12 @@ import { ActivatedRoute } from '@angular/router';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { PostService } from '../../../core/services/post.service';
 import { SimulationService } from '../../../core/services/simulation.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { Post } from '../../../core/models/content.model';
 import { TickSnapshot } from '../../../core/models/simulation.model';
 import { EChartsOption } from 'echarts';
 import * as echarts from 'echarts';
-import { CHART, FONT_MONO, FONT_SANS, tooltipStyle, axisCommon, legendCommon } from '../../../shared/chart-theme';
+import { getChartColors, getTooltipStyle, getAxisCommon, getLegendCommon, FONT_MONO, FONT_SANS } from '../../../shared/chart-theme';
 
 @Component({
   selector: 'app-sentiment',
@@ -20,6 +21,7 @@ export class SentimentComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private postService = inject(PostService);
   private simService = inject(SimulationService);
+  private theme = inject(ThemeService);
 
   platformChart = signal<EChartsOption>({});
   activityChart = signal<EChartsOption>({});
@@ -69,55 +71,61 @@ export class SentimentComponent implements OnInit {
   }
 
   private buildPlatformChart(posts: Post[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     const feedbook = posts.filter(p => p.platform === 'feedbook').length;
     const threadit = posts.filter(p => p.platform === 'threadit').length;
     this.totalPosts.set(feedbook + threadit);
 
     this.platformChart.set({
-      tooltip: { trigger: 'item', ...tooltipStyle },
-      legend: legendCommon(['FeedBook', 'Threadit']),
+      tooltip: { trigger: 'item', ...getTooltipStyle(isDark) },
+      legend: getLegendCommon(isDark, ['FeedBook', 'Threadit']),
       series: [{
         type: 'pie',
         radius: ['58%', '80%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderColor: CHART.paper, borderWidth: 3, borderRadius: 4 },
+        itemStyle: { borderColor: C.paper, borderWidth: 3, borderRadius: 4 },
         label: {
           show: true,
           formatter: '{b}\n{c} · {d}%',
-          color: CHART.ink,
+          color: C.ink,
           fontFamily: FONT_SANS,
           fontSize: 12,
           fontWeight: 500,
           lineHeight: 16,
         },
-        labelLine: { lineStyle: { color: CHART.paperEdge, width: 1 } },
+        labelLine: { lineStyle: { color: C.paperEdge, width: 1 } },
         data: [
-          { value: feedbook, name: 'FeedBook', itemStyle: { color: CHART.feedbook } },
-          { value: threadit, name: 'Threadit', itemStyle: { color: CHART.threadit } },
+          { value: feedbook, name: 'FeedBook', itemStyle: { color: C.feedbook } },
+          { value: threadit, name: 'Threadit', itemStyle: { color: C.threadit } },
         ],
       }],
     });
   }
 
   private buildActivityChart(ticks: TickSnapshot[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     this.activityChart.set({
-      tooltip: { trigger: 'axis', ...tooltipStyle },
+      tooltip: { trigger: 'axis', ...getTooltipStyle(isDark) },
       grid: { top: 16, right: 16, bottom: 32, left: 44 },
       xAxis: {
         type: 'category',
         data: ticks.map(t => `T${t.ingame_day}`),
-        ...axisCommon({ splitLine: { show: false } }),
+        ...getAxisCommon(isDark, { splitLine: { show: false } }),
       },
-      yAxis: { type: 'value', ...axisCommon() },
+      yAxis: { type: 'value', ...getAxisCommon(isDark) },
       series: [{
         type: 'line',
         data: ticks.map(t => t.snapshot.personas_active),
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        lineStyle: { color: CHART.vermillion, width: 2 },
-        itemStyle: { color: CHART.vermillion, borderColor: CHART.paperDeep, borderWidth: 2 },
-        areaStyle: { color: CHART.vermillion, opacity: 0.12 },
+        lineStyle: { color: C.vermillion, width: 2 },
+        itemStyle: { color: C.vermillion, borderColor: C.paperDeep, borderWidth: 2 },
+        areaStyle: { color: C.vermillion, opacity: 0.12 },
         name: 'Aktive Personas',
       }],
     });
@@ -140,9 +148,12 @@ export class SentimentComponent implements OnInit {
   }
 
   private buildPolarizationChart(index: number) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     // Gauge 0-1 (Standardabweichung der Meinungen)
     const pct = Math.round(Math.min(index / 0.7 * 100, 100)); // 0.7 = max expected stdev
-    const color = pct < 30 ? CHART.moss : pct < 60 ? CHART.threadit : CHART.rust;
+    const color = pct < 30 ? C.moss : pct < 60 ? C.threadit : C.rust;
 
     this.polarizationChart.set({
       tooltip: { formatter: `Polarisierung: ${(index).toFixed(3)}` },
@@ -156,14 +167,14 @@ export class SentimentComponent implements OnInit {
         pointer: { show: false },
         progress: { show: true, overlap: false, roundCap: true, clip: false,
           itemStyle: { color } },
-        axisLine: { lineStyle: { width: 16, color: [[1, 'rgba(230,183,113,0.08)']] } },
+        axisLine: { lineStyle: { width: 16, color: [[1, isDark ? 'rgba(230,183,113,0.08)' : 'rgba(120,95,55,0.08)']] } },
         splitLine: { show: false },
         axisTick: { show: false },
         axisLabel: { show: false },
         detail: {
           valueAnimation: true,
           formatter: `{value}%\nPolarisierung`,
-          color: CHART.ink,
+          color: C.ink,
           fontSize: 14,
           fontWeight: '700',
           lineHeight: 18,
@@ -174,6 +185,9 @@ export class SentimentComponent implements OnInit {
   }
 
   private buildReactionsChart(data: any[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     // Aggregiere pro Tag (über alle Plattformen)
     const dayMap = new Map<number, {likes: number, dislikes: number, shares: number}>();
     for (const r of data) {
@@ -187,50 +201,56 @@ export class SentimentComponent implements OnInit {
     const vals = days.map(d => dayMap.get(d)!);
 
     this.reactionsChart.set({
-      tooltip: { trigger: 'axis', ...tooltipStyle },
-      legend: legendCommon(['Likes', 'Dislikes', 'Shares']),
+      tooltip: { trigger: 'axis', ...getTooltipStyle(isDark) },
+      legend: getLegendCommon(isDark, ['Likes', 'Dislikes', 'Shares']),
       grid: { top: 16, right: 16, bottom: 44, left: 44 },
       xAxis: {
         type: 'category',
         data: days.map(d => `T${d}`),
-        ...axisCommon({ splitLine: { show: false } }),
+        ...getAxisCommon(isDark, { splitLine: { show: false } }),
       },
-      yAxis: { type: 'value', ...axisCommon() },
+      yAxis: { type: 'value', ...getAxisCommon(isDark) },
       series: [
-        { name: 'Likes', type: 'bar', stack: 'r', data: vals.map(v => v.likes), itemStyle: { color: CHART.moss, borderRadius: [2, 2, 0, 0] }, barWidth: '50%' },
-        { name: 'Dislikes', type: 'bar', stack: 'r', data: vals.map(v => v.dislikes), itemStyle: { color: CHART.rust } },
-        { name: 'Shares', type: 'bar', stack: 'r', data: vals.map(v => v.shares), itemStyle: { color: CHART.feedbook } },
+        { name: 'Likes', type: 'bar', stack: 'r', data: vals.map(v => v.likes), itemStyle: { color: C.moss, borderRadius: [2, 2, 0, 0] }, barWidth: '50%' },
+        { name: 'Dislikes', type: 'bar', stack: 'r', data: vals.map(v => v.dislikes), itemStyle: { color: C.rust } },
+        { name: 'Shares', type: 'bar', stack: 'r', data: vals.map(v => v.shares), itemStyle: { color: C.feedbook } },
       ],
     });
   }
 
   private buildEngagementChart(data: any[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     this.engagementChart.set({
-      tooltip: { trigger: 'axis', ...tooltipStyle },
+      tooltip: { trigger: 'axis', ...getTooltipStyle(isDark) },
       grid: { top: 16, right: 16, bottom: 32, left: 44 },
       xAxis: {
         type: 'category',
         data: data.map(d => `T${d.ingame_day}`),
-        ...axisCommon({ splitLine: { show: false } }),
+        ...getAxisCommon(isDark, { splitLine: { show: false } }),
       },
-      yAxis: { type: 'value', ...axisCommon() },
+      yAxis: { type: 'value', ...getAxisCommon(isDark) },
       series: [{
         type: 'line',
         data: data.map(d => d.engagement_rate),
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        lineStyle: { color: CHART.feedbook, width: 2 },
-        itemStyle: { color: CHART.feedbook, borderColor: CHART.paperDeep, borderWidth: 2 },
-        areaStyle: { color: CHART.feedbook, opacity: 0.1 },
-        name: 'Kommentare / Beitr\u00e4ge',
+        lineStyle: { color: C.feedbook, width: 2 },
+        itemStyle: { color: C.feedbook, borderColor: C.paperDeep, borderWidth: 2 },
+        areaStyle: { color: C.feedbook, opacity: 0.1 },
+        name: 'Kommentare / Beiträge',
       }],
     });
   }
 
   private buildOpinionRadarChart(dims: any) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     const labels: Record<string, string> = {
-      product_quality: 'Qualit\u00e4t',
+      product_quality: 'Qualität',
       price_fairness: 'Preis',
       brand_trust: 'Vertrauen',
       innovation: 'Innovation',
@@ -247,31 +267,31 @@ export class SentimentComponent implements OnInit {
     if (dims.non_skeptic) {
       series.push({
         value: keys.map(k => normalize(dims.non_skeptic[k] || 0)),
-        name: 'Bef\u00fcrworter',
-        itemStyle: { color: CHART.moss },
-        lineStyle: { color: CHART.moss, width: 2 },
-        areaStyle: { color: CHART.moss, opacity: 0.1 },
+        name: 'Befürworter',
+        itemStyle: { color: C.moss },
+        lineStyle: { color: C.moss, width: 2 },
+        areaStyle: { color: C.moss, opacity: 0.1 },
       });
     }
     if (dims.skeptic) {
       series.push({
         value: keys.map(k => normalize(dims.skeptic[k] || 0)),
         name: 'Skeptiker',
-        itemStyle: { color: CHART.vermillion },
-        lineStyle: { color: CHART.vermillion, width: 2 },
-        areaStyle: { color: CHART.vermillion, opacity: 0.1 },
+        itemStyle: { color: C.vermillion },
+        lineStyle: { color: C.vermillion, width: 2 },
+        areaStyle: { color: C.vermillion, opacity: 0.1 },
       });
     }
 
     this.opinionRadarChart.set({
-      tooltip: { trigger: 'item', ...tooltipStyle },
-      legend: { data: series.map(s => s.name), bottom: 0, textStyle: { color: CHART.inkMute, fontSize: 12 } },
+      tooltip: { trigger: 'item', ...getTooltipStyle(isDark) },
+      legend: { data: series.map(s => s.name), bottom: 0, textStyle: { color: C.inkMute, fontSize: 12 } },
       radar: {
         indicator: indicators,
         shape: 'polygon',
         radius: '60%',
-        axisName: { color: CHART.inkMute, fontSize: 11 },
-        splitLine: { lineStyle: { color: 'rgba(230,183,113,0.08)' } },
+        axisName: { color: C.inkMute, fontSize: 11 },
+        splitLine: { lineStyle: { color: isDark ? 'rgba(230,183,113,0.08)' : 'rgba(120,95,55,0.08)' } },
         splitArea: { show: false },
       },
       series: [{ type: 'radar', data: series }],
@@ -279,6 +299,9 @@ export class SentimentComponent implements OnInit {
   }
 
   private buildClusterChart(ticks: TickSnapshot[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+
     const days = ticks.map(t => `T${t.ingame_day}`);
     const posSize = ticks.map(t => t.snapshot.echo_chamber_clusters![0]?.personas?.length || 0);
     const negSize = ticks.map(t => t.snapshot.echo_chamber_clusters![1]?.personas?.length || 0);
@@ -286,23 +309,23 @@ export class SentimentComponent implements OnInit {
     const negOpinion = ticks.map(t => t.snapshot.echo_chamber_clusters![1]?.avg_opinion || 0);
 
     this.clusterChart.set({
-      tooltip: { trigger: 'axis', ...tooltipStyle },
-      legend: legendCommon(['Bef\u00fcrworter (Gr\u00f6\u00dfe)', 'Skeptiker (Gr\u00f6\u00dfe)', 'Bef\u00fcrworter (Meinung)', 'Skeptiker (Meinung)']),
+      tooltip: { trigger: 'axis', ...getTooltipStyle(isDark) },
+      legend: getLegendCommon(isDark, ['Befürworter (Größe)', 'Skeptiker (Größe)', 'Befürworter (Meinung)', 'Skeptiker (Meinung)']),
       grid: { top: 16, right: 16, bottom: 60, left: 44 },
       xAxis: {
         type: 'category',
         data: days,
-        ...axisCommon({ splitLine: { show: false } }),
+        ...getAxisCommon(isDark, { splitLine: { show: false } }),
       },
       yAxis: [
-        { type: 'value', name: 'Personas', ...axisCommon() },
-        { type: 'value', name: 'Meinung', min: -1, max: 1, ...axisCommon(), position: 'right' as any },
+        { type: 'value', name: 'Personas', ...getAxisCommon(isDark) },
+        { type: 'value', name: 'Meinung', min: -1, max: 1, ...getAxisCommon(isDark), position: 'right' as any },
       ],
       series: [
-        { name: 'Bef\u00fcrworter (Gr\u00f6\u00dfe)', type: 'bar', data: posSize, itemStyle: { color: CHART.moss, opacity: 0.6 }, barWidth: '20%' },
-        { name: 'Skeptiker (Gr\u00f6\u00dfe)', type: 'bar', data: negSize, itemStyle: { color: CHART.vermillion, opacity: 0.6 }, barWidth: '20%' },
-        { name: 'Bef\u00fcrworter (Meinung)', type: 'line', yAxisIndex: 1, data: posOpinion, lineStyle: { color: CHART.moss, width: 2 }, itemStyle: { color: CHART.moss }, smooth: true },
-        { name: 'Skeptiker (Meinung)', type: 'line', yAxisIndex: 1, data: negOpinion, lineStyle: { color: CHART.vermillion, width: 2 }, itemStyle: { color: CHART.vermillion }, smooth: true },
+        { name: 'Befürworter (Größe)', type: 'bar', data: posSize, itemStyle: { color: C.moss, opacity: 0.6 }, barWidth: '20%' },
+        { name: 'Skeptiker (Größe)', type: 'bar', data: negSize, itemStyle: { color: C.vermillion, opacity: 0.6 }, barWidth: '20%' },
+        { name: 'Befürworter (Meinung)', type: 'line', yAxisIndex: 1, data: posOpinion, lineStyle: { color: C.moss, width: 2 }, itemStyle: { color: C.moss }, smooth: true },
+        { name: 'Skeptiker (Meinung)', type: 'line', yAxisIndex: 1, data: negOpinion, lineStyle: { color: C.vermillion, width: 2 }, itemStyle: { color: C.vermillion }, smooth: true },
       ],
     });
   }

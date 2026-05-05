@@ -520,12 +520,12 @@
   }
   .persona-row:hover {
     background: var(--surface-2);
-    border-left-color: rgba(45,125,255,0.15);
+    border-left-color: color-mix(in srgb, var(--primary) 15%, transparent);
   }
   .persona-row-active {
-    background: linear-gradient(90deg, rgba(45,125,255,0.08), var(--surface-3)) !important;
+    background: linear-gradient(90deg, var(--primary-l), var(--surface-3)) !important;
     border-left-color: var(--primary) !important;
-    box-shadow: inset 3px 0 8px rgba(37,99,235,0.06);
+    box-shadow: inset 3px 0 8px color-mix(in srgb, var(--primary) 6%, transparent);
   }
 
   .avatar-bubble {
@@ -665,7 +665,7 @@
     top: 6px;
     bottom: 6px;
     width: 2px;
-    background: linear-gradient(to bottom, var(--primary), rgba(45,125,255,0.15));
+    background: linear-gradient(to bottom, var(--primary), color-mix(in srgb, var(--primary) 15%, transparent));
     border-radius: 1px;
   }
   .tl-item {
@@ -682,7 +682,7 @@
     border-radius: 50%;
     background: var(--primary);
     border: 2px solid var(--surface);
-    box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
   }
   .tl-tick {
     display: block;
@@ -756,15 +756,15 @@
   }
   .memory-item:hover {
     border-left-color: var(--cyan);
-    box-shadow: -3px 0 16px rgba(0,196,238,0.12);
+    box-shadow: -3px 0 16px color-mix(in srgb, var(--cyan) 12%, transparent);
   }
   .memory-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .memory-tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 10px; border-radius: 999px; }
-  .memory-conflict { background: rgba(239,68,68,0.15); color: var(--danger); }
-  .memory-persuasion { background: rgba(16,185,129,0.15); color: var(--success); }
-  .memory-social { background: rgba(45,125,255,0.15); color: var(--primary); }
-  .memory-surprise { background: rgba(245,158,11,0.15); color: var(--warning); }
-  .memory-personal { background: rgba(124,58,237,0.15); color: var(--purple); }
+  .memory-conflict { background: var(--danger-l); color: var(--danger); }
+  .memory-persuasion { background: var(--success-l); color: var(--success); }
+  .memory-social { background: var(--primary-l); color: var(--primary); }
+  .memory-surprise { background: var(--warning-l); color: var(--warning); }
+  .memory-personal { background: var(--purple-l); color: var(--purple); }
   .memory-tick { font-size: 12px; color: var(--ink-3); }
   .memory-weight { font-size: 13px; color: var(--warning); margin-left: auto; }
   .memory-text { font-size: 14px; color: var(--ink); margin: 0; line-height: 1.55; }

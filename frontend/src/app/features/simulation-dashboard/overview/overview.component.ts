@@ -10,7 +10,12 @@ import { Post } from '../../../core/models/content.model';
 import { Persona } from '../../../core/models/persona.model';
 import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { CardGlowDirective } from '../../../shared/directives/card-glow.directive';
-import { CHART, FONT_SANS, tooltipStyle, axisCommon, legendCommon, classifyMoodIndex, getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
+import { ThemeService } from '../../../core/services/theme.service';
+import {
+  getChartColors, getTooltipStyle, getAxisCommon, getLegendCommon,
+  getMoodColors, classifyMoodIndex, getMoodColor as getMoodColorShared,
+  FONT_SANS,
+} from '../../../shared/chart-theme';
 
 interface MoodBucket { key: string; label: string; color: string; count: number; }
 
@@ -26,6 +31,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
   private simService = inject(SimulationService);
   private personaService = inject(PersonaService);
   private postService = inject(PostService);
+  private theme = inject(ThemeService);
 
   simulation = signal<Simulation | null>(null);
   stats = signal<SimulationStats | null>(null);
@@ -73,12 +79,14 @@ export class OverviewComponent implements OnInit, OnDestroy {
   });
 
   moodBuckets = computed<MoodBucket[]>(() => {
+    const isDark = this.theme.isDarkMode();
+    const colors = getMoodColors(isDark);
     const buckets: MoodBucket[] = [
-      { key: 'positiv',  label: 'Positiv',   color: CHART.moss,       count: 0 },
-      { key: 'neugier',  label: 'Neugierig', color: CHART.feedbook,   count: 0 },
-      { key: 'neutral',  label: 'Neutral',   color: CHART.inkMute,    count: 0 },
-      { key: 'skepti',   label: 'Skeptisch', color: CHART.threadit,   count: 0 },
-      { key: 'negativ',  label: 'Negativ',   color: CHART.vermillion, count: 0 },
+      { key: 'positiv',  label: 'Positiv',   color: colors[0], count: 0 },
+      { key: 'neugier',  label: 'Neugierig', color: colors[1], count: 0 },
+      { key: 'neutral',  label: 'Neutral',   color: colors[2], count: 0 },
+      { key: 'skepti',   label: 'Skeptisch', color: colors[3], count: 0 },
+      { key: 'negativ',  label: 'Negativ',   color: colors[4], count: 0 },
     ];
     for (const p of this.personas()) {
       const m = (p.current_state?.mood || '').toLowerCase();
@@ -90,16 +98,23 @@ export class OverviewComponent implements OnInit, OnDestroy {
   });
 
   constructor() {
+    // Rebuild all charts when theme or data changes
     effect(() => {
       const buckets = this.moodBuckets();
       this.buildMoodChart(buckets);
+    });
+    effect(() => {
+      const _isDark = this.theme.isDarkMode();
+      const t = this.ticks();
+      if (t.length) this.buildActivityChart(t);
+      const k = this.kpis();
+      if (k) { this.buildEngagementChart(k); this.buildNpsChart(k); }
     });
   }
 
   ngOnInit() {
     this.simId = this.route.parent!.snapshot.params['id'];
     this.loadData();
-    // Auto-Refresh alle 5 Sekunden wenn Simulation aktiv
     this.pollInterval = setInterval(() => {
       const sim = this.simulation();
       if (sim && ['running', 'researching', 'pending'].includes(sim.status)) {
@@ -140,20 +155,16 @@ export class OverviewComponent implements OnInit, OnDestroy {
     const t = this.ticks();
     const sim = this.simulation();
     if (!sim || t.length < 2) return '';
-
-    // Durchschnittliche Dauer pro Tick berechnen
     const timestamps = t.map(tick => new Date(tick.created_at).getTime()).sort((a, b) => a - b);
     const diffs: number[] = [];
     for (let i = 1; i < timestamps.length; i++) {
       diffs.push(timestamps[i] - timestamps[i - 1]);
     }
     if (diffs.length === 0) return '';
-
     const avgMs = diffs.reduce((a, b) => a + b, 0) / diffs.length;
     const remainingTicks = sim.total_ticks - sim.current_tick;
     const remainingMs = avgMs * remainingTicks;
     const remainingMin = Math.ceil(remainingMs / 60000);
-
     if (remainingMin < 1) return '< 1 Min';
     if (remainingMin < 60) return `${remainingMin} Min`;
     const h = Math.floor(remainingMin / 60);
@@ -169,7 +180,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
   private loadData() {
     this.simService.getById(this.simId).subscribe(s => {
       this.simulation.set(s);
-      // MarketContext laden wenn Deep Mode
       if (s.research_mode === 'deep') {
         this.simService.getMarketContext(this.simId).subscribe({
           next: ctx => this.marketContext.set(ctx),
@@ -192,7 +202,6 @@ export class OverviewComponent implements OnInit, OnDestroy {
     this.simService.resume(this.simId).subscribe({
       next: () => {
         this.resuming.set(false);
-        // Force parent dashboard to reload (picks up new status + reconnects SSE)
         window.location.reload();
       },
       error: () => this.resuming.set(false),
@@ -211,51 +220,52 @@ export class OverviewComponent implements OnInit, OnDestroy {
   }
 
   private buildActivityChart(ticks: TickSnapshot[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
     this.activityChartOption.set({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', ...tooltipStyle },
-      legend: legendCommon(['Beiträge', 'Kommentare', 'Reaktionen']),
+      tooltip: { trigger: 'axis', ...getTooltipStyle(isDark) },
+      legend: getLegendCommon(isDark, ['Beiträge', 'Kommentare', 'Reaktionen']),
       grid: { top: 16, right: 16, bottom: 44, left: 44 },
       xAxis: {
         type: 'category',
         data: ticks.map(t => `${t.ingame_day}`),
-        ...axisCommon({
-          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11, formatter: (v: string) => `T${v}` },
+        ...getAxisCommon(isDark, {
+          axisLabel: { color: C.inkMute, fontFamily: FONT_SANS, fontSize: 11, formatter: (v: string) => `T${v}` },
           splitLine: { show: false },
         }),
       },
       yAxis: {
         type: 'value',
-        ...axisCommon({
-          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11 },
-        }),
+        ...getAxisCommon(isDark),
       },
       series: [
-        { name: 'Beiträge',   type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_posts),     itemStyle: { color: CHART.ink, borderRadius: [2, 2, 0, 0] }, barWidth: '55%' },
-        { name: 'Kommentare', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_comments),  itemStyle: { color: CHART.vermillion } },
-        { name: 'Reaktionen', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_reactions), itemStyle: { color: CHART.threadit } },
+        { name: 'Beiträge',   type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_posts),     itemStyle: { color: C.ink, borderRadius: [2, 2, 0, 0] }, barWidth: '55%' },
+        { name: 'Kommentare', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_comments),  itemStyle: { color: C.vermillion } },
+        { name: 'Reaktionen', type: 'bar', stack: 'a', data: ticks.map(t => t.snapshot.new_reactions), itemStyle: { color: C.threadit } },
       ],
     });
   }
 
   private buildMoodChart(buckets: MoodBucket[]) {
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
     this.moodChartOption.set({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, ...tooltipStyle },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, ...getTooltipStyle(isDark) },
       grid: { top: 8, right: 16, bottom: 28, left: 90 },
       xAxis: {
         type: 'value',
-        ...axisCommon({
-          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11 },
-          splitLine: { lineStyle: { color: CHART.paperEdge, type: 'dashed' } },
+        ...getAxisCommon(isDark, {
+          splitLine: { lineStyle: { color: C.paperEdge, type: 'dashed' } },
         }),
       },
       yAxis: {
         type: 'category',
         data: buckets.map(b => b.label),
         inverse: true,
-        ...axisCommon({
-          axisLabel: { color: CHART.ink, fontFamily: FONT_SANS, fontSize: 12, fontWeight: 500 },
+        ...getAxisCommon(isDark, {
+          axisLabel: { color: C.ink, fontFamily: FONT_SANS, fontSize: 12, fontWeight: 500 },
           splitLine: { show: false },
         }),
       },
@@ -264,7 +274,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
           type: 'bar',
           data: buckets.map(b => ({ value: b.count, itemStyle: { color: b.color, borderRadius: [0, 4, 4, 0] } })),
           barWidth: 22,
-          label: { show: true, position: 'right', color: CHART.ink, fontFamily: FONT_SANS, fontSize: 11, fontWeight: 600 },
+          label: { show: true, position: 'right', color: C.ink, fontFamily: FONT_SANS, fontSize: 11, fontWeight: 600 },
         },
       ],
     });
@@ -275,9 +285,10 @@ export class OverviewComponent implements OnInit, OnDestroy {
   }
 
   getNpsColor(score: number): string {
-    if (score >= 50) return CHART.moss;
-    if (score >= 0) return CHART.threadit;
-    return CHART.vermillion;
+    const C = getChartColors(this.theme.isDarkMode());
+    if (score >= 50) return C.moss;
+    if (score >= 0) return C.threadit;
+    return C.vermillion;
   }
 
   getSentimentLabel(score: number): string {
@@ -290,24 +301,24 @@ export class OverviewComponent implements OnInit, OnDestroy {
 
   private buildEngagementChart(kpis: any) {
     if (!kpis?.engagement_rate?.length) return;
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
     const data = kpis.engagement_rate;
     this.engagementChartOption.set({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', ...tooltipStyle },
+      tooltip: { trigger: 'axis', ...getTooltipStyle(isDark) },
       grid: { top: 16, right: 16, bottom: 44, left: 44 },
       xAxis: {
         type: 'category',
         data: data.map((d: any) => `${d.day}`),
-        ...axisCommon({
-          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11, formatter: (v: string) => `T${v}` },
+        ...getAxisCommon(isDark, {
+          axisLabel: { color: C.inkMute, fontFamily: FONT_SANS, fontSize: 11, formatter: (v: string) => `T${v}` },
           splitLine: { show: false },
         }),
       },
       yAxis: {
         type: 'value',
-        ...axisCommon({
-          axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11 },
-        }),
+        ...getAxisCommon(isDark),
       },
       series: [
         {
@@ -317,11 +328,11 @@ export class OverviewComponent implements OnInit, OnDestroy {
           smooth: true,
           symbol: 'circle',
           symbolSize: 6,
-          lineStyle: { color: CHART.feedbook, width: 2 },
-          itemStyle: { color: CHART.feedbook },
+          lineStyle: { color: C.feedbook, width: 2 },
+          itemStyle: { color: C.feedbook },
           areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [
-            { offset: 0, color: 'rgba(90, 159, 214, 0.15)' },
-            { offset: 1, color: 'rgba(90, 159, 214, 0.02)' },
+            { offset: 0, color: isDark ? 'rgba(90, 159, 214, 0.15)' : 'rgba(42, 122, 184, 0.12)' },
+            { offset: 1, color: isDark ? 'rgba(90, 159, 214, 0.02)' : 'rgba(42, 122, 184, 0.02)' },
           ]}},
         },
       ],
@@ -330,19 +341,21 @@ export class OverviewComponent implements OnInit, OnDestroy {
 
   private buildNpsChart(kpis: any) {
     if (!kpis?.nps) return;
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
     const nps = kpis.nps;
     this.npsChartOption.set({
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'item', ...tooltipStyle },
+      tooltip: { trigger: 'item', ...getTooltipStyle(isDark) },
       series: [{
         type: 'pie',
         radius: ['55%', '75%'],
         avoidLabelOverlap: false,
         label: { show: false },
         data: [
-          { value: nps.promoters, name: 'Promoter', itemStyle: { color: CHART.moss } },
-          { value: nps.passives, name: 'Passive', itemStyle: { color: CHART.inkMute } },
-          { value: nps.detractors, name: 'Detractor', itemStyle: { color: CHART.vermillion } },
+          { value: nps.promoters, name: 'Promoter', itemStyle: { color: C.moss } },
+          { value: nps.passives, name: 'Passive', itemStyle: { color: C.inkMute } },
+          { value: nps.detractors, name: 'Detractor', itemStyle: { color: C.vermillion } },
         ],
       }],
     });

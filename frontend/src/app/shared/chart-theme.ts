@@ -1,13 +1,29 @@
 /**
  * Agora Chart Theme — geteilt von allen ECharts-Visualisierungen.
- * Clean, modern, Inter-Sans-Serif, abgestimmt auf die neuen Theme-Variablen.
+ * Supports dark and light themes via getChartColors().
  */
 
-export const CHART = {
-  ink:         '#f4e8d4',
-  inkSoft:     '#e0d0b8',
-  inkMute:     '#a89171',
-  inkFaint:    '#7a6850',
+export interface ChartColors {
+  ink: string;
+  inkSoft: string;
+  inkMute: string;
+  inkFaint: string;
+  paper: string;
+  paperDeep: string;
+  paperEdge: string;
+  vermillion: string;
+  feedbook: string;
+  threadit: string;
+  moss: string;
+  rust: string;
+  slate: string;
+}
+
+const DARK_COLORS: ChartColors = {
+  ink:         '#f7efe3',
+  inkSoft:     '#e8dac6',
+  inkMute:     '#c4a882',
+  inkFaint:    '#9a8468',
   paper:       '#1e1610',
   paperDeep:   '#0c0a08',
   paperEdge:   '#2e2419',
@@ -16,31 +32,72 @@ export const CHART = {
   threadit:    '#e6a040',
   moss:        '#4aba7a',
   rust:        '#e05a4a',
-  slate:       '#a89171',
-} as const;
+  slate:       '#c4a882',
+};
+
+const LIGHT_COLORS: ChartColors = {
+  ink:         '#2c2418',
+  inkSoft:     '#4a3f32',
+  inkMute:     '#7a6b58',
+  inkFaint:    '#a89880',
+  paper:       '#f5eed8',
+  paperDeep:   '#ece4d4',
+  paperEdge:   '#e6dcca',
+  vermillion:  '#c8321f',
+  feedbook:    '#2a7ab8',
+  threadit:    '#c47a10',
+  moss:        '#15803d',
+  rust:        '#c8321f',
+  slate:       '#7a6b58',
+};
+
+/** Returns theme-appropriate chart colors */
+export function getChartColors(isDark: boolean): ChartColors {
+  return isDark ? DARK_COLORS : LIGHT_COLORS;
+}
+
+/** Legacy static export — defaults to dark for backward compat */
+export const CHART = DARK_COLORS;
 
 export const FONT_SANS = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 export const FONT_MONO = "'IBM Plex Mono', ui-monospace, monospace";
 
-/** Standard-Tooltip �� dunkler Hintergrund mit warmem Border */
-export const tooltipStyle = {
-  backgroundColor: '#1e1610',
-  borderColor: 'rgba(230, 183, 113, 0.2)',
-  borderWidth: 1,
-  borderRadius: 8,
-  padding: [10, 14],
-  textStyle: { color: '#f4e8d4', fontFamily: FONT_SANS, fontSize: 12.5, fontWeight: 500 as any },
-  extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.35);',
-};
+/** Theme-aware tooltip style */
+export function getTooltipStyle(isDark: boolean) {
+  const c = getChartColors(isDark);
+  return {
+    backgroundColor: c.paper,
+    borderColor: isDark ? 'rgba(230, 183, 113, 0.2)' : 'rgba(120, 95, 55, 0.15)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: [10, 14],
+    textStyle: { color: c.ink, fontFamily: FONT_SANS, fontSize: 13, fontWeight: 500 as any },
+    extraCssText: isDark
+      ? 'box-shadow: 0 4px 12px rgba(0,0,0,0.35);'
+      : 'box-shadow: 0 4px 12px rgba(120,95,55,0.12);',
+  };
+}
 
-/** Standard-Achsen-Konfiguration */
-export const axisCommon = (overrides: any = {}) => ({
-  axisLine:  { lineStyle: { color: CHART.paperEdge, width: 1 } },
-  axisTick:  { show: false },
-  axisLabel: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 11, ...overrides.axisLabel },
-  splitLine: { lineStyle: { color: 'rgba(230, 183, 113, 0.08)', type: 'dashed' as any } },
-  ...overrides,
-});
+/** Legacy static export */
+export const tooltipStyle = getTooltipStyle(true);
+
+/** Theme-aware axis configuration */
+export function getAxisCommon(isDark: boolean, overrides: any = {}) {
+  const c = getChartColors(isDark);
+  return {
+    axisLine:  { lineStyle: { color: c.paperEdge, width: 1 } },
+    axisTick:  { show: false },
+    axisLabel: { color: c.inkMute, fontFamily: FONT_SANS, fontSize: 11, ...overrides.axisLabel },
+    splitLine: { lineStyle: {
+      color: isDark ? 'rgba(230, 183, 113, 0.08)' : 'rgba(120, 95, 55, 0.08)',
+      type: 'dashed' as any,
+    }},
+    ...overrides,
+  };
+}
+
+/** Legacy static export */
+export const axisCommon = (overrides: any = {}) => getAxisCommon(true, overrides);
 
 /**
  * Mood-Klassifizierung — geteilt von Overview, Personas, etc.
@@ -93,18 +150,35 @@ export function classifyMood(mood: string | undefined): MoodCategory {
   return MOOD_CATEGORIES[classifyMoodIndex(mood || '')];
 }
 
-const MOOD_COLORS = [CHART.moss, CHART.feedbook, CHART.inkMute, CHART.threadit, CHART.vermillion];
+/** Theme-aware mood colors */
+export function getMoodColors(isDark: boolean): string[] {
+  const c = getChartColors(isDark);
+  return [c.moss, c.feedbook, c.inkMute, c.threadit, c.vermillion];
+}
 
+/** Legacy — defaults to dark */
 export function getMoodColor(mood: string | undefined): string {
+  const MOOD_COLORS = [CHART.moss, CHART.feedbook, CHART.inkMute, CHART.threadit, CHART.vermillion];
   return MOOD_COLORS[classifyMoodIndex(mood || '')];
 }
 
+/** Theme-aware mood color */
+export function getMoodColorThemed(mood: string | undefined, isDark: boolean): string {
+  return getMoodColors(isDark)[classifyMoodIndex(mood || '')];
+}
+
 /** Standard-Legende */
-export const legendCommon = (data: string[]) => ({
-  data,
-  bottom: 0,
-  textStyle: { color: CHART.inkMute, fontFamily: FONT_SANS, fontSize: 12 },
-  itemWidth: 10,
-  itemHeight: 10,
-  icon: 'circle',
-});
+export function getLegendCommon(isDark: boolean, data: string[]) {
+  const c = getChartColors(isDark);
+  return {
+    data,
+    bottom: 0,
+    textStyle: { color: c.inkMute, fontFamily: FONT_SANS, fontSize: 12 },
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'circle',
+  };
+}
+
+/** Legacy */
+export const legendCommon = (data: string[]) => getLegendCommon(true, data);

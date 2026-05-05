@@ -86,6 +86,16 @@
           <span class="dot" style="background: var(--success); margin-left: auto;" aria-label="Verbunden"></span>
         </button>
 
+        <button (click)="theme.toggle()" class="nav-link" aria-label="Theme wechseln">
+          @if (theme.isDarkMode()) {
+            <i class="pi pi-sun" aria-hidden="true"></i>
+            <span>Light Mode</span>
+          } @else {
+            <i class="pi pi-moon" aria-hidden="true"></i>
+            <span>Dark Mode</span>
+          }
+        </button>
+
         <button (click)="confirmLogout()" class="nav-link nav-link-danger" aria-label="Abmelden">
           <i class="pi pi-sign-out" aria-hidden="true"></i>
           <span>Abmelden</span>

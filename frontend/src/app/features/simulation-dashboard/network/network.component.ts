@@ -7,11 +7,9 @@ import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import { PersonaService } from '../../../core/services/persona.service';
 import { SimulationService } from '../../../core/services/simulation.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { Persona } from '../../../core/models/persona.model';
-import { getMoodColor as getMoodColorShared } from '../../../shared/chart-theme';
-
-const COLOR_DIM = 'rgba(230,183,113,0.12)';
-const COLOR_EDGE_DIM = 'rgba(230,183,113,0.04)';
+import { getMoodColor as getMoodColorShared, getChartColors } from '../../../shared/chart-theme';
 
 @Component({
   selector: 'app-network',
@@ -23,6 +21,7 @@ export class NetworkComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private personaService = inject(PersonaService);
   private simService = inject(SimulationService);
+  private theme = inject(ThemeService);
 
   graphContainer = viewChild<ElementRef>('graphContainer');
   personas = signal<Persona[]>([]);
@@ -145,6 +144,11 @@ export class NetworkComponent implements OnInit, OnDestroy {
     const container = this.graphContainer()?.nativeElement;
     if (!container || this.personas().length === 0) return;
 
+    const isDark = this.theme.isDarkMode();
+    const C = getChartColors(isDark);
+    const COLOR_DIM = isDark ? 'rgba(230,183,113,0.12)' : 'rgba(120,95,55,0.12)';
+    const COLOR_EDGE_DIM = isDark ? 'rgba(230,183,113,0.04)' : 'rgba(120,95,55,0.04)';
+
     const graph = new Graph();
     const personas = this.personas();
     const personaMap = new Map(personas.map(p => [p.id, p]));
@@ -161,8 +165,8 @@ export class NetworkComponent implements OnInit, OnDestroy {
         x: Math.random() * 100,
         y: Math.random() * 100,
         size,
-        color: persona.is_skeptic ? '#e05a4a' : color,
-        baseColor: persona.is_skeptic ? '#e05a4a' : color,
+        color: persona.is_skeptic ? C.vermillion : color,
+        baseColor: persona.is_skeptic ? C.vermillion : color,
       });
     }
 
@@ -172,10 +176,14 @@ export class NetworkComponent implements OnInit, OnDestroy {
       for (const targetId of connections) {
         if (personaMap.has(targetId) && !graph.hasEdge(persona.id, targetId)) {
           const strength = strengths[targetId] || 1;
+          const alpha = Math.min(0.45, 0.08 + strength * 0.06);
+          const edgeColor = isDark
+            ? `rgba(230, 183, 113, ${alpha})`
+            : `rgba(120, 95, 55, ${alpha})`;
           graph.addEdge(persona.id, targetId, {
             size: Math.max(0.5, Math.min(3, strength * 0.3)),
-            color: `rgba(230, 183, 113, ${Math.min(0.45, 0.08 + strength * 0.06)})`,
-            baseColor: `rgba(230, 183, 113, ${Math.min(0.45, 0.08 + strength * 0.06)})`,
+            color: edgeColor,
+            baseColor: edgeColor,
           });
         }
       }
@@ -191,7 +199,7 @@ export class NetworkComponent implements OnInit, OnDestroy {
       labelFont: "'Inter', system-ui, sans-serif",
       labelSize: 12,
       labelWeight: '500',
-      labelColor: { color: '#f4e8d4' },
+      labelColor: { color: C.ink },
     });
 
     // Dynamic node reducer — applies search/filter dimming
@@ -208,14 +216,14 @@ export class NetworkComponent implements OnInit, OnDestroy {
 
       if (skepticOn) {
         if (persona.is_skeptic) {
-          color = '#e05a4a';
+          color = C.vermillion;
         } else {
           dimmed = true;
         }
       }
       if (influencerOn) {
         if (this.isInfluencer(persona)) {
-          color = '#e6a040';
+          color = C.threadit;
         } else {
           dimmed = true;
         }
